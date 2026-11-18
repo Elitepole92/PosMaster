@@ -85,7 +85,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .modal{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:16px}
 .modal.open{display:flex}
 .modal .back{position:absolute;inset:0;background:rgba(10,12,15,.45)}
-.mcard{position:relative;background:var(--panel);border-radius:16px;padding:18px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.mcard{position:relative;background:var(--panel);border-radius:16px;padding:18px;width:100%;max-width:420px;max-height:calc(100dvh - 32px);overflow:auto;-webkit-overflow-scrolling:touch;box-shadow:0 10px 40px rgba(0,0,0,.3)}
 .mcard h3{margin:0 44px 6px 0;font-size:18px}
 .mcard .x{position:absolute;top:10px;right:10px}
 .mcard p{margin:8px 0;color:var(--muted);font-size:14px}
@@ -93,6 +93,15 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .mcard input{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:600 18px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;margin:4px 0 8px;text-transform:lowercase}
 .mcard .btn{width:100%}
 .mcard hr{border:0;border-top:1px solid var(--line);margin:16px 0 8px}
+.devs{list-style:none;margin:6px 0 0;padding:0;max-height:40vh;overflow:auto}
+.devs li{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--line)}
+.devs li:first-child{border-top:0}
+.devs .dn{flex:1;min-width:0;font-weight:600;font-size:14.5px}
+.devs .dn small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}
+.devs .me{font-size:11px;font-weight:700;color:var(--accent);background:rgba(10,143,163,.1);border-radius:6px;padding:2px 6px;margin-left:6px;vertical-align:1px}
+.devs .ren{border:0;background:none;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;padding:6px}
+.devs .dot{flex-shrink:0}
+.mcard h4{margin:0;font-size:14px}
 .mcard .st{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:12px}
 .empty{padding:40px 16px;text-align:center;color:var(--muted)}
 .ohne-box{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px;margin:6px 0 4px}
@@ -174,6 +183,9 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     <input id="syncIn" placeholder="xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">
     <button class="btn" id="syncUse">Verbinden</button>
     <div class="st"><span class="dot" id="syncDot"></span><span id="syncSt"></span></div>
+    <hr>
+    <h4 id="devH">Geräte in dieser Sync-Gruppe</h4>
+    <ul class="devs" id="syncDevs"></ul>
   </div>
 </div>
 <script src="data.js"></script>
@@ -362,6 +374,35 @@ var Sync=(function(){
   function gen(){ var a=new Uint32Array(12); crypto.getRandomValues(a); return Array.prototype.map.call(a,function(n){return ALPH[n%ALPH.length];}).join(""); }
   var code=lsGet("syncCode",""); if(!RE.test(code)){ code=gen(); lsSet("syncCode",code); }
   var st="idle", last=+lsGet("syncLast","0")||0, timer=null, busy=false, again=false, tries=0;
+  var me=lsGet("deviceId",""); if(!/^[a-z0-9]{10}$/.test(me)){ me=gen().slice(0,10); lsSet("deviceId",me); }
+  function autoName(){
+    var ua=navigator.userAgent||"", dev="Gerät", br="Browser";
+    if(/iPhone/.test(ua)) dev="iPhone"; else if(/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)) dev="iPad";
+    else if(/Macintosh|Mac OS X/.test(ua)) dev="Mac"; else if(/Android/.test(ua)) dev="Android"; else if(/Windows/.test(ua)) dev="Windows-PC"; else if(/Linux/.test(ua)) dev="Linux";
+    var standalone=navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);
+    if(standalone) br="Home-Bildschirm-App"; else if(/Edg\//.test(ua)) br="Edge"; else if(/CriOS|Chrome\//.test(ua)) br="Chrome"; else if(/FxiOS|Firefox\//.test(ua)) br="Firefox"; else if(/Safari\//.test(ua)) br="Safari";
+    return dev+" · "+br;
+  }
+  var myName=lsGet("deviceName","")||autoName();
+  var devs={}; try{ devs=JSON.parse(lsGet("syncDevs","{}"))||{}; }catch(_){ devs={}; }
+  function cleanDevs(o){ var r={}, cut=now()-60*864e5; if(o&&typeof o==="object") Object.keys(o).forEach(function(k){ var d=o[k]; if(d&&/^[a-z0-9]{10}$/.test(k)&&+d.s>cut) r[k]={n:String(d.n||"Gerät").slice(0,40),s:+d.s}; }); return r; }
+  function mergeDevs(A,B){ var r={}; [A,B].forEach(function(o){ Object.keys(o).forEach(function(k){ if(!r[k]||o[k].s>r[k].s) r[k]=o[k]; }); }); return r; }
+  function devCanon(o){ return JSON.stringify(Object.keys(o).sort().map(function(k){return [k,o[k].n,o[k].s];})); }
+  function ago(t){ var m=Math.round((now()-t)/60000); if(m<1) return "gerade eben"; if(m<60) return "vor "+m+" Min."; var h=Math.round(m/60); if(h<24) return "vor "+h+" Std.";
+    return new Date(t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+new Date(t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}); }
+  function devUi(){
+    var ul=document.getElementById("syncDevs"); if(!ul) return;
+    var list=Object.keys(devs).map(function(k){return {id:k,n:devs[k].n,s:devs[k].s};});
+    if(!devs[me]) list.push({id:me,n:myName,s:0});
+    list.sort(function(a,b){ return (a.id===me?-1:b.id===me?1:b.s-a.s); });
+    document.getElementById("devH").textContent="Geräte in dieser Sync-Gruppe ("+list.length+")";
+    ul.innerHTML=list.map(function(d){ var isMe=d.id===me, fresh=d.s&&now()-d.s<15*60000;
+      return '<li><span class="dot '+(fresh?"ok":"offline")+'"></span><span class="dn">'+esc(isMe?myName:d.n)+(isMe?'<span class="me">Dieses Gerät</span>':'')+
+        '<small>'+(d.s?"zuletzt aktiv "+ago(d.s):"noch nicht synchronisiert")+'</small></span>'+(isMe?'<button class="ren" data-ren>Umbenennen</button>':'')+'</li>'; }).join("")+
+      (list.length<2?'<li><span class="dn"><small>Noch kein anderes Gerät verbunden. Gib den Code oben auf deinem anderen Gerät ein.</small></span></li>':'');
+  }
+  function rename(){ var n=prompt("Name für dieses Gerät:",myName); if(n===null) return; n=n.trim().slice(0,40);
+    if(n){ myName=n; lsSet("deviceName",n); } else { lsSet("deviceName",""); myName=autoName(); } devUi(); run(); }
   function url(c){ return "https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/sync/"+c+"?key="+FB.key; }
   function canon(arr){ return JSON.stringify(arr.slice().sort(function(a,b){return a.id<b.id?-1:a.id>b.id?1:0;}).map(function(t){return [t.id,t.done?1:0,t.del?1:0,t.a,t.t];})); }
   function merge(A,B){ var m={}; A.concat(B).forEach(function(t){ var o=m[t.id]; if(!o||t.t>o.t) m[t.id]=t; });
@@ -375,24 +416,30 @@ var Sync=(function(){
     var tm=last?new Date(last).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"";
     t.textContent = st==="sync"?"Synchronisiere …" : st==="ok"?"Synchronisiert"+(tm?" um "+tm:"") : st==="offline"?"Offline – wird später abgeglichen" : st==="error"?"Sync fehlgeschlagen"+(tm?" (zuletzt "+tm+")":"") : "";
     var c=document.getElementById("syncCode"); if(c) c.textContent=fmt(code);
+    devUi();
   }
   function run(){
     if(busy){ again=true; return; }
     if(navigator.onLine===false){ set("offline"); return; }
     busy=true; set("sync"); var c=code;
     fetch(url(c),{cache:"no-store"}).then(function(r){
-      if(r.status===404) return {exists:false,items:[]};
+      if(r.status===404) return {exists:false,items:[],devs:{}};
       if(!r.ok) throw new Error("GET "+r.status);
-      return r.json().then(function(d){ var items=[]; try{ items=cleanTodos(JSON.parse(d.fields.data.stringValue)); }catch(_){}
-        return {exists:true,updateTime:d.updateTime,items:items}; });
+      return r.json().then(function(d){ var items=[], dv={}; try{ var j=JSON.parse(d.fields.data.stringValue);
+          if(Array.isArray(j)) items=cleanTodos(j); else { items=cleanTodos(j.items); dv=cleanDevs(j.devices); } }catch(_){}
+        return {exists:true,updateTime:d.updateTime,items:items,devs:dv}; });
     }).then(function(rem){
       if(c!==code){ again=true; return; }
       var merged=merge(todoAll,rem.items);
       if(canon(merged)!==canon(todoAll)){ todoAll=merged; lsSet("todo",JSON.stringify(todoAll)); rerenderList(); }
-      if(rem.exists && canon(merged)===canon(rem.items)) return;
+      var mine=rem.devs[me], t=now();
+      var meEntry=(!mine||mine.n!==myName||t-mine.s>5*60000)?{n:myName,s:t}:mine;
+      var o={}; o[me]=meEntry; var mdev=mergeDevs(rem.devs,o);
+      devs=mdev; lsSet("syncDevs",JSON.stringify(devs));
+      if(rem.exists && canon(merged)===canon(rem.items) && devCanon(mdev)===devCanon(rem.devs)) return;
       var pre=rem.exists?"&currentDocument.updateTime="+encodeURIComponent(rem.updateTime):"&currentDocument.exists=false";
       return fetch(url(c)+pre,{method:"PATCH",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(merged)},updated:{integerValue:String(now())}}})}).then(function(r){
+        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify({v:2,items:merged,devices:mdev})},updated:{integerValue:String(now())}}})}).then(function(r){
         if((r.status===400||r.status===409||r.status===412) && tries<3){ tries++; again=true; return; }
         if(!r.ok) throw new Error("PATCH "+r.status);
       });
@@ -402,16 +449,16 @@ var Sync=(function(){
   }
   function schedule(){ clearTimeout(timer); timer=setTimeout(run,700); }
   function setCode(v){ v=String(v||"").toLowerCase().replace(/[^a-z0-9]/g,""); if(!RE.test(v)) return false;
-    code=v; lsSet("syncCode",code); last=0; ui(); run(); return true; }
+    code=v; lsSet("syncCode",code); last=0; devs={}; lsSet("syncDevs","{}"); ui(); run(); return true; }
   document.addEventListener("visibilitychange",function(){ if(!document.hidden) run(); });
   window.addEventListener("online",run);
   setInterval(function(){ if(!document.hidden) run(); },30000);
-  return {run:run,schedule:schedule,setCode:setCode,ui:ui,state:function(){return st;},code:function(){return fmt(code);}};
+  return {run:run,schedule:schedule,setCode:setCode,ui:ui,rename:rename,state:function(){return st;},code:function(){return fmt(code);}};
 })();
 var syncM=document.getElementById("syncM");
 function openSync(){ syncM.classList.add("open"); syncM.setAttribute("aria-hidden","false"); $("#syncIn").value=""; Sync.ui(); Sync.run(); }
 function closeSync(){ syncM.classList.remove("open"); syncM.setAttribute("aria-hidden","true"); }
-syncM.addEventListener("click",function(e){ if(e.target.closest("[data-close]")) closeSync(); });
+syncM.addEventListener("click",function(e){ if(e.target.closest("[data-close]")) closeSync(); if(e.target.closest("[data-ren]")) Sync.rename(); });
 $("#syncCopy").addEventListener("click",function(){ var b=this, c=Sync.code();
   var done=function(){ b.textContent="Kopiert ✓"; setTimeout(function(){b.textContent="Code kopieren";},1500); };
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).then(done,function(){}); });
