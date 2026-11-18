@@ -74,6 +74,21 @@ main{flex:1;position:relative;overflow:hidden}
 .group.todo h2 span{flex:1}
 .linkbtn{border:0;background:none;color:var(--accent);font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer;padding:4px 6px}
 .todo-empty{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px}
+.syncbtn{display:inline-flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:50%;background:#9aa3ad;display:inline-block}
+.dot.ok{background:#1f9d55}.dot.sync{background:#e0a100}.dot.error{background:#d64545}.dot.offline{background:#9aa3ad}
+.modal{position:fixed;inset:0;z-index:25;display:none;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}
+.modal .back{position:absolute;inset:0;background:rgba(10,12,15,.45)}
+.mcard{position:relative;background:var(--panel);border-radius:16px;padding:18px;width:100%;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.mcard h3{margin:0 44px 6px 0;font-size:18px}
+.mcard .x{position:absolute;top:10px;right:10px}
+.mcard p{margin:8px 0;color:var(--muted);font-size:14px}
+.mcard .code{font:700 24px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-align:center;background:var(--bg);border-radius:10px;padding:12px;margin:6px 0 10px;user-select:all;-webkit-user-select:all}
+.mcard input{width:100%;height:44px;border-radius:10px;border:1px solid var(--line);padding:0 12px;font:600 18px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em;margin:4px 0 8px;text-transform:lowercase}
+.mcard .btn{width:100%}
+.mcard hr{border:0;border-top:1px solid var(--line);margin:16px 0 8px}
+.mcard .st{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:12px}
 .empty{padding:40px 16px;text-align:center;color:var(--muted)}
 .ohne-box{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px;margin:6px 0 4px}
 /* sheet */
@@ -142,6 +157,20 @@ main{flex:1;position:relative;overflow:hidden}
 </div>
 
 <div class="lb" id="lb" aria-hidden="true"><button class="iconbtn close" id="lbClose" aria-label="Vergrößerung schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button><div class="scroll" id="lbScroll"></div></div>
+<div class="modal" id="syncM" aria-hidden="true"><div class="back" data-close></div>
+  <div class="mcard" role="dialog" aria-modal="true" aria-labelledby="syncH">
+    <button class="iconbtn x" data-close aria-label="Schließen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    <h3 id="syncH">Geräte synchronisieren</h3>
+    <p>Dein Sync-Code für die To-do-Liste:</p>
+    <div class="code" id="syncCode"></div>
+    <button class="btn sec" id="syncCopy">Code kopieren</button>
+    <hr>
+    <p>Auf einem anderen Gerät? Code von dort hier eingeben, dann teilen sich beide Geräte dieselbe Liste:</p>
+    <input id="syncIn" placeholder="xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">
+    <button class="btn" id="syncUse">Verbinden</button>
+    <div class="st"><span class="dot" id="syncDot"></span><span id="syncSt"></span></div>
+  </div>
+</div>
 <script src="data.js"></script>
 <script>
 (function(){
@@ -301,20 +330,90 @@ function renderList(q){
   var keep=list.scrollTop; list.innerHTML=html; list.scrollTop=keepScroll?keep:0;
 }
 /* ---------- To-do ---------- */
-var todo=(function(){ try{ var a=JSON.parse(lsGet("todo","[]")); return Array.isArray(a)?a.filter(function(t){return t&&byId[t.id];}):[]; }catch(_){ return []; } })();
-var keepScroll=false;
-function todoFind(id){ for(var i=0;i<todo.length;i++) if(todo[i].id===id) return todo[i]; return null; }
-function todoSave(){ lsSet("todo",JSON.stringify(todo)); }
+var keepScroll=false, now=function(){return Date.now();};
+function cleanTodos(a){ return (Array.isArray(a)?a:[]).filter(function(t){return t&&t.id;}).map(function(t,i){ return {id:String(t.id),done:!!t.done,del:!!t.del,a:+t.a||i+1,t:+t.t||0}; }); }
+var todoAll=(function(){ try{ return cleanTodos(JSON.parse(lsGet("todo","[]"))); }catch(_){ return []; } })();
+function todoList(){ return todoAll.filter(function(t){return !t.del && byId[t.id];}).sort(function(x,y){return x.a-y.a;}); }
+function todoRaw(id){ for(var i=0;i<todoAll.length;i++) if(todoAll[i].id===id) return todoAll[i]; return null; }
+function todoFind(id){ var t=todoRaw(id); return t&&!t.del?t:null; }
+function todoSave(){ lsSet("todo",JSON.stringify(todoAll)); Sync.schedule(); }
+function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; }
 var ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>';
 var ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
 var ICON_X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>';
 function todoHtml(){
-  var n=todo.length, d=todo.filter(function(t){return t.done;}).length;
-  var h='<div class="group todo"><h2><span>Meine To-dos'+(n?' · '+d+'/'+n+' erledigt':'')+'</span>'+(d?'<button class="linkbtn" data-a="clear-done">Erledigte entfernen</button>':'')+'</h2>';
+  var list=todoList(), n=list.length, d=list.filter(function(t){return t.done;}).length;
+  var h='<div class="group todo"><h2><span>Meine To-dos'+(n?' · '+d+'/'+n+' erledigt':'')+'</span>'+(d?'<button class="linkbtn" data-a="clear-done">Erledigte entfernen</button>':'')+
+    '<button class="linkbtn syncbtn" data-a="sync"><span class="dot '+Sync.state()+'" id="syncDotL"></span>Sync</button></h2>';
   if(!n) return h+'<div class="todo-empty">Noch leer. Tippe bei einer Position auf <b>+</b>, um sie hier oben zu sammeln.</div></div>';
-  var open=todo.filter(function(t){return !t.done;}), done=todo.filter(function(t){return t.done;});
+  var open=list.filter(function(t){return !t.done;}), done=list.filter(function(t){return t.done;});
   return h+open.concat(done).map(function(t){ return item(byId[t.id],true); }).join("")+'</div>';
 }
+
+/* ---------- Sync (Firebase Firestore via REST) ---------- */
+var Sync=(function(){
+  var FB={key:"AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0", project:"posmaster-1fb94"};
+  var ALPH="abcdefghjkmnpqrstuvwxyz23456789", RE=/^[a-z0-9]{12}$/;
+  function gen(){ var a=new Uint32Array(12); crypto.getRandomValues(a); return Array.prototype.map.call(a,function(n){return ALPH[n%ALPH.length];}).join(""); }
+  var code=lsGet("syncCode",""); if(!RE.test(code)){ code=gen(); lsSet("syncCode",code); }
+  var st="idle", last=+lsGet("syncLast","0")||0, timer=null, busy=false, again=false, tries=0;
+  function url(c){ return "https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/sync/"+c+"?key="+FB.key; }
+  function canon(arr){ return JSON.stringify(arr.slice().sort(function(a,b){return a.id<b.id?-1:a.id>b.id?1:0;}).map(function(t){return [t.id,t.done?1:0,t.del?1:0,t.a,t.t];})); }
+  function merge(A,B){ var m={}; A.concat(B).forEach(function(t){ var o=m[t.id]; if(!o||t.t>o.t) m[t.id]=t; });
+    var cut=now()-60*864e5; return Object.keys(m).map(function(k){return m[k];}).filter(function(t){return !(t.del&&t.t<cut);}); }
+  function fmt(c){ return c.slice(0,4)+"-"+c.slice(4,8)+"-"+c.slice(8); }
+  function set(s){ st=s; ui(); }
+  function ui(){
+    var d1=document.getElementById("syncDotL"); if(d1) d1.className="dot "+st;
+    var d2=document.getElementById("syncDot"); if(d2) d2.className="dot "+st;
+    var t=document.getElementById("syncSt"); if(!t) return;
+    var tm=last?new Date(last).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}):"";
+    t.textContent = st==="sync"?"Synchronisiere …" : st==="ok"?"Synchronisiert"+(tm?" um "+tm:"") : st==="offline"?"Offline – wird später abgeglichen" : st==="error"?"Sync fehlgeschlagen"+(tm?" (zuletzt "+tm+")":"") : "";
+    var c=document.getElementById("syncCode"); if(c) c.textContent=fmt(code);
+  }
+  function run(){
+    if(busy){ again=true; return; }
+    if(navigator.onLine===false){ set("offline"); return; }
+    busy=true; set("sync"); var c=code;
+    fetch(url(c),{cache:"no-store"}).then(function(r){
+      if(r.status===404) return {exists:false,items:[]};
+      if(!r.ok) throw new Error("GET "+r.status);
+      return r.json().then(function(d){ var items=[]; try{ items=cleanTodos(JSON.parse(d.fields.data.stringValue)); }catch(_){}
+        return {exists:true,updateTime:d.updateTime,items:items}; });
+    }).then(function(rem){
+      if(c!==code){ again=true; return; }
+      var merged=merge(todoAll,rem.items);
+      if(canon(merged)!==canon(todoAll)){ todoAll=merged; lsSet("todo",JSON.stringify(todoAll)); rerenderList(); }
+      if(rem.exists && canon(merged)===canon(rem.items)) return;
+      var pre=rem.exists?"&currentDocument.updateTime="+encodeURIComponent(rem.updateTime):"&currentDocument.exists=false";
+      return fetch(url(c)+pre,{method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify(merged)},updated:{integerValue:String(now())}}})}).then(function(r){
+        if((r.status===400||r.status===409||r.status===412) && tries<3){ tries++; again=true; return; }
+        if(!r.ok) throw new Error("PATCH "+r.status);
+      });
+    }).then(function(){ if(!again){ tries=0; last=now(); lsSet("syncLast",String(last)); set("ok"); } },
+            function(e){ if(window.console) console.warn("Sync:",e); set(navigator.onLine===false?"offline":"error"); })
+    .then(function(){ busy=false; if(again){ again=false; setTimeout(run,300); } });
+  }
+  function schedule(){ clearTimeout(timer); timer=setTimeout(run,700); }
+  function setCode(v){ v=String(v||"").toLowerCase().replace(/[^a-z0-9]/g,""); if(!RE.test(v)) return false;
+    code=v; lsSet("syncCode",code); last=0; ui(); run(); return true; }
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) run(); });
+  window.addEventListener("online",run);
+  setInterval(function(){ if(!document.hidden) run(); },30000);
+  return {run:run,schedule:schedule,setCode:setCode,ui:ui,state:function(){return st;},code:function(){return fmt(code);}};
+})();
+var syncM=document.getElementById("syncM");
+function openSync(){ syncM.classList.add("open"); syncM.setAttribute("aria-hidden","false"); $("#syncIn").value=""; Sync.ui(); Sync.run(); }
+function closeSync(){ syncM.classList.remove("open"); syncM.setAttribute("aria-hidden","true"); }
+syncM.addEventListener("click",function(e){ if(e.target.closest("[data-close]")) closeSync(); });
+$("#syncCopy").addEventListener("click",function(){ var b=this, c=Sync.code();
+  var done=function(){ b.textContent="Kopiert ✓"; setTimeout(function(){b.textContent="Code kopieren";},1500); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(c).then(done,function(){}); });
+$("#syncUse").addEventListener("click",function(){
+  if(Sync.setCode($("#syncIn").value)){ $("#syncIn").value=""; }
+  else { $("#syncSt").textContent="Ungültiger Code – er hat 12 Zeichen, z. B. abcd-efgh-2345."; $("#syncDot").className="dot error"; } });
+$("#syncIn").addEventListener("keydown",function(e){ if(e.key==="Enter") $("#syncUse").click(); });
 function item(e,inTodo){
   var t=todoFind(e.id);
   var ctl=t ? '<button class="tbtn chk" data-a="toggle" aria-label="'+(t.done?'Als offen markieren':'Abhaken')+'"><span class="box">'+ICON_CHECK+'</span></button>'
@@ -325,12 +424,13 @@ function item(e,inTodo){
 $("#list").addEventListener("click",function(e){
   var c=e.target.closest("[data-a]");
   if(c){
-    var a=c.dataset.a, row=c.closest(".row"), id=row&&row.dataset.id, t=id&&todoFind(id);
-    if(a==="add" && !t) todo.push({id:id,done:false});
-    if(a==="toggle" && t) t.done=!t.done;
-    if(a==="remove") todo=todo.filter(function(x){return x.id!==id;});
-    if(a==="clear-done") todo=todo.filter(function(x){return !x.done;});
-    todoSave(); keepScroll=true; renderList(qEl.value); keepScroll=false;
+    var a=c.dataset.a, row=c.closest(".row"), id=row&&row.dataset.id, t=id&&todoFind(id), ts=now();
+    if(a==="sync"){ openSync(); return; }
+    if(a==="add" && !t){ var r=todoRaw(id); if(r){ r.del=false; r.done=false; r.a=ts; r.t=ts; } else todoAll.push({id:id,done:false,del:false,a:ts,t:ts}); }
+    if(a==="toggle" && t){ t.done=!t.done; t.t=ts; }
+    if(a==="remove" && t){ t.del=true; t.t=ts; }
+    if(a==="clear-done") todoAll.forEach(function(x){ if(x.done&&!x.del){ x.del=true; x.t=ts; } });
+    todoSave(); rerenderList();
     return;
   }
   var b=e.target.closest(".item"); if(b) openPos(b.dataset.id,true);
@@ -407,6 +507,7 @@ $("#sheetBack").addEventListener("click",function(){closeSheet(false);});
 $("#sPrev").addEventListener("click",function(){ var i=order.indexOf(openId); if(i>0) openPos(order[i-1],true); });
 $("#sNext").addEventListener("click",function(){ var i=order.indexOf(openId); if(i<order.length-1) openPos(order[i+1],true); });
 document.addEventListener("keydown",function(e){
+  if(syncM.classList.contains("open")){ if(e.key==="Escape") closeSync(); return; }
   if(lb.classList.contains("open")){ if(e.key==="Escape") $("#lbClose").click(); return; }
   if(!sheet.classList.contains("open")) return;
   if(e.key==="Escape") closeSheet(false);
@@ -419,7 +520,7 @@ window.addEventListener("popstate",function(){
 });
 
 /* ---------- Init ---------- */
-makePlan("halle"); makePlan("vertical"); renderList("");
+makePlan("halle"); makePlan("vertical"); renderList(""); Sync.run();
 window.addEventListener("resize",function(){ Object.keys(plans).forEach(function(k){ var P=plans[k]; if(P.fitted){ var r=P.stage.getBoundingClientRect(); P.minS=Math.min(r.width/P.m.w,r.height/P.m.h)*0.9; clampPos(P); apply(P,false);} }); });
 show("halle");
 var m0=location.hash.match(/^#pos=(.+)$/); if(m0) openPos(decodeURIComponent(m0[1]),false);
