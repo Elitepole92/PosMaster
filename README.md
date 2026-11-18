@@ -14,6 +14,7 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 ## Inhalt
 - `index.html` – App
 - `data.js` – POS-Daten, Suchtext und Hotspot-Koordinaten
+- `icons/`, `manifest.webmanifest` – App-Symbol für Home-Bildschirm/Dock
 - `img/plan-*.jpg` – Pläne
 - `img/pos/*.jpg` – Detailausschnitte je POS aus dem Booklet
 
