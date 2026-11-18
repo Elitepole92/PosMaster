@@ -4,6 +4,7 @@ Interaktiver Hallenplan zum Medientechnik-Booklet (Stand 17.11.2026).
 
 - **Halle / Vertical:** Plan mit Zoom (zwei Finger, Doppeltipp), optimiert fürs iPad im Querformat. Tippen auf eine POS-Nummer öffnet die Details.
 - **Liste:** alle POS nach Bereich, inkl. Positionen ohne Medientechnik.
+- **To-dos:** In der Liste mit **+** Positionen auf die eigene To-do-Liste setzen (erscheint ganz oben), dann abhaken. Wird nur lokal auf dem Gerät gespeichert.
 - **Suche:** nach POS-Nummer, Titel oder Gerät (z. B. „414“, „Vestel“, „HDMI 10 m“). Treffer werden im Plan hervorgehoben.
 - **Direktlinks:** `index.html#pos=414` öffnet direkt POS 414.
 

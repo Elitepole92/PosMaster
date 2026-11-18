@@ -59,6 +59,21 @@ main{flex:1;position:relative;overflow:hidden}
 .item .t{flex:1}
 .item .t small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .item .chev{color:#9aa3ad}
+.row{display:flex;gap:8px;align-items:stretch;margin-bottom:8px}
+.row .item{margin:0;flex:1;min-width:0}
+.tbtn{width:56px;flex-shrink:0;border-radius:12px;border:1px solid var(--line);background:var(--panel);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:var(--accent)}
+.tbtn svg{width:24px;height:24px}
+.tbtn .box{width:28px;height:28px;border-radius:8px;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;color:#fff}
+.tbtn .box svg{width:20px;height:20px;opacity:0}
+.row.done .tbtn .box{background:var(--accent)}
+.row.done .tbtn .box svg{opacity:1}
+.row.done .item .no,.row.done .item .t{color:var(--muted);text-decoration:line-through}
+.tbtn.rm{width:44px;color:var(--muted)}
+.tbtn.rm svg{width:18px;height:18px}
+.group.todo h2{display:flex;align-items:center;gap:8px;color:var(--accent)}
+.group.todo h2 span{flex:1}
+.linkbtn{border:0;background:none;color:var(--accent);font-size:12px;font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer;padding:4px 6px}
+.todo-empty{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px}
 .empty{padding:40px 16px;text-align:center;color:var(--muted)}
 .ohne-box{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px;margin:6px 0 4px}
 /* sheet */
@@ -275,19 +290,51 @@ function renderList(q){
   if(res){
     if(!res.length && ohne[q.trim().toUpperCase()]) html='<div class="ohne-box">POS '+esc(q.trim().toUpperCase())+' hat keine Medientechnik (kein Eintrag im Booklet).</div>';
     else if(!res.length) html='<div class="empty">Nichts gefunden für „'+esc(q)+'“.</div>';
-    else html='<div class="group"><h2>'+res.length+' Treffer</h2>'+res.map(item).join("")+'</div>';
+    else html='<div class="group"><h2>'+res.length+' Treffer</h2>'+res.map(function(e){return item(e);}).join("")+'</div>';
   } else {
+    html=todoHtml();
     var groups={}, gorder=[];
     D.entries.forEach(function(e){ if(!groups[e.area]){groups[e.area]=[];gorder.push(e.area);} groups[e.area].push(e); });
-    html=gorder.map(function(a){ return '<div class="group"><h2>'+esc(a)+'</h2>'+groups[a].map(item).join("")+'</div>'; }).join("")+
+    html+=gorder.map(function(a){ return '<div class="group"><h2>'+esc(a)+'</h2>'+groups[a].map(function(e){return item(e);}).join("")+'</div>'; }).join("")+
       '<div class="group"><h2>Ohne Medientechnik</h2><div class="ohne-box">'+D.ohne.map(esc).join(", ")+'</div></div>';
   }
-  list.innerHTML=html; list.scrollTop=0;
+  var keep=list.scrollTop; list.innerHTML=html; list.scrollTop=keepScroll?keep:0;
 }
-function item(e){
-  return '<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>';
+/* ---------- To-do ---------- */
+var todo=(function(){ try{ var a=JSON.parse(lsGet("todo","[]")); return Array.isArray(a)?a.filter(function(t){return t&&byId[t.id];}):[]; }catch(_){ return []; } })();
+var keepScroll=false;
+function todoFind(id){ for(var i=0;i<todo.length;i++) if(todo[i].id===id) return todo[i]; return null; }
+function todoSave(){ lsSet("todo",JSON.stringify(todo)); }
+var ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>';
+var ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
+var ICON_X='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>';
+function todoHtml(){
+  var n=todo.length, d=todo.filter(function(t){return t.done;}).length;
+  var h='<div class="group todo"><h2><span>Meine To-dos'+(n?' · '+d+'/'+n+' erledigt':'')+'</span>'+(d?'<button class="linkbtn" data-a="clear-done">Erledigte entfernen</button>':'')+'</h2>';
+  if(!n) return h+'<div class="todo-empty">Noch leer. Tippe bei einer Position auf <b>+</b>, um sie hier oben zu sammeln.</div></div>';
+  var open=todo.filter(function(t){return !t.done;}), done=todo.filter(function(t){return t.done;});
+  return h+open.concat(done).map(function(t){ return item(byId[t.id],true); }).join("")+'</div>';
 }
-$("#list").addEventListener("click",function(e){ var b=e.target.closest(".item"); if(b) openPos(b.dataset.id,true); });
+function item(e,inTodo){
+  var t=todoFind(e.id);
+  var ctl=t ? '<button class="tbtn chk" data-a="toggle" aria-label="'+(t.done?'Als offen markieren':'Abhaken')+'"><span class="box">'+ICON_CHECK+'</span></button>'
+            : '<button class="tbtn add" data-a="add" aria-label="Zur To-do-Liste hinzufügen">'+ICON_PLUS+'</button>';
+  var rm=inTodo ? '<button class="tbtn rm" data-a="remove" aria-label="Aus To-do-Liste entfernen">'+ICON_X+'</button>' : '';
+  return '<div class="row'+(t&&t.done?' done':'')+'" data-id="'+esc(e.id)+'">'+ctl+'<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>'+rm+'</div>';
+}
+$("#list").addEventListener("click",function(e){
+  var c=e.target.closest("[data-a]");
+  if(c){
+    var a=c.dataset.a, row=c.closest(".row"), id=row&&row.dataset.id, t=id&&todoFind(id);
+    if(a==="add" && !t) todo.push({id:id,done:false});
+    if(a==="toggle" && t) t.done=!t.done;
+    if(a==="remove") todo=todo.filter(function(x){return x.id!==id;});
+    if(a==="clear-done") todo=todo.filter(function(x){return !x.done;});
+    todoSave(); keepScroll=true; renderList(qEl.value); keepScroll=false;
+    return;
+  }
+  var b=e.target.closest(".item"); if(b) openPos(b.dataset.id,true);
+});
 function markMatches(res){
   var set=null; if(res){ set={}; res.forEach(function(e){set[e.id]=1;}); }
   Object.keys(plans).forEach(function(k){
