@@ -63,6 +63,17 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .spot.pulse{animation:pulse 1.1s ease-out 3}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,122,26,.9),inset 0 0 0 3px var(--hot)}100%{box-shadow:0 0 0 22px rgba(255,122,26,0),inset 0 0 0 3px var(--hot)}}
 .dim .spot:not(.match){opacity:.25}
+/* To-do-Route */
+.todomode .spot{opacity:.18}
+.todomode .spot.todo{opacity:1;background:rgba(228,106,16,.38);box-shadow:inset 0 0 0 3px var(--todo),0 0 0 7px rgba(228,106,16,.35),0 0 18px 8px rgba(228,106,16,.35)}
+.todomode .spot.todo.tdone{background:rgba(120,130,140,.18);box-shadow:inset 0 0 0 2px rgba(120,130,140,.8);opacity:.75}
+.fab button[data-a="todos"]{position:relative;color:var(--todo)}
+.fab button[data-a="todos"][aria-pressed="true"]{background:var(--todo);border-color:var(--todo);color:#fff}
+.fab .badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--todo);color:#fff;font-size:11.5px;font-weight:700;line-height:20px;padding:0 5px;box-shadow:0 0 0 2px var(--panel)}
+.fab button[aria-pressed="true"] .badge{background:#fff;color:var(--todo);box-shadow:0 0 0 2px var(--todo)}
+.fab .badge:empty{display:none}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:rgba(20,24,29,.9);color:#fff;font-size:13.5px;padding:8px 13px;border-radius:9px;z-index:6;pointer-events:none;opacity:0;transition:opacity .3s;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1}
 .fab{position:absolute;right:12px;bottom:calc(12px + var(--safe-b));display:flex;flex-direction:column;gap:8px;z-index:5}
 .fab button{width:46px;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--panel);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:22px;font-weight:600;display:flex;align-items:center;justify-content:center}
 .fab button[aria-pressed="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
@@ -178,7 +189,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
   <div class="menu" id="menu" role="menu" aria-hidden="true">
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.8 · Daten-Stand <span id="menuStand"></span></div>
+    <div class="mver">PosMaster v1.9 · Daten-Stand <span id="menuStand"></span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -259,17 +270,20 @@ function makePlan(key){
   });
   stage.appendChild(canvas); host.appendChild(stage);
   var fab=document.createElement("div"); fab.className="fab";
-  fab.innerHTML='<button data-a="marks" aria-label="Nummern markieren" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9 12h6M12 9v6"></path></svg></button>'+
+  fab.innerHTML='<button data-a="todos" aria-label="Meine To-dos im Plan hervorheben" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="5" r="2"></circle><path d="M8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16"></path></svg><span class="badge"></span></button>'+
+    '<button data-a="marks" aria-label="Nummern markieren" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M9 12h6M12 9v6"></path></svg></button>'+
     '<button data-a="fit" aria-label="Ganzen Plan zeigen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>';
   host.appendChild(fab);
   var hint=document.createElement("div"); hint.className="hint"; hint.textContent="Auf eine Nummer tippen für Details. Zwei Finger zum Zoomen.";
   host.appendChild(hint);
-  var P={key:key,m:m,stage:stage,canvas:canvas,s:1,x:0,y:0,minS:.1,maxS:6,fitted:false,hint:hint};
+  var toast=document.createElement("div"); toast.className="toast"; host.appendChild(toast);
+  var P={key:key,m:m,stage:stage,canvas:canvas,s:1,x:0,y:0,minS:.1,maxS:6,fitted:false,hint:hint,toast:toast,fab:fab};
   plans[key]=P;
   if(lsGet("marks","1")==="1"){ stage.classList.add("marks"); fab.querySelector('[data-a="marks"]').setAttribute("aria-pressed","true"); }
   fab.addEventListener("click",function(ev){
     var a=ev.target.closest("button"); if(!a) return; a=a.dataset.a;
     if(a==="fit") fit(P,true);
+    if(a==="todos"){ var on2=!stage.classList.contains("todomode"); setTodoMode(on2); if(on2) fitTodos(P); }
     if(a==="marks"){
       var on=!stage.classList.contains("marks");
       Object.keys(plans).forEach(function(k){ plans[k].stage.classList.toggle("marks",on); var bt=plans[k].stage.parentNode.querySelector('[data-a="marks"]'); bt.setAttribute("aria-pressed",on?"true":"false"); });
@@ -296,6 +310,32 @@ function fit(P,anim){
 function zoomAt(P,f,cx,cy,anim){
   var ns=Math.min(P.maxS,Math.max(P.minS,P.s*f)); f=ns/P.s;
   P.x=cx-(cx-P.x)*f; P.y=cy-(cy-P.y)*f; P.s=ns; clampPos(P); apply(P,anim);
+}
+function todoSpots(P){ return D.spots.filter(function(s){ return s.m===P.key && todoFind(s.id); }); }
+function showToast(P,msg){ P.toast.textContent=msg; P.toast.classList.add("show"); clearTimeout(P.toastT); P.toastT=setTimeout(function(){P.toast.classList.remove("show");},2600); }
+function setTodoMode(on){
+  Object.keys(plans).forEach(function(k){ var Q=plans[k]; Q.stage.classList.toggle("todomode",on); Q.fab.querySelector('[data-a="todos"]').setAttribute("aria-pressed",on?"true":"false"); });
+  lsSet("todoMode",on?"1":"0");
+}
+function fitTodos(P){
+  var sp=todoSpots(P), open=sp.filter(function(s){return !todoFind(s.id).done;}), use=open.length?open:sp;
+  var total=todoList().length;
+  if(!sp.length){ showToast(P, total?"Auf diesem Plan sind keine To-dos – schau im anderen Plan.":"Noch keine To-dos – in der Liste oder Detailansicht mit + hinzufügen."); return; }
+  if(!P.fitted) fit(P,false);
+  var x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  use.forEach(function(s){ x0=Math.min(x0,s.x); y0=Math.min(y0,s.y); x1=Math.max(x1,s.x+s.w); y1=Math.max(y1,s.y+s.h); });
+  var r=P.stage.getBoundingClientRect(), bw=(x1-x0)/100*P.m.w, bh=(y1-y0)/100*P.m.h;
+  var sc=Math.min(r.width/(bw+160), r.height/(bh+160));
+  P.s=Math.min(P.maxS,Math.max(P.minS,Math.min(sc,P.minS*8)));
+  var cx=(x0+x1)/200*P.m.w, cy=(y0+y1)/200*P.m.h;
+  P.x=r.width/2-cx*P.s; P.y=r.height/2-cy*P.s; clampPos(P); apply(P,true);
+  var n=open.length; showToast(P, n? n+" offene"+(sp.length>n?" · "+(sp.length-n)+" erledigt":"")+" auf diesem Plan" : "Alle To-dos auf diesem Plan erledigt ✓");
+}
+function markTodos(){
+  Object.keys(plans).forEach(function(k){ var Q=plans[k], open=0;
+    Q.stage.querySelectorAll(".spot").forEach(function(b){ var t=todoFind(b.dataset.id); b.classList.toggle("todo",!!t); b.classList.toggle("tdone",!!(t&&t.done)); });
+    todoSpots(Q).forEach(function(s){ if(!todoFind(s.id).done) open++; });
+    Q.fab.querySelector('[data-a="todos"] .badge').textContent=open?String(open):""; });
 }
 function centerOn(P,s,scale){
   var r=P.stage.getBoundingClientRect();
@@ -390,7 +430,7 @@ function todoList(){ return todoAll.filter(function(t){return !t.del && byId[t.i
 function todoRaw(id){ for(var i=0;i<todoAll.length;i++) if(todoAll[i].id===id) return todoAll[i]; return null; }
 function todoFind(id){ var t=todoRaw(id); return t&&!t.del?t:null; }
 function todoSave(){ lsSet("todo",JSON.stringify(todoAll)); Sync.schedule(); }
-function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; if(typeof sheetTodoUi==="function"&&openId) sheetTodoUi(openId); }
+function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; if(typeof sheetTodoUi==="function"&&openId) sheetTodoUi(openId); markTodos(); }
 function todoAdd(id){ var ts=now(), r=todoRaw(id); if(r&&!r.del) return; if(r){ r.del=false; r.done=false; r.a=ts; r.t=ts; } else todoAll.push({id:id,done:false,del:false,a:ts,t:ts}); todoSave(); rerenderList(); }
 function todoRemove(id){ var t=todoFind(id); if(!t) return; t.del=true; t.t=now(); todoSave(); rerenderList(); }
 var ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>';
@@ -625,7 +665,7 @@ window.addEventListener("popstate",function(){
 });
 
 /* ---------- Init ---------- */
-makePlan("halle"); makePlan("vertical"); renderList(""); Sync.run();
+makePlan("halle"); makePlan("vertical"); renderList(""); markTodos(); if(lsGet("todoMode","0")==="1") setTodoMode(true); Sync.run();
 window.addEventListener("resize",function(){ Object.keys(plans).forEach(function(k){ var P=plans[k]; if(P.fitted){ var r=P.stage.getBoundingClientRect(); P.minS=Math.min(r.width/P.m.w,r.height/P.m.h)*0.9; clampPos(P); apply(P,false);} }); });
 show("halle");
 var m0=location.hash.match(/^#pos=(.+)$/); if(m0) openPos(decodeURIComponent(m0[1]),false);
