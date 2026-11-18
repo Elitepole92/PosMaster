@@ -19,7 +19,7 @@
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
+html,body{margin:0;height:100%;background:var(--bar);overflow:hidden;overscroll-behavior:none;color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-text-size-adjust:100%}
 button{font:inherit;color:inherit}
 .app{display:flex;flex-direction:column;height:100%;height:100dvh}
 header{background:var(--bar);color:var(--bar-ink);padding:calc(6px + var(--safe-t)) calc(10px + env(safe-area-inset-right,0px)) 6px calc(10px + env(safe-area-inset-left,0px));display:flex;align-items:center;gap:10px;flex-shrink:0}
@@ -36,7 +36,7 @@ header{background:var(--bar);color:var(--bar-ink);padding:calc(6px + var(--safe-
 .tabs button{min-width:84px;height:36px;padding:0 12px;border-radius:9px;border:1px solid #2c333b;background:transparent;color:#c9d0d6;font-weight:600;font-size:14px}
 @media(max-width:700px){header{flex-wrap:wrap;gap:6px}.top{max-width:none;flex:1 1 100%;flex-direction:row;align-items:baseline;gap:8px}.tabs{flex:1 1 100%}.tabs button{flex:1;min-width:0}}
 .tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
-main{flex:1;position:relative;overflow:hidden}
+main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .view{position:absolute;inset:0;display:none}
 .view.active{display:block}
 /* plan */
