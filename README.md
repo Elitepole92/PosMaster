@@ -22,15 +22,20 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt werden.
 
 ## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
-Kleines Plattform-Prügelspiel im Browser: **Medien Hamster vs. VTler** – zu zweit an einer Laptop-Tastatur (oder gegen die CPU, Taste `C` im Titel). Einfach `buehnen-brawl/index.html` öffnen.
+Kleines Plattform-Prügelspiel im Browser – zu zweit an einer Laptop-Tastatur (oder gegen die CPU, Taste `C` im Auswahlmenü). Einfach `buehnen-brawl/index.html` öffnen, Kämpfer wählen, los.
 
-| | Medien Hamster (P1) | VTler (P2) |
+| | P1 | P2 |
 |---|---|---|
 | Laufen / Springen | `A` `D` / `W` | `←` `→` / `↑` |
-| Schutz / Fastfall | `S` | `↓` |
-| Kick 1 | `F` Backen-Jab-Kick | `J` Stahlkappen-Kick |
-| Kick 2 | `G` HDMI-Drehkick | `K` Gaffa-Roundhouse |
-| Kick 3 | `H` Laufrad-Dropkick | `L` Flightcase-Dropkick |
-| Finisher (Leiste voll) | `T` Stapler-Attacke – fährt mit dem Gabelstapler über den Gegner | `I` Case-Wurf – wirft ein Flightcase auf den Hamster |
+| Schild (in der Luft: Fastfall) | `S` | `↓` |
+| Schlag | `F` | `K` (oder Numpad 1) |
+| Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
-Treffer laden die Finisher-Leiste (ca. 4–7 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
+| Kämpfer | Typ | Finisher |
+|---|---|---|
+| **Medien Hamster** | pummelig, lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
+| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Blau – Stromschlag |
+| **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
+| **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
+
+Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
