@@ -31,6 +31,6 @@ Kleines Plattform-Prügelspiel im Browser: **Medien Hamster vs. VTler** – zu z
 | Kick 1 | `F` Backen-Jab-Kick | `J` Stahlkappen-Kick |
 | Kick 2 | `G` HDMI-Drehkick | `K` Gaffa-Roundhouse |
 | Kick 3 | `H` Laufrad-Dropkick | `L` Flightcase-Dropkick |
-| Finisher (Leiste voll) | `T` Mega-Hamsterrad | `I` Funkspruch: Traverse ab! |
+| Finisher (Leiste voll) | `T` Stapler-Attacke – fährt mit dem Gabelstapler über den Gegner | `I` Case-Wurf – wirft ein Flightcase auf den Hamster |
 
 Treffer laden die Finisher-Leiste (ca. 4–7 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
