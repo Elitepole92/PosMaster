@@ -34,7 +34,7 @@ Kleines Plattform-Prügelspiel im Browser – zu zweit an einer Laptop-Tastatur 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
 | **Medien Hamster** | pummelig, lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
-| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Blau – Stromschlag |
+| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun – Stromschlag |
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
 | **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
 

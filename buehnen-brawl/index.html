@@ -314,10 +314,10 @@ const S_HM = {
       for (let i = 0; i < 4; i++) Ln(c, 2, -15 + i * 4, 11, -15 + i * 4, '#9aa', 1);
       RR(c, 3, -24, 9, 4, 1, '#c9ccd1'); c.restore();
     } else if (P.prop === 'plug') {
-      c.strokeStyle = '#2f6fe0'; c.lineWidth = 3.5; c.beginPath(); c.moveTo(q.bx, q.by);
+      c.strokeStyle = '#7a4a24'; c.lineWidth = 3.5; c.beginPath(); c.moveTo(q.bx, q.by);
       c.quadraticCurveTo(q.bx - 30, q.by + 40, -10, -40); c.stroke();
       c.save(); c.translate(q.bx, q.by); c.rotate(-0.3);
-      RR(c, -6, -14, 14, 16, 4, '#2f6fe0'); RR(c, -4, -18, 10, 5, 2, '#1d4fb0');
+      RR(c, -6, -14, 14, 16, 4, '#d8322b'); RR(c, -4, -18, 10, 5, 2, '#a8211c');
       for (const x of [-2, 2, 6]) Ln(c, x, -18, x, -23, '#d9b34a', 1.6);
       c.restore();
       if ((A.t || 0) < 32) {
@@ -448,7 +448,7 @@ const ROSTER = [
     speed: 4.9, airSpeed: 4.4, airAcc: 0.5, jump: 13.2, airJump: 11.6, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.98,
     color: '#3a78e0', color2: '#b4cfff', hitColor: '#7fd3ff', stats: [2, 3, 4], pt: [19, -97, 1.6],
     atk: { name: 'Klemmbrett-Klatsche', s: 7, a: 5, r: 13, dmg: 9, kb: 5.6, scale: 0.125, ang: 50, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 66, h: 64 } },
-    fin: 'zap', finName: '400V PHASE BLAU', finQuote: '400 Volt, Phase Blau. Nicht anfassen!', finRange: 520,
+    fin: 'zap', finName: '400V PHASE BRAUN', finQuote: '400 Volt, Phase Braun. Nicht anfassen!', finRange: 520,
     quotes: ['Nicht in MEINER Halle!', 'Das war 1987 auch schon so.', 'Wer hat das Tor offen gelassen?', 'Hallenordnung, Paragraph 4!', 'Um 22 Uhr ist Licht aus.'],
     style: S_HM, draw: (c, f, A) => drawHuman(c, f, A, S_HM)
   },
@@ -988,7 +988,7 @@ function drawFighter(f) {
     const t = f.fin.t, tp = f.fin.type;
     if (tp === 'forklift' && t < 20) q = 'Piep! Piep! Piep!';
     if (tp === 'smoke' && t < 22) q = '*klick* … *ziiieh*';
-    if (tp === 'zap' && t < 32) q = 'Phase Blau liegt an!';
+    if (tp === 'zap' && t < 32) q = 'Phase Braun liegt an!';
     if (tp === 'chain' && t < 26) q = 'Moin.';
   }
   if (q) speech(c, 0, ty - 18, q);
