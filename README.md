@@ -17,5 +17,6 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 - `icons/`, `manifest.webmanifest` – App-Symbol für Home-Bildschirm/Dock
 - `img/plan-*.jpg` – Pläne
 - `img/pos/*.jpg` – Detailausschnitte je POS aus dem Booklet
+- `img/docs/*.jpg` – Anhang-Seiten (Schemas, Detailzeichnungen, Bodenkabel) für den Reiter „Montage“
 
 Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt werden.

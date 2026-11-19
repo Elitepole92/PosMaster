@@ -133,6 +133,25 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .mcard h4{margin:0;font-size:14px}
 .mcard .st{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:12px}
 .empty{padding:40px 16px;text-align:center;color:var(--muted)}
+/* Montage */
+.docs{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:4px 12px calc(20px + var(--safe-b))}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.dcard{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;text-align:left;padding:0;cursor:pointer;display:flex;flex-direction:column}
+.dcard img{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:top;background:#fff;border-bottom:1px solid var(--line);display:block}
+.dcard .dt{padding:9px 11px 11px}
+.dcard b{display:block;font-size:14px;line-height:1.3}
+.dcard small{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+.dcard .dp{color:var(--accent);font-weight:600}
+.dview{position:absolute;inset:0;display:none;flex-direction:column;background:#dfe3e7;z-index:3}
+.dview.open{display:flex}
+.dbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--panel);border-bottom:1px solid var(--line);flex-shrink:0}
+.dbar .ttl{flex:1;min-width:0}
+.dbar .ttl b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbar .ttl span{display:block;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dhost{flex:1;position:relative;overflow:hidden}
+.dhost .canvas img{background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.doclinks{display:flex;flex-direction:column;gap:8px;margin:-4px 0 12px}
+.doclinks .btn{justify-content:flex-start;padding:0 12px}
 .ohne-box{background:var(--panel);border:1px dashed #c3c9cf;border-radius:12px;padding:12px;color:var(--muted);font-size:13.5px;margin:6px 0 4px}
 /* sheet */
 .sheet{position:fixed;inset:0;z-index:20;display:none}
@@ -188,6 +207,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
       <button role="tab" data-view="halle" aria-selected="true">Halle</button>
       <button role="tab" data-view="vertical" aria-selected="false">Vertical</button>
       <button role="tab" data-view="list" aria-selected="false">Liste</button>
+      <button role="tab" data-view="montage" aria-selected="false">Montage</button>
     </div>
     <button class="menubtn" id="menuBtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg><span class="dot" id="syncDotM"></span></button>
     </nav>
@@ -195,12 +215,24 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
   <div class="menu" id="menu" role="menu" aria-hidden="true">
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.10 · Daten-Stand <span id="menuStand"></span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.11 · Daten-Stand <span id="menuStand"></span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
     <section class="view" id="view-vertical"></section>
     <section class="view" id="view-list"><div class="list" id="list"></div></section>
+    <section class="view" id="view-montage"><div class="docs" id="docs"></div>
+      <div class="dview" id="dview">
+        <div class="dbar">
+          <button class="iconbtn" id="dBack" aria-label="Zurück zur Übersicht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"></path></svg></button>
+          <div class="ttl"><b id="dTitle"></b><span id="dSub"></span></div>
+          <button class="iconbtn" id="dPrev" aria-label="Vorherige Zeichnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button>
+          <button class="iconbtn" id="dNext" aria-label="Nächste Zeichnung"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+          <button class="iconbtn" id="dFit" aria-label="Ganze Seite zeigen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+        </div>
+        <div class="dhost" id="dhost"></div>
+      </div>
+    </section>
   </main>
 </div>
 
@@ -400,7 +432,44 @@ function show(view){
   document.querySelectorAll(".view").forEach(function(v){ v.classList.toggle("active", v.id==="view-"+view); });
   var P=plans[view]; if(P && !P.fitted) requestAnimationFrame(function(){ fit(P,false); });
 }
-document.querySelector(".tabs").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b) show(b.dataset.view); });
+document.querySelector(".tabs").addEventListener("click",function(e){ var b=e.target.closest("button"); if(!b) return; if(b.dataset.view==="montage"&&current==="montage") closeDoc(); show(b.dataset.view); });
+
+/* ---------- Montage (Schemas & Zeichnungen aus dem Booklet-Anhang) ---------- */
+var docs=D.docs||[], DV=null, docCur=null;
+function posShort(a){ return a.length>6 ? a.slice(0,6).join(", ")+" +"+(a.length-6) : a.join(", "); }
+function renderDocs(){
+  var cats=[], by={}; docs.forEach(function(d){ if(!by[d.cat]){by[d.cat]=[];cats.push(d.cat);} by[d.cat].push(d); });
+  $("#docs").innerHTML=cats.map(function(c){ return '<div class="group"><h2>'+esc(c)+'</h2><div class="dgrid">'+by[c].map(function(d){
+    return '<button class="dcard" data-page="'+d.page+'"><img src="'+d.thumb+'" alt="" loading="lazy"><span class="dt"><b>'+esc(d.title)+'</b><small>Booklet S. '+d.page+(d.sub?' · '+esc(d.sub):'')+'</small>'+
+      (d.pos.length?'<small class="dp">POS '+esc(posShort(d.pos))+'</small>':'')+'</span></button>'; }).join("")+'</div></div>'; }).join("");
+}
+$("#docs").addEventListener("click",function(e){ var b=e.target.closest(".dcard"); if(b) openDoc(+b.dataset.page); });
+function docViewer(){
+  if(DV) return DV;
+  var host=$("#dhost"), stage=document.createElement("div"), canvas=document.createElement("div"), img=new Image();
+  stage.className="stage"; canvas.className="canvas"; img.draggable=false; canvas.appendChild(img); stage.appendChild(canvas); host.appendChild(stage);
+  DV={key:"doc",m:{w:1,h:1},stage:stage,canvas:canvas,img:img,s:1,x:0,y:0,minS:.1,maxS:4,fitted:false,hint:null};
+  bindGestures(DV); return DV;
+}
+function openDoc(page){
+  var d=null; docs.forEach(function(x){ if(x.page===page) d=x; }); if(!d) return;
+  var P=docViewer(); docCur=d;
+  P.m={w:d.w,h:d.h}; P.canvas.style.width=d.w+"px"; P.canvas.style.height=d.h+"px";
+  P.img.width=d.w; P.img.height=d.h; P.img.alt=d.title; P.img.src=d.src;
+  $("#dTitle").textContent=d.title; $("#dSub").textContent="Booklet S. "+d.page+(d.pos.length?" · POS "+posShort(d.pos):"");
+  var i=docs.indexOf(d); $("#dPrev").disabled=i<=0; $("#dNext").disabled=i>=docs.length-1;
+  $("#dview").classList.add("open");
+  requestAnimationFrame(function(){ fitDoc(P,false); });
+}
+function fitDoc(P,anim){ var r=P.stage.getBoundingClientRect(); if(!r.width) return;
+  var s=Math.min(r.width/P.m.w, r.height/P.m.h); P.minS=s*0.9; P.s=s; clampPos(P); apply(P,anim); P.fitted=true; }
+function closeDoc(){ $("#dview").classList.remove("open"); docCur=null; }
+$("#dBack").addEventListener("click",closeDoc);
+$("#dFit").addEventListener("click",function(){ if(DV) fitDoc(DV,true); });
+$("#dPrev").addEventListener("click",function(){ var i=docs.indexOf(docCur); if(i>0) openDoc(docs[i-1].page); });
+$("#dNext").addEventListener("click",function(){ var i=docs.indexOf(docCur); if(i<docs.length-1) openDoc(docs[i+1].page); });
+window.addEventListener("resize",function(){ if(DV&&docCur){ var r=DV.stage.getBoundingClientRect(); DV.minS=Math.min(r.width/DV.m.w,r.height/DV.m.h)*0.9; clampPos(DV); apply(DV,false); } });
+renderDocs();
 
 /* ---------- List & search ---------- */
 function norm(s){ return (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,""); }
@@ -625,15 +694,19 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Auf Plan zeigen</button>':'')+'</div><div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><button class="btn" id="sTodo"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Auf Plan zeigen</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
   var sb=$("#sShow"); if(sb) sb.addEventListener("click",function(){ showOnPlan(id); });
+  $("#sBody").querySelectorAll("[data-doc]").forEach(function(b){ b.addEventListener("click",function(){ var pg=+b.dataset.doc; closeSheet(false); show("montage"); openDoc(pg); }); });
   $("#sTodo").addEventListener("click",function(){ if(todoFind(id)) todoRemove(id); else todoAdd(id); });
   sheetTodoUi(id);
   openSheet(id,push);
 }
+function docLinks(id){ var l=(D.docs||[]).filter(function(d){ return d.pos.indexOf(id)>-1; });
+  if(!l.length) return "";
+  return '<div class="doclinks">'+l.map(function(d){ return '<button class="btn sec" data-doc="'+d.page+'">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>'+esc(d.title)+' · S. '+d.page+'</button>'; }).join("")+'</div>'; }
 function sheetTodoUi(id){ var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
   b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen"):ICON_PLUS+"Zu To-dos hinzufügen";
