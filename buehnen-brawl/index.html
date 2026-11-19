@@ -573,6 +573,8 @@ try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || 
 if (TOUCH) settings.mode = 1;
 function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringify(settings)); } catch (e) { /* egal */ } }
 const isCPU = () => settings.mode === 1;
+// Beim ersten Start auf Touch-Geräten (noch nicht als App installiert): Anleitung „Zum Home-Bildschirm“
+let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
 const DIFFS = [
   { name: 'LEICHT', think: [24, 42], shield: 0.015, atk: 0.55, fin: 0.4 },
@@ -965,6 +967,7 @@ function onUI(id) {
     case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); break;
+    case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '1'); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
     case 'back': scene = 'title'; sfx.select(); break;
     case 'go': if (sel[0].ok && sel[1].ok) { sfx.go(); startMatch(); } break;
@@ -983,6 +986,7 @@ function onUI(id) {
   }
 }
 function stepTitle() {
+  if (a2hs) { if (['Enter', 'Space'].some(k => pressed.has(k))) onUI('a2hsOk'); return; }
   const rows = menuRows();
   menuRow = clamp(menuRow, 0, rows.length - 1);
   const any = a => a.some(k => pressed.has(k));
@@ -1617,6 +1621,36 @@ function drawTouch() {
     c.textBaseline = 'alphabetic'; c.restore();
   }
 }
+function shareIcon(c, x, y, s) {   // iOS-Teilen-Symbol
+  c.save(); c.translate(x, y); c.scale(s, s); c.strokeStyle = '#3fa9ff'; c.lineWidth = 2.6; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.beginPath(); c.moveTo(-6, -4); c.lineTo(-10, -4); c.lineTo(-10, 14); c.lineTo(10, 14); c.lineTo(10, -4); c.lineTo(6, -4); c.stroke();
+  c.beginPath(); c.moveTo(0, 6); c.lineTo(0, -14); c.moveTo(-5, -9); c.lineTo(0, -14); c.lineTo(5, -9); c.stroke(); c.restore();
+}
+function drawA2HS() {
+  const c = ctx, x = W / 2 - 400, y = 110, w = 800, h = 500;
+  c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(0, 0, W, H);
+  RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
+  // kleines App-Icon
+  c.save(); c.beginPath(); if (c.roundRect) c.roundRect(x + 40, y + 36, 96, 96, 22); else c.rect(x + 40, y + 36, 96, 96); c.clip();
+  const g = c.createRadialGradient(x + 88, y + 70, 5, x + 88, y + 84, 80); g.addColorStop(0, '#6b3bd6'); g.addColorStop(1, '#14082e');
+  c.fillStyle = g; c.fillRect(x + 40, y + 36, 96, 96);
+  c.translate(x + 88, y + 128); c.scale(1.05, 1.05); drawHamster(c, dummy(ROSTER[0]), { kind: 'idle' }); c.restore();
+  c.textAlign = 'left'; c.font = '900 40px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f';
+  c.fillText('ALS APP INSTALLIEREN', x + 164, y + 82);
+  c.font = '18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0';
+  c.fillText('Dann startet Bühnen-Brawl im Vollbild, mit eigenem Icon.', x + 164, y + 116);
+  const steps = IOS
+    ? [['share', 'Tippe in Safari auf das Teilen-Symbol'], ['', 'Wähle „Zum Home-Bildschirm“'], ['', 'Tippe auf „Hinzufügen“ – fertig!']]
+    : [['', 'Öffne das Browser-Menü ( ⋮ oben rechts )'], ['', 'Wähle „App installieren“ bzw. „Zum Startbildschirm“'], ['', 'Bestätigen – fertig!']];
+  steps.forEach(([icon, t], i) => {
+    const yy = y + 186 + i * 70;
+    Cc(c, x + 68, yy, 22, '#ffd23f');
+    c.textAlign = 'center'; c.font = '900 24px Impact,"Arial Black",sans-serif'; c.fillStyle = '#1a1024'; c.fillText(String(i + 1), x + 68, yy + 9);
+    c.textAlign = 'left'; c.font = 'bold 24px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(t, x + 110, yy + 9);
+    if (icon === 'share') shareIcon(c, x + 110 + c.measureText(t).width + 30, yy - 1, 1.3);
+  });
+  btn('a2hsOk', W / 2 - 150, y + h - 92, 300, 62, 'VERSTANDEN', '#ffd23f', 30);
+}
 function drawRotate() {
   const c = ctx;
   c.fillStyle = '#07050f'; c.fillRect(0, 0, W, H);
@@ -1632,7 +1666,7 @@ function render() {
   ui = [];
   if (isPortrait()) { drawRotate(); return; }
   drawBackground(frame);
-  if (scene === 'title') { drawTitle(); return; }
+  if (scene === 'title') { drawTitle(); if (a2hs) { ui = []; drawA2HS(); } return; }
   if (scene === 'select') { drawSelect(); return; }
   c.save();
   const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
@@ -1681,7 +1715,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 cv.focus();
 // Für automatisierte Tests
-window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, sel, settings, startMatch, onUI };
+window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, get a2hs() { return a2hs; }, sel, settings, startMatch, onUI };
 </script>
 </body>
 </html>
