@@ -20,3 +20,17 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 - `img/docs/*.jpg` – Anhang-Seiten (Schemas, Detailzeichnungen, Bodenkabel) für den Reiter „Montage“
 
 Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt werden.
+
+## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
+Kleines Plattform-Prügelspiel im Browser: **Medien Hamster vs. VTler** – zu zweit an einer Laptop-Tastatur (oder gegen die CPU, Taste `C` im Titel). Einfach `buehnen-brawl/index.html` öffnen.
+
+| | Medien Hamster (P1) | VTler (P2) |
+|---|---|---|
+| Laufen / Springen | `A` `D` / `W` | `←` `→` / `↑` |
+| Schutz / Fastfall | `S` | `↓` |
+| Kick 1 | `F` Backen-Jab-Kick | `J` Stahlkappen-Kick |
+| Kick 2 | `G` HDMI-Drehkick | `K` Gaffa-Roundhouse |
+| Kick 3 | `H` Laufrad-Dropkick | `L` Flightcase-Dropkick |
+| Finisher (Leiste voll) | `T` Stapler-Attacke – fährt mit dem Gabelstapler über den Gegner | `I` Case-Wurf – wirft ein Flightcase auf den Hamster |
+
+Treffer laden die Finisher-Leiste (ca. 4–7 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
