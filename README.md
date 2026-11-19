@@ -22,7 +22,11 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt werden.
 
 ## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
-Kleines Plattform-Prügelspiel im Browser – zu zweit an einer Laptop-Tastatur (oder gegen die CPU, Taste `C` im Auswahlmenü). Einfach `buehnen-brawl/index.html` öffnen, Kämpfer wählen, los.
+Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` öffnen.
+
+**Startmenü:** *1 Spieler* (gegen den Computer, CPU-Stärke leicht/mittel/schwer) oder *2 Spieler* (zu zweit an einer Tastatur), dazu die Anzahl der Leben. `M` schaltet den Ton an/aus.
+
+**Mac / PC:** Tastatur.
 
 | | P1 | P2 |
 |---|---|---|
@@ -31,11 +35,14 @@ Kleines Plattform-Prügelspiel im Browser – zu zweit an einer Laptop-Tastatur 
 | Schlag | `F` | `K` (oder Numpad 1) |
 | Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
+**iPhone / iPad:** Das Spiel erkennt Touch-Geräte automatisch und zeigt Touch-Buttons (◀ ▶, Sprung, Schlag, Schild, Finisher). Dort gibt es nur den Einzelspieler-Modus, gespielt wird im Querformat. In Safari über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App (Manifest + Icons liegen im Ordner).
+
 | Kämpfer | Typ | Finisher |
 |---|---|---|
-| **Medien Hamster** | pummelig, lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
+| **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
 | **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun – Stromschlag |
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
 | **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
+| **Gerch** | Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille | 180 dB Überschallknall – Druckwelle in alle Richtungen |
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.

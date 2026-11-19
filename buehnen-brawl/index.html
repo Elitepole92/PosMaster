@@ -2,11 +2,18 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brawl">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <meta name="theme-color" content="#07050f">
 <title>Bühnen-Brawl</title>
 <style>
-html,body{margin:0;height:100%;background:#05040b;overflow:hidden}
+html,body{margin:0;height:100%;background:#05040b;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 body{display:flex;align-items:center;justify-content:center}
 canvas{display:block;outline:none}
 </style>
@@ -40,8 +47,16 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
 const PI = Math.PI, TAU = PI * 2;
 
+/* ---------------- Gerät erkennen ---------------- */
+const QS = new URLSearchParams(location.search);
+// Touch-Gerät (iPhone, iPad, Android): Touch-Buttons, nur Einzelspieler, Querformat
+const TOUCH = QS.has('touch') || (matchMedia('(hover: none) and (pointer: coarse)').matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const STANDALONE = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+const isPortrait = () => TOUCH && innerHeight > innerWidth;
+
 /* ---------------- Eingabe ---------------- */
-const held = new Set(); const pressed = new Set();
+const held = new Set(); const pressed = new Set(); const touchHeld = new Set();
 const NOSCROLL = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab']);
 addEventListener('keydown', e => {
   if (NOSCROLL.has(e.code)) e.preventDefault();
@@ -50,7 +65,10 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => held.delete(e.code));
 addEventListener('blur', () => held.clear());
-addEventListener('pointerdown', () => { audioInit(); cv.focus(); });
+addEventListener('touchend', () => audioInit(), { passive: true });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault());
 
 const CTRL = [
   { left: ['KeyA'], right: ['KeyD'], up: ['KeyW'], down: ['KeyS'], atk: ['KeyF'], fin: ['KeyG'] },
@@ -59,7 +77,7 @@ const CTRL = [
 const NOINPUT = { left: 0, right: 0, up: 0, down: 0, upP: 0, downP: 0, atk: 0, fin: 0 };
 const isP = (i, k) => CTRL[i][k].some(c => pressed.has(c));
 function readInput(i) {
-  const c = CTRL[i], h = a => a.some(k => held.has(k));
+  const c = CTRL[i], h = a => a.some(k => held.has(k) || touchHeld.has(k));
   return { left: h(c.left), right: h(c.right), up: h(c.up), down: h(c.down), upP: isP(i, 'up'), downP: isP(i, 'down'),
            atk: isP(i, 'atk'), fin: isP(i, 'fin') };
 }
@@ -68,7 +86,10 @@ function readInput(i) {
 let AC = null, master = null;
 function audioInit() {
   if (!AC) {
-    try { AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = 0.7; master.connect(AC.destination); }
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)(); master = AC.createGain(); master.gain.value = settings.mute ? 0 : 0.7; master.connect(AC.destination);
+      const b = AC.createBuffer(1, 1, 22050), src = AC.createBufferSource(); src.buffer = b; src.connect(AC.destination); src.start(0); // iOS entsperren
+    }
     catch (e) { AC = null; }
   }
   if (AC && AC.state === 'suspended') AC.resume();
@@ -81,6 +102,7 @@ function tone(freq, dur, type = 'square', vol = 0.1, slide = 0, delay = 0) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
 }
+function applyMute() { if (master) master.gain.value = settings.mute ? 0 : 0.7; }
 let noiseBuf = null;
 function noise(dur, vol, freq, ftype = 'lowpass', delay = 0) {
   if (!AC) return;
@@ -112,6 +134,12 @@ const sfx = {
   go() { tone(880, 0.4, 'square', 0.07); tone(1320, 0.4, 'square', 0.04); },
   shieldBreak() { tone(1200, 0.5, 'triangle', 0.1, -1000); noise(0.3, 0.2, 2000, 'highpass'); },
   select() { tone(660, 0.06, 'square', 0.05); },
+  move() { tone(520, 0.04, 'square', 0.03); },
+  land() { tone(110, 0.08, 'sine', 0.14, -40); noise(0.06, 0.05, 600); },
+  shield() { tone(520, 0.12, 'sine', 0.05, 260); },
+  respawn() { tone(300, 0.5, 'sine', 0.06, 900); tone(600, 0.4, 'triangle', 0.03, 600, 0.1); },
+  feedback() { tone(900, 0.5, 'sine', 0.07, 1500); tone(1800, 0.45, 'sine', 0.03, 1200, 0.1); },
+  sonic() { noise(0.08, 0.6, 6000, 'highpass'); noise(1.4, 0.55, 220); tone(48, 1.2, 'sine', 0.6, -20); tone(95, 0.6, 'sawtooth', 0.15, -50); },
   confirm() { tone(660, 0.08, 'square', 0.06); tone(990, 0.12, 'square', 0.06, 0, 0.07); }
 };
 
@@ -181,9 +209,15 @@ function drawHuman(c, f, A, S) {
   c.save();
   c.translate(0, P.bob * 0.5);
   c.translate(HIP.x, HIP.y); c.rotate(P.rot); c.translate(-HIP.x, -HIP.y);
-  const leg = (foot, shade) => {
+  const leg = (foot, shade, front) => {
     const q = ik(HIP.x, HIP.y, foot.x, foot.y, S.thigh, S.shin, -1);
-    Ln(c, HIP.x, HIP.y, q.kx, q.ky, shade, S.legW); Ln(c, q.kx, q.ky, q.bx, q.by, shade, S.legW * 0.92);
+    Ln(c, HIP.x, HIP.y, q.kx, q.ky, shade, S.legW);
+    if (S.shinCol) {   // kurze Hose: nacktes Bein + hoher Stiefel + Cargotasche
+      Ln(c, q.kx, q.ky, q.bx, q.by, front ? S.shinCol : S.shinColD, S.legW * 0.62);
+      Ln(c, lerp(q.bx, q.kx, 0.42), lerp(q.by, q.ky, 0.42), q.bx, q.by, S.boot, S.legW * 0.9);
+      const mx = lerp(HIP.x, q.kx, 0.55), my = lerp(HIP.y, q.ky, 0.55);
+      RR(c, mx - 3, my - 4, 8, 9, 2, front ? S.pocket : S.pantsD);
+    } else Ln(c, q.kx, q.ky, q.bx, q.by, shade, S.legW * 0.92);
     const a = Math.atan2(q.by - q.ky, q.bx - q.kx), bl = S.bootL;
     c.save(); c.translate(q.bx, q.by); c.rotate(a - PI / 2);
     RR(c, -bl * 0.32, -bl * 0.36, bl, bl * 0.48, 4, S.boot); RR(c, -bl * 0.32, bl * 0.06, bl, 3.2, 1.5, '#55555c');
@@ -194,7 +228,7 @@ function drawHuman(c, f, A, S) {
     Ln(c, SH.x, SH.y, q.kx, q.ky, shade, S.armW); Ln(c, q.kx, q.ky, q.bx, q.by, shade, S.armW * 0.9);
     Cc(c, q.bx, q.by, S.handR, S.hand); return q;
   };
-  leg(P.fB, S.pantsD);
+  leg(P.fB, S.pantsD, false);
   arm(P.hB, S.sleeveD);
   const vx = SH.x - HIP.x, vy = SH.y - HIP.y, L = Math.hypot(vx, vy);
   c.save(); c.translate(HIP.x, HIP.y); c.rotate(Math.atan2(vy, vx) + PI / 2);
@@ -202,7 +236,7 @@ function drawHuman(c, f, A, S) {
   if (S.torsoDeco) S.torsoDeco(c, S.torsoW, L, f, A);
   c.restore();
   S.head(c, SH.x + S.headOff.x, SH.y + S.headOff.y, f, A, P);
-  leg(P.fF, S.pants);
+  leg(P.fF, S.pants, true);
   if (S.hipFront) S.hipFront(c, f, A, P);
   const q = arm(P.hF, S.sleeve);
   if (S.prop) S.prop(c, q, f, A, P);
@@ -432,6 +466,50 @@ const S_RIGGER = {
   }
 };
 
+/* ---- Gerch: Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille ---- */
+const S_GERCH = {
+  hip: -50, sh: -84, hunch: 3, thigh: 26, shin: 25, upper: 23, fore: 22, legW: 13, armW: 9, handR: 4.8,
+  pants: '#cdb791', pantsD: '#ad9870', pocket: '#b9a37b', shinCol: '#e2b48e', shinColD: '#c99c78',
+  sleeve: '#2c2f36', sleeveD: '#24272c', shirt: '#2c2f36', hand: '#e2b48e', boot: '#6b4423', bootL: 21,
+  torsoW: 30, headOff: { x: 4, y: -12 },
+  torsoDeco(c, tw, L) { vest(c, tw, L, '#ffe11a', '#c9a800', 'TON', '#6b5a00'); },
+  head(c, hx, hy, f, A, P) {
+    const skin = '#e2b48e';
+    c.strokeStyle = '#1b1b1d'; c.lineWidth = 3; c.beginPath(); c.arc(hx - 2, hy + 12, 9, PI * 0.15, PI * 0.85, true); c.stroke();   // Kopfhörer um den Hals
+    E(c, hx + 6, hy + 14, 4, 5, '#2a2a2e');
+    Cc(c, hx, hy, 11.5, skin);
+    c.fillStyle = 'rgba(150,150,155,0.55)'; c.beginPath(); c.arc(hx + 1, hy + 0.5, 11.5, PI * 0.02, PI * 0.9); c.closePath(); c.fill();   // grauer Dreitagebart
+    c.fillStyle = 'rgba(120,120,125,0.75)';
+    for (let i = 0; i < 16; i++) { const a = 0.1 + i * 0.05 * PI, r = 7.5 + (i % 3) * 1.3; c.fillRect(hx + 1 + Math.cos(a) * r, hy + 0.5 + Math.sin(a) * r, 1.1, 1.1); }
+    E(c, hx - 2.5, hy, 2.5, 3.2, '#cc9c78');
+    if (P.eyes === 'x') { Ln(c, hx + 5, hy - 4, hx + 9, hy, '#111', 1.5); Ln(c, hx + 9, hy - 4, hx + 5, hy, '#111', 1.5); }
+    else Cc(c, hx + 7, hy - 1.5, 1.5, '#111');
+    c.strokeStyle = '#222'; c.lineWidth = 1.5; c.beginPath(); c.arc(hx + 7.5, hy - 1.5, 3.7, 0, TAU); c.stroke();   // Brille
+    Ln(c, hx + 3.8, hy - 2, hx - 2, hy - 1, '#222', 1.2);
+    Ln(c, hx + 4, hy - 6.8, hx + 11, hy - 6.3, '#8d8d92', 1.8);
+    E(c, hx + 12, hy + 1.5, 2.8, 2.2, '#d7a47f');
+    if (P.shout) E(c, hx + 8, hy + 6.5, 3, 3.6, '#3a1010'); else Ln(c, hx + 6, hy + 6, hx + 10, hy + 5.5, '#7a5040', 1.3);
+    c.fillStyle = '#ff7a1a'; c.beginPath(); c.arc(hx, hy - 3, 12.5, PI, TAU); c.fill();   // oranger Helm
+    RR(c, hx - 13.5, hy - 5, 30, 4, 2, '#e5620a');
+    Ln(c, hx - 1, hy - 15, hx + 5, hy - 14.5, '#ff9a4a', 2.5);
+  },
+  atkPose(P, e) { P.prop = 'xlr'; P.hF = { x: lerp(-8, 44, e), y: lerp(-112, -72, e) }; P.rot = 0.1 * e; },
+  finPose(P, A) {
+    if (A.t < 30) { P.prop = 'mic'; P.hF = { x: 14, y: -98 }; P.hB = { x: 10, y: -90 }; }
+    else { P.hF = { x: 42, y: -100 }; P.hB = { x: 36, y: -66 }; P.rot = 0.14; P.fF = { x: 16, y: 0 }; P.fB = { x: -16, y: 0 }; P.shout = true; }
+  },
+  prop(c, q, f, A, P) {
+    if (P.prop === 'xlr') {
+      const e = A.e || 0, ex = q.bx + lerp(-10, 34, e), ey = q.by + lerp(26, -4, e);
+      c.strokeStyle = '#111'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(q.bx, q.by);
+      c.quadraticCurveTo(q.bx + 10, q.by + 18 - e * 20, ex, ey); c.stroke();
+      c.save(); c.translate(ex, ey); c.rotate(lerp(1.2, 0, e)); RR(c, -2, -3.5, 12, 7, 2.5, '#9aa0a6'); RR(c, 8, -2.5, 3, 5, 1, '#5d6268'); c.restore();
+    } else if (P.prop === 'mic') {
+      c.save(); c.translate(q.bx, q.by); c.rotate(-0.5); RR(c, -2.5, -4, 5, 16, 2, '#111'); Cc(c, 0, -6, 4.5, '#8d939b'); c.restore();
+    }
+  }
+};
+
 /* ---------------- Roster ---------------- */
 const ROSTER = [
   {
@@ -464,25 +542,45 @@ const ROSTER = [
   {
     id: 'rigger', name: 'CREW RIGGER', short: 'Rigger', w: 34, h: 126,
     speed: 5.9, airSpeed: 5.2, airAcc: 0.6, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 1.07,
-    color: '#e07a3a', color2: '#ffd2b0', hitColor: '#ffb070', stats: [4, 2, 5], pt: [5, -112, 1.6],
+    color: '#d64535', color2: '#ffc0b8', hitColor: '#ff8a7a', stats: [4, 2, 5], pt: [5, -112, 1.6],
     atk: { name: 'Knarren-Hieb', s: 6, a: 5, r: 13, dmg: 8, kb: 5.2, scale: 0.12, ang: 35, meter: 20, lunge: 1, box: { x: 10, y: -98, w: 80, h: 62 } },
     fin: 'chain', finName: 'D8+ KETTENSCHLAG', finQuote: 'Moin. D8+ läuft.', finRange: 300,
     quotes: ['Moin.', 'Hängt.', 'Kette rechts, Kette links.', 'Last gesichert. Du nicht.', 'Noch ’ne Tasche? Passt.'],
     style: S_RIGGER, draw: (c, f, A) => drawHuman(c, f, A, S_RIGGER)
+  },
+  {
+    id: 'gerch', name: 'GERCH', short: 'Gerch', w: 44, h: 108,
+    speed: 5.4, airSpeed: 4.9, airAcc: 0.55, jump: 13.4, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.96,
+    color: '#ff7a1a', color2: '#ffd0a8', hitColor: '#ffb070', stats: [3, 3, 3], pt: [7, -95, 1.6],
+    atk: { name: 'XLR-Peitsche', s: 6, a: 5, r: 12, dmg: 8, kb: 5.3, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
+    fin: 'boom', finName: '180 dB ÜBERSCHALLKNALL', finQuote: 'Fader auf Anschlag – 180 dB!', finRange: 380,
+    quotes: ['Check, eins, zwei.', 'Zu laut gibt es nicht.', 'Das war nur der Soundcheck.', 'Pegel passt.', 'Wer hat am Pult gedreht?!'],
+    style: S_GERCH, draw: (c, f, A) => drawHuman(c, f, A, S_GERCH)
   }
 ];
 const FMOVE = {
   smoke: { dmg: 22, kb: 10.5, scale: 0.2, ang: 55, meter: 0 },
   zap: { dmg: 24, kb: 11, scale: 0.21, ang: 60, meter: 0 },
   forklift: { dmg: 25, kb: 12, scale: 0.21, ang: 65, meter: 0 },
-  chain: { dmg: 25, kb: 12, scale: 0.21, ang: 35, meter: 0 }
+  chain: { dmg: 25, kb: 12, scale: 0.21, ang: 35, meter: 0 },
+  boom: { dmg: 24, kb: 11.5, scale: 0.21, ang: 45, meter: 0 }
 };
 const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 
 /* ---------------- Spielzustand ---------------- */
-const settings = { stocks: 3, cpu: false };
+const settings = { stocks: 3, mode: 1, diff: 1, mute: false };
+try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
+if (TOUCH) settings.mode = 1;
+function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringify(settings)); } catch (e) { /* egal */ } }
+const isCPU = () => settings.mode === 1;
+// CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
+const DIFFS = [
+  { name: 'LEICHT', think: [24, 42], shield: 0.015, atk: 0.55, fin: 0.4 },
+  { name: 'MITTEL', think: [10, 22], shield: 0.05, atk: 0.85, fin: 1 },
+  { name: 'SCHWER', think: [4, 10], shield: 0.12, atk: 1, fin: 1 }
+];
 const sel = [{ i: 0, ok: false }, { i: 1, ok: false }];
-let scene = 'select', frame = 0, F = [], parts = [], texts = [], ents = [], koFx = [];
+let scene = 'title', menuRow = 0, ui = [], frame = 0, F = [], parts = [], texts = [], ents = [], koFx = [];
 let freeze = 0, shake = 0, cutin = null, countdown = 0, goT = 0, gameOverT = 0, paused = false, winner = null, flashScreen = 0, flashCol = '255,255,255';
 const cam = { x: 640, y: 400, z: 1 };
 
@@ -637,12 +735,34 @@ function stepFinisher(f, inp, o) {
       if (overlap(b, hurtbox(o))) { Fn.hit = true; finisherHit(f, o, o.x, o.y - o.def.h * 0.6, 'KETTENSCHLAG!', '#ffb070'); shake = Math.max(shake, 14); }
     }
     if (Fn.t >= 52) { f.fin = null; f.armor = false; f.lag = 8; }
+  } else if (Fn.type === 'boom') {
+    f.armor = Fn.t < 30; f.vx *= 0.8;
+    if (Fn.t === 4) sfx.feedback();
+    if (Fn.t === 30) {
+      ents.push({ type: 'boom', x: f.x + f.facing * 20, y: f.y - 70, r: 10, t: 0, owner: f, hit: false });
+      sfx.sonic(); shake = Math.max(shake, 26); flashScreen = 10; flashCol = '255,240,220';
+      popText(f.x + f.facing * 60, f.y - f.def.h - 40, '180 dB!', '#ffb070', 48, 50);
+    }
+    if (Fn.t >= 60) { f.fin = null; f.armor = false; f.lag = 10; }
   }
 }
 function stepEnts() {
   for (const e of ents) {
     e.t++;
     if (e.type === 'bolt') { if (e.t > 22) e.dead = true; continue; }
+    if (e.type === 'boom') {
+      const owner = e.owner, o = F[1 - owner.idx];
+      e.r += 18;
+      if (!e.hit && hittable(o) && e.r <= 440) {
+        const hb = hurtbox(o), nx = clamp(e.x, hb.x, hb.x + hb.w), ny = clamp(e.y, hb.y, hb.y + hb.h);
+        if (Math.hypot(nx - e.x, ny - e.y) < e.r) {
+          e.hit = true; popText(o.x, o.y - o.def.h - 30, 'ÜBERSCHALLKNALL!', '#ffd0a8', 34, 50);
+          applyHit(owner, o, FMOVE.boom, Math.sign(o.x - e.x) || owner.facing, nx, ny);
+        }
+      }
+      if (e.t > 32) e.dead = true;
+      continue;
+    }
     if (e.type === 'smoke') {
       const owner = e.owner, o = F[1 - owner.idx];
       e.x += e.vx; e.vx *= 0.965; e.r = Math.min(85, e.r + 2.6);
@@ -662,7 +782,7 @@ function stepEnts() {
 }
 
 function land(f, g, y) {
-  if (f.vy > 7) dust(f.x, y, 5);
+  if (f.vy > 7) { dust(f.x, y, 5); sfx.land(); }
   f.y = y; f.vy = 0; f.onGround = true; f.ground = g; f.jumps = f.def.airJumps; f.fast = false;
   if (f.hitstun > 0) { f.hitstun = Math.min(f.hitstun, 8); f.rot = 0; f.tumble = 0; }
 }
@@ -684,7 +804,9 @@ function control(f, inp, o) {
   const d = f.def, dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   const onMain = f.onGround && f.ground === STAGE;
   if (inp.downP && f.onGround && f.ground !== STAGE) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
+  const wasShield = f.shielding;
   f.shielding = inp.down && onMain && f.shield > 5;
+  if (f.shielding && !wasShield) sfx.shield();
   if (f.shielding) { f.vx *= 0.7; f.shield -= 0.3; if (f.shield <= 0) breakShield(f); }
   else {
     if (f.onGround) { f.vx += (dir * d.speed - f.vx) * 0.3; if (dir) f.facing = dir; }
@@ -721,7 +843,7 @@ function respawn(f) {
   const o = F[1 - f.idx];
   f.dead = false; f.x = (o && !o.dead && Math.abs(o.x - 640) < 80) ? (o.x < 640 ? 760 : 520) : 640;
   f.y = 180; f.vx = 0; f.vy = 0; f.damage = 0; f.plat = 160; f.invuln = 160; f.jumps = f.def.airJumps; f.onGround = false; f.ground = null;
-  f.shield = 100; f.lag = 0;
+  f.shield = 100; f.lag = 0; sfx.respawn();
 }
 function stepFighter(f, inp, o) {
   f.t++;
@@ -790,7 +912,7 @@ function stepFighter(f, inp, o) {
 
 /* ---------------- CPU-Gegner (optional) ---------------- */
 function cpuInput(f, o) {
-  const inp = { ...NOINPUT }, ai = f.ai;
+  const inp = { ...NOINPUT }, ai = f.ai, D = DIFFS[settings.diff] || DIFFS[1];
   if (f.dead || f.plat > 0) { if (f.plat > 0 && f.plat < 120) inp.left = true; return inp; }
   const offL = f.x < STAGE.x1, offR = f.x > STAGE.x2;
   if (offL || offR) {
@@ -801,15 +923,15 @@ function cpuInput(f, o) {
   const dx = o.x - f.x, adx = Math.abs(dx), reach = f.def.atk.box.x + f.def.atk.box.w;
   ai.t--;
   if (ai.shieldT > 0) { ai.shieldT--; inp.down = true; return inp; }
-  if (o.atk && adx < 120 && f.onGround && f.ground === STAGE && Math.random() < 0.06) { ai.shieldT = 18; inp.down = true; return inp; }
+  if (o.atk && adx < 120 && f.onGround && f.ground === STAGE && Math.random() < D.shield) { ai.shieldT = 18; inp.down = true; return inp; }
   if (o.dead) { inp[640 > f.x ? 'right' : 'left'] = Math.abs(640 - f.x) > 60; return inp; }
   if (adx > reach - 8) inp[dx > 0 ? 'right' : 'left'] = true;
   else if (Math.sign(dx) !== f.facing) inp[dx > 0 ? 'right' : 'left'] = true;
   if (o.y < f.y - 90 && f.onGround && Math.random() < 0.04) inp.upP = true;
   if (ai.t <= 0) {
-    ai.t = Math.floor(rand(8, 22));
-    if (f.meter >= 100 && adx < f.def.finRange && Math.abs(o.y - f.y) < 120) inp.fin = true;
-    else if (adx < reach + 10 && Math.abs(o.y - f.y) < 90) inp.atk = true;
+    ai.t = Math.floor(rand(D.think[0], D.think[1]));
+    if (f.meter >= 100 && adx < f.def.finRange && Math.abs(o.y - f.y) < 120 && Math.random() < D.fin) inp.fin = true;
+    else if (adx < reach + 10 && Math.abs(o.y - f.y) < 90) inp.atk = Math.random() < D.atk;
   }
   return inp;
 }
@@ -833,39 +955,79 @@ function stepCamera() {
 
 /* ---------------- Haupt-Step ---------------- */
 function cpuPick() { let i; do { i = Math.floor(Math.random() * ROSTER.length); } while (i === sel[0].i); return i; }
+function cpuConfirm() { sel[1].i = cpuPick(); sel[1].ok = true; sfx.confirm(); }
+const menuRows = () => TOUCH ? ['mode1', 'diff', 'stocks'] : ['mode1', 'mode2', 'diff', 'stocks'];
+
+// Alle Klicks/Taps und Menü-Aktionen laufen hier zusammen
+function onUI(id) {
+  audioInit();
+  switch (id) {
+    case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
+    case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
+    case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); break;
+    case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
+    case 'back': scene = 'title'; sfx.select(); break;
+    case 'go': if (sel[0].ok && sel[1].ok) { sfx.go(); startMatch(); } break;
+    case 'pause': if (scene === 'fight' && !gameOverT) { paused = true; sfx.select(); } break;
+    case 'resume': paused = false; sfx.select(); break;
+    case 'menu': paused = false; scene = 'title'; sfx.select(); break;
+    case 'rematch': sfx.go(); startMatch(); break;
+    case 'select': paused = false; toSelect(); sfx.select(); break;
+    default:
+      if (id.startsWith('card')) {
+        const i = +id.slice(4);
+        if (sel[0].i === i && !sel[0].ok) { sel[0].ok = true; sfx.confirm(); if (isCPU()) cpuConfirm(); else sel[1].ok = true; }
+        else if (sel[0].i === i && sel[0].ok && sel[1].ok) { sfx.go(); startMatch(); }
+        else { sel[0].i = i; sel[0].ok = false; sel[1].ok = false; sfx.move(); }
+      }
+  }
+}
+function stepTitle() {
+  const rows = menuRows();
+  menuRow = clamp(menuRow, 0, rows.length - 1);
+  const any = a => a.some(k => pressed.has(k));
+  if (any(['ArrowUp', 'KeyW'])) { menuRow = (menuRow + rows.length - 1) % rows.length; sfx.move(); }
+  if (any(['ArrowDown', 'KeyS'])) { menuRow = (menuRow + 1) % rows.length; sfx.move(); }
+  const row = rows[menuRow], l = any(['ArrowLeft', 'KeyA']), r = any(['ArrowRight', 'KeyD']);
+  if ((l || r) && row === 'diff') onUI(r ? 'diffR' : 'diffL');
+  if ((l || r) && row === 'stocks') onUI(r ? 'stocksR' : 'stocksL');
+  if (any(['Enter', 'Space', 'KeyF', 'KeyK'])) onUI(row.startsWith('mode') ? row : (settings.mode === 2 ? 'mode2' : 'mode1'));
+}
 function stepSelect() {
   const N = ROSTER.length;
+  if (pressed.has('Escape')) { onUI('back'); return; }
   for (let p = 0; p < 2; p++) {
-    if (p === 1 && settings.cpu) continue;
+    if (p === 1 && isCPU()) continue;
     const s = sel[p];
     if (!s.ok) {
-      if (isP(p, 'left')) { s.i = (s.i + N - 1) % N; sfx.select(); }
-      if (isP(p, 'right')) { s.i = (s.i + 1) % N; sfx.select(); }
+      if (isP(p, 'left')) { s.i = (s.i + N - 1) % N; sfx.move(); }
+      if (isP(p, 'right')) { s.i = (s.i + 1) % N; sfx.move(); }
       if (isP(p, 'atk')) { s.ok = true; sfx.confirm(); }
-    } else if (isP(p, 'down')) { s.ok = false; sfx.select(); }
+    } else if (isP(p, 'down')) { s.ok = false; if (p === 0 && isCPU()) sel[1].ok = false; sfx.select(); }
     else if (isP(p, 'atk') && sel[0].ok && sel[1].ok) { sfx.go(); startMatch(); return; }
   }
-  if (settings.cpu && sel[0].ok && !sel[1].ok) { sel[1].i = cpuPick(); sel[1].ok = true; sfx.confirm(); }
-  if (settings.cpu && !sel[0].ok) sel[1].ok = false;
+  if (isCPU() && sel[0].ok && !sel[1].ok) cpuConfirm();
   if (pressed.has('Enter') || pressed.has('Space')) {
     if (sel[0].ok && sel[1].ok) { sfx.go(); startMatch(); return; }
     sel[0].ok = true;
-    if (settings.cpu) sel[1].i = cpuPick();
-    sel[1].ok = true; sfx.confirm();
+    if (isCPU()) cpuConfirm(); else { sel[1].ok = true; sfx.confirm(); }
   }
-  for (let i = 1; i <= 5; i++) if (pressed.has('Digit' + i)) { settings.stocks = i; sfx.select(); }
-  if (pressed.has('KeyC')) { settings.cpu = !settings.cpu; sel[1].ok = false; sfx.select(); }
 }
 function step() {
   frame++;
-  if (scene === 'select') stepSelect();
+  if (isPortrait()) { pressed.clear(); return; }   // Hochformat: Spiel hält an
+  if (!touchActive() && (touchHeld.size || pointers.size)) { touchHeld.clear(); pointers.clear(); }
+  if (pressed.has('KeyM')) onUI('mute');
+  if (scene === 'title') stepTitle();
+  else if (scene === 'select') stepSelect();
   else if (scene === 'results') {
     stepFx();
-    if (pressed.has('Enter') || pressed.has('Space')) { sfx.go(); startMatch(); }
-    if (pressed.has('Escape')) { toSelect(); sfx.select(); }
+    if (pressed.has('Enter') || pressed.has('Space')) onUI('rematch');
+    else if (pressed.has('Escape')) onUI('select');
+    else if (pressed.has('KeyQ')) onUI('menu');
   } else {
     if (pressed.has('Escape') && scene === 'fight' && !gameOverT) { paused = !paused; sfx.select(); }
-    if (paused) { if (pressed.has('KeyQ')) { paused = false; toSelect(); } pressed.clear(); return; }
+    if (paused) { if (pressed.has('KeyQ')) onUI('menu'); pressed.clear(); return; }
     if (scene === 'countdown') {
       if (countdown % 60 === 0) sfx.count();
       if (--countdown <= 0) { scene = 'fight'; goT = 50; sfx.go(); }
@@ -875,7 +1037,7 @@ function step() {
     if (freeze > 0) { freeze--; pressed.clear(); return; }
     const fighting = scene === 'fight' && !(gameOverT && gameOverT < 100);
     const in0 = fighting ? readInput(0) : NOINPUT;
-    const in1 = fighting ? (settings.cpu ? cpuInput(F[1], F[0]) : readInput(1)) : NOINPUT;
+    const in1 = fighting ? (isCPU() ? cpuInput(F[1], F[0]) : readInput(1)) : NOINPUT;
     if (frame % 2) { stepFighter(F[0], in0, F[1]); stepFighter(F[1], in1, F[0]); }
     else { stepFighter(F[1], in1, F[0]); stepFighter(F[0], in0, F[1]); }
     stepEnts(); stepFx(); stepCamera();
@@ -883,6 +1045,39 @@ function step() {
   }
   pressed.clear();
 }
+
+/* ---------------- Maus & Touch ---------------- */
+// Touch-Buttons (Spielfeld-Koordinaten). Sie drücken virtuell die Tasten von P1.
+const TBTN = [
+  { code: 'KeyA', x: 92, y: 612, r: 58, label: '◀' },
+  { code: 'KeyD', x: 222, y: 612, r: 58, label: '▶' },
+  { code: 'KeyS', x: 157, y: 498, r: 40, label: 'SCHILD' },
+  { code: 'KeyW', x: 1040, y: 640, r: 50, label: 'SPRUNG' },
+  { code: 'KeyF', x: 1172, y: 598, r: 64, label: 'SCHLAG' },
+  { code: 'KeyG', x: 1186, y: 466, r: 48, label: 'FINISHER' }
+];
+const pointers = new Map();
+const touchActive = () => TOUCH && (scene === 'fight' || scene === 'countdown') && !paused;
+function toCanvas(e) { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+function updateTouch() {
+  const now = new Set();
+  for (const p of pointers.values()) {
+    let best = null, bd = 1e9;
+    for (const b of TBTN) { const d = Math.hypot(p.x - b.x, p.y - b.y); if (d < b.r * 1.35 && d < bd) { bd = d; best = b; } }
+    if (best) now.add(best.code);
+  }
+  for (const k of now) if (!touchHeld.has(k)) pressed.add(k);
+  touchHeld.clear(); for (const k of now) touchHeld.add(k);
+}
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); audioInit(); cv.focus();
+  const p = toCanvas(e);
+  const hit = ui.slice().reverse().find(u => p.x >= u.x && p.x <= u.x + u.w && p.y >= u.y && p.y <= u.y + u.h);
+  if (hit) { onUI(hit.id); return; }
+  if (touchActive()) { pointers.set(e.pointerId, p); updateTouch(); try { cv.setPointerCapture(e.pointerId); } catch (err) { /* egal */ } }
+});
+cv.addEventListener('pointermove', e => { if (pointers.has(e.pointerId)) { pointers.set(e.pointerId, toCanvas(e)); updateTouch(); } });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) cv.addEventListener(ev, e => { if (pointers.delete(e.pointerId)) updateTouch(); });
 
 /* =========================================================================
    ZEICHNEN
@@ -975,11 +1170,12 @@ function drawFighter(f) {
     c.beginPath(); c.arc(0, -d.h / 2, r, 0, TAU); c.fill();
     c.globalAlpha = 0.9; c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.restore();
   }
-  const tag = f.idx === 0 ? 'P1' : (settings.cpu ? 'CPU' : 'P2'), tc = f.idx === 0 ? '#ff5a4a' : '#3fa9ff';
+  const tag = f.idx === 0 ? 'P1' : (isCPU() ? 'CPU' : 'P2'), tc = f.idx === 0 ? '#ff5a4a' : '#3fa9ff';
   let ty = -d.h - 22;
   if (f.fin && f.fin.type === 'forklift') ty = -150;
   if (f.fin && f.fin.type === 'chain' && f.fin.t < 26) ty = -d.h - 70;
   if (f.fin && f.fin.type === 'zap' && f.fin.t < 32) ty = Math.min(ty, -150);
+  if (f.fin && f.fin.type === 'boom') ty = Math.min(ty, -140);
   c.fillStyle = tc; c.beginPath(); c.moveTo(-6, ty + 6); c.lineTo(6, ty + 6); c.lineTo(0, ty + 13); c.fill();
   c.font = 'bold 15px system-ui,sans-serif'; c.textAlign = 'center';
   c.lineWidth = 4; c.strokeStyle = '#000'; c.strokeText(tag, 0, ty + 2); c.fillStyle = tc; c.fillText(tag, 0, ty + 2);
@@ -990,6 +1186,7 @@ function drawFighter(f) {
     if (tp === 'smoke' && t < 22) q = '*klick* … *ziiieh*';
     if (tp === 'zap' && t < 32) q = 'Phase Braun liegt an!';
     if (tp === 'chain' && t < 26) q = 'Moin.';
+    if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
   if (q) speech(c, 0, ty - 18, q);
   c.restore();
@@ -1101,6 +1298,15 @@ function drawEnts() {
         c.fillStyle = `rgba(${200 + i * 5},${205 + i * 4},${190 + i * 3},${a * 0.55})`;
         c.beginPath(); c.arc(e.x + ox, e.y + oy, e.r * (0.45 + (i % 3) * 0.1), 0, TAU); c.fill();
       }
+    } else if (e.type === 'boom') {
+      const a = clamp(1 - e.t / 32, 0, 1);
+      c.save(); c.globalAlpha = a;
+      c.fillStyle = 'rgba(255,240,220,0.12)'; c.beginPath(); c.ellipse(e.x, e.y, e.r, e.r * 0.75, 0, 0, TAU); c.fill();
+      ['#fff', '#ffd0a8', '#ff7a1a'].forEach((col, i) => {
+        const r = Math.max(4, e.r - i * 40); c.strokeStyle = col; c.lineWidth = 10 - i * 3;
+        c.beginPath(); c.ellipse(e.x, e.y, r, r * 0.75, 0, 0, TAU); c.stroke();
+      });
+      c.restore();
     } else if (e.type === 'bolt') {
       const a = clamp(1 - e.t / 22, 0, 1), n = 12, pts = [];
       const dx = e.x2 - e.x1, dy = e.y2 - e.y1, len = Math.hypot(dx, dy) || 1, nx = -dy / len, ny = dx / len;
@@ -1165,7 +1371,7 @@ function drawHUD() {
     c.strokeStyle = i === 0 ? '#ff5a4a' : '#3fa9ff'; c.lineWidth = 2.5; strokeRR(c, x, y, w, 80, 14);
     drawPortrait(c, f.def, x + 42, y + 40, 30);
     c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#ddd'; c.textAlign = 'left';
-    c.fillText((i === 0 ? 'P1 · ' : (settings.cpu ? 'CPU · ' : 'P2 · ')) + f.def.short, x + 82, y + 18);
+    c.fillText((i === 0 ? 'P1 · ' : (isCPU() ? 'CPU · ' : 'P2 · ')) + f.def.short, x + 82, y + 18);
     const sh = f.dmgShake > 0 ? rand(-3, 3) : 0;
     c.font = `900 ${f.damage >= 100 ? 32 : 40}px Impact,"Arial Black",sans-serif`; c.lineWidth = 6; c.strokeStyle = '#000';
     const tx = f.dead && f.stocks <= 0 ? '—' : Math.floor(f.damage) + '%';
@@ -1180,7 +1386,7 @@ function drawHUD() {
     if (full) {
       c.save(); c.globalAlpha = 0.5 + 0.5 * Math.sin(frame * 0.3); c.strokeStyle = '#fff'; c.lineWidth = 2; strokeRR(c, bx - 2, by + 10, bw + 4, 16, 8); c.restore();
       c.fillStyle = '#fff'; c.font = 'bold 11px system-ui,sans-serif';
-      c.fillText('BEREIT! [' + (i === 0 ? 'G' : (settings.cpu ? 'CPU' : 'L')) + ']', bx, by + 40);
+      c.fillText(TOUCH || (i === 1 && isCPU()) ? 'BEREIT!' : 'BEREIT! [' + (i === 0 ? 'G' : 'L') + ']', bx, by + 40);
     } else { c.fillStyle = '#888'; c.font = '10px system-ui,sans-serif'; c.fillText(Math.floor(f.meter) + '%', bx, by + 38); }
     c.restore();
   });
@@ -1228,7 +1434,7 @@ function drawCutin() {
   c.restore();
 }
 
-/* ---- Auswahlmenü ---- */
+/* ---- Menüs ---- */
 function keyCap(c, x, y, label, w = 30) {
   RR(c, x, y, w, 26, 5, '#f0f0f4'); RR(c, x, y + 21, w, 5, 3, '#b4b4c0');
   c.fillStyle = '#16141f'; c.font = 'bold 13px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText(label, x + w / 2, y + 17);
@@ -1243,15 +1449,76 @@ function ctrlRow(c, x, y, col, label, keys) {
     xx += c.measureText(t).width + 14;
   }
 }
+// Klick-/Tap-Button; registriert sich für diesen Frame in `ui`
+function btn(id, x, y, w, h, label, col = '#ffd23f', size = 22) {
+  const c = ctx;
+  RR(c, x, y + 4, w, h, h / 2.6, 'rgba(0,0,0,0.35)');
+  RR(c, x, y, w, h, h / 2.6, col);
+  c.font = `900 ${size}px Impact,"Arial Black",sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillStyle = '#1a1024'; c.fillText(label, x + w / 2, y + h / 2 + 1); c.textBaseline = 'alphabetic';
+  ui.push({ id, x, y, w, h });
+}
+function muteButton(x, y) {
+  const c = ctx;
+  Cc(c, x, y, 22, 'rgba(20,16,36,0.9)'); c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 22, 0, TAU); c.stroke();
+  c.fillStyle = '#fff'; c.beginPath(); c.moveTo(x - 10, y - 5); c.lineTo(x - 4, y - 5); c.lineTo(x + 3, y - 11); c.lineTo(x + 3, y + 11); c.lineTo(x - 4, y + 5); c.lineTo(x - 10, y + 5); c.closePath(); c.fill();
+  if (settings.mute) Ln(c, x + 6, y - 7, x + 14, y + 7, '#ff5a4a', 3);
+  else { c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(x + 4, y, 7, -0.8, 0.8); c.stroke(); c.beginPath(); c.arc(x + 4, y, 12, -0.8, 0.8); c.stroke(); }
+  ui.push({ id: 'mute', x: x - 26, y: y - 26, w: 52, h: 52 });
+}
+function drawTitle() {
+  const c = ctx;
+  c.fillStyle = 'rgba(0,0,0,0.42)'; c.fillRect(0, 0, W, H);
+  bigText('BÜHNEN-BRAWL', 112 + Math.sin(frame * 0.05) * 3, 96, '#ffd23f', 1, '#2a0d3d');
+  c.font = 'bold 19px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
+  c.fillText('Die Prügelei hinter der Bühne', W / 2, 150);
+  // Kämpfer-Aufstellung
+  ROSTER.forEach((d, i) => {
+    const x = 150 + i * 245, gy = 676;
+    E(c, x, gy + 2, 40, 6, 'rgba(0,0,0,0.5)');
+    c.save(); c.translate(x, gy); c.scale(i < 2 ? 1.2 : -1.2, 1.2); d.draw(c, dummy(d, { t: frame + i * 23 }), { kind: 'idle' }); c.restore();
+  });
+  const rows = menuRows(), mx = W / 2 - 230, mw = 460;
+  let y = 178;
+  rows.forEach((r, k) => {
+    const on = k === menuRow;
+    if (r === 'mode1' || r === 'mode2') {
+      const col = r === 'mode1' ? '#ffd23f' : '#5bc8ff';
+      RR(c, mx, y, mw, 70, 18, on ? col : 'rgba(20,16,36,0.92)');
+      if (!on) { c.strokeStyle = col; c.lineWidth = 3; strokeRR(c, mx, y, mw, 70, 18); }
+      c.textAlign = 'center'; c.font = '900 32px Impact,"Arial Black",sans-serif'; c.fillStyle = on ? '#1a1024' : col;
+      c.fillText(r === 'mode1' ? '1 SPIELER' : '2 SPIELER', W / 2, y + 36);
+      c.font = 'bold 15px system-ui,sans-serif'; c.fillStyle = on ? '#2a1d38' : '#cfcfe0';
+      c.fillText(r === 'mode1' ? 'gegen den Computer' : 'zu zweit an einer Tastatur', W / 2, y + 58);
+      ui.push({ id: r, x: mx, y, w: mw, h: 70 }); y += 84;
+    } else {
+      const isD = r === 'diff', val = isD ? DIFFS[settings.diff].name : String(settings.stocks);
+      RR(c, mx, y, mw, 50, 14, 'rgba(20,16,36,0.92)');
+      c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,0.2)'; c.lineWidth = on ? 3 : 1.5; strokeRR(c, mx, y, mw, 50, 14);
+      c.textAlign = 'left'; c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText(isD ? 'CPU-STÄRKE' : 'LEBEN', mx + 22, y + 31);
+      c.textAlign = 'center'; c.font = '900 24px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText(val, mx + mw - 120, y + 34);
+      c.font = 'bold 22px system-ui,sans-serif'; c.fillStyle = '#ffd23f';
+      c.fillText('◀', mx + mw - 210, y + 33); c.fillText('▶', mx + mw - 30, y + 33);
+      ui.push({ id: isD ? 'diffL' : 'stocksL', x: mx + mw - 245, y, w: 70, h: 50 });
+      ui.push({ id: isD ? 'diffR' : 'stocksR', x: mx + mw - 65, y, w: 65, h: 50 });
+      y += 62;
+    }
+  });
+  muteButton(1232, 44);
+  c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
+  let hint = '↑ / ↓ auswählen  ·  ← / → ändern  ·  Enter starten  ·  M Ton an/aus';
+  if (TOUCH) hint = IOS && !STANDALONE ? 'Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.' : 'Tippe auf „1 Spieler“ zum Starten.';
+  c.fillText(hint, W / 2, 712);
+}
 function drawSelect() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(0, 0, W, H);
-  bigText('BÜHNEN-BRAWL', 74, 66, '#ffd23f', 1, '#2a0d3d');
-  c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
-  c.fillText('Wähle deinen Kämpfer', W / 2, 106);
-  const cw = 272, ch = 372, gap = 20, x0 = (W - (4 * cw + 3 * gap)) / 2, y0 = 124;
+  bigText('KÄMPFERWAHL', 66, 54, '#ffd23f', 1, '#2a0d3d');
+  c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
+  c.fillText(isCPU() ? `1 Spieler gegen den Computer  ·  CPU ${DIFFS[settings.diff].name.toLowerCase()}  ·  ${settings.stocks} Leben` : `2 Spieler  ·  ${settings.stocks} Leben`, W / 2, 98);
+  const N = ROSTER.length, cw = 228, ch = 380, gap = 14, x0 = (W - (N * cw + (N - 1) * gap)) / 2, y0 = 114;
   ROSTER.forEach((d, i) => {
-    const x = x0 + i * (cw + gap), h0 = sel[0].i === i, h1 = sel[1].i === i;
+    const x = x0 + i * (cw + gap), h0 = sel[0].i === i, h1 = sel[1].i === i && (!isCPU() || sel[1].ok);
     RR(c, x, y0, cw, ch, 16, 'rgba(12,10,24,0.88)');
     if (h0 || h1) {
       c.save(); c.globalAlpha = 0.28; const g = c.createLinearGradient(0, y0, 0, y0 + ch); g.addColorStop(0, d.color); g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1260,77 +1527,112 @@ function drawSelect() {
     // Figur – alle im gleichen Maßstab, damit die Größenunterschiede sichtbar bleiben
     c.save(); c.beginPath(); c.rect(x, y0, cw, 236); c.clip();
     const gy = y0 + 226;
-    E(c, x + cw / 2, gy + 2, 46, 7, 'rgba(0,0,0,0.5)');
-    c.translate(x + cw / 2, gy); c.scale(1.55, 1.55);
+    E(c, x + cw / 2, gy + 2, 42, 7, 'rgba(0,0,0,0.5)');
+    c.translate(x + cw / 2, gy); c.scale(1.5, 1.5);
     const chosen = (h0 && sel[0].ok) || (h1 && sel[1].ok);
     d.draw(c, dummy(d, { t: frame + i * 17 }), chosen ? { kind: 'atk', e: 0.5 + 0.5 * Math.sin(frame * 0.15) } : { kind: 'idle' });
     c.restore();
     c.textAlign = 'center';
-    c.font = '900 25px Impact,"Arial Black",sans-serif'; c.lineWidth = 5; c.strokeStyle = '#000';
-    c.strokeText(d.name, x + cw / 2, y0 + 266); c.fillStyle = d.color; c.fillText(d.name, x + cw / 2, y0 + 266);
-    c.font = '13px system-ui,sans-serif'; c.fillStyle = '#cfcfe0';
-    c.fillText('Schlag: ' + d.atk.name, x + cw / 2, y0 + 288);
-    c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#fff';
-    c.fillText('Finisher: ' + d.finName, x + cw / 2, y0 + 307);
+    c.font = '900 23px Impact,"Arial Black",sans-serif'; c.lineWidth = 5; c.strokeStyle = '#000';
+    c.strokeText(d.name, x + cw / 2, y0 + 262); c.fillStyle = d.color; c.fillText(d.name, x + cw / 2, y0 + 262);
+    c.font = '12px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Schlag: ' + d.atk.name, x + cw / 2, y0 + 283);
+    c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Finisher', x + cw / 2, y0 + 302);
+    c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(d.finName, x + cw / 2, y0 + 318);
     c.textAlign = 'left';
     ['Tempo', 'Gewicht', 'Reichweite'].forEach((lab, j) => {
-      const yy = y0 + 322 + j * 15;
-      c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(lab, x + 46, yy + 9);
-      for (let b = 0; b < 5; b++) RR(c, x + 128 + b * 20, yy, 17, 9, 3, b < d.stats[j] ? d.color : '#2e2c3a');
+      const yy = y0 + 332 + j * 14;
+      c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(lab, x + 22, yy + 9);
+      for (let b = 0; b < 5; b++) RR(c, x + 100 + b * 21, yy, 18, 9, 3, b < d.stats[j] ? d.color : '#2e2c3a');
     });
     const badge = (p, col, inset) => {
       c.strokeStyle = col; c.lineWidth = 4; strokeRR(c, x + inset, y0 + inset, cw - inset * 2, ch - inset * 2, 16 - inset);
-      const lab = (p === 0 ? 'P1' : (settings.cpu ? 'CPU' : 'P2')) + (sel[p].ok ? ' ✓' : '');
+      const lab = (p === 0 ? 'P1' : (isCPU() ? 'CPU' : 'P2')) + (sel[p].ok ? ' ✓' : '');
       c.font = 'bold 15px system-ui,sans-serif'; c.textAlign = 'left';
       const bw = c.measureText(lab).width + 16, bx = p === 0 ? x + 10 : x + cw - 10 - bw;
       RR(c, bx, y0 + 10, bw, 24, 12, col); c.fillStyle = '#fff'; c.fillText(lab, bx + 8, y0 + 27);
     };
     if (h0) badge(0, '#ff5a4a', 0);
-    if (h1 && (!settings.cpu || sel[1].ok)) badge(1, '#3fa9ff', h0 ? 6 : 0);
+    if (h1) badge(1, '#3fa9ff', h0 ? 6 : 0);
+    ui.push({ id: 'card' + i, x, y: y0, w: cw, h: ch });
   });
-  const ly = 512;
-  ctrlRow(c, x0, ly, '#ff5a4a', 'P1', [['A D', 'laufen'], ['W', 'springen'], ['S', 'Schild'], ['F', 'Schlag'], ['G', 'Finisher']]);
-  if (!settings.cpu) ctrlRow(c, x0 + 596, ly, '#3fa9ff', 'P2', [['← →', 'laufen'], ['↑', 'springen'], ['↓', 'Schild'], ['K', 'Schlag'], ['L', 'Finisher']]);
-  else { c.textAlign = 'left'; c.font = 'bold 15px system-ui,sans-serif'; c.fillStyle = '#3fa9ff'; c.fillText('CPU', x0 + 596, ly + 18); c.font = '13px system-ui,sans-serif'; c.fillStyle = '#d8d8e6'; c.fillText('sucht sich einen Gegner aus, sobald P1 bestätigt', x0 + 640, ly + 18); }
-  c.textAlign = 'center'; c.font = '14px system-ui,sans-serif'; c.fillStyle = '#b8b8cc';
-  c.fillText(`Auswählen: A/D bzw. ←/→  ·  Bestätigen: F bzw. K  ·  Zurück: S bzw. ↓        [1–5] Leben: ${settings.stocks}   ·   [C] Gegner: ${settings.cpu ? 'CPU' : 'Mensch'}`, W / 2, 572);
+  btn('back', 16, 16, 120, 42, '◀ MENÜ', '#cfcfe0', 18);
   const ready = sel[0].ok && sel[1].ok;
-  if (ready || Math.floor(frame / 30) % 2 === 0) bigText(ready ? 'ENTER / LEERTASTE = KAMPF!' : 'ENTER = Auswahl übernehmen', 624, ready ? 34 : 24, ready ? '#fff' : '#cfcfe0');
-  c.font = '12px system-ui,sans-serif'; c.fillStyle = '#8f8fa6'; c.textAlign = 'center';
-  c.fillText('Treffer laden die Finisher-Leiste. Je höher die %, desto weiter fliegt man – raus aus dem Bild = Leben weg. ESC = Pause. P2 geht auch mit Numpad 1/2.', W / 2, 676);
+  if (ready) btn('go', W / 2 - 140, 600, 280, 62, 'KAMPF!', '#ffd23f', 34);
+  if (TOUCH) {
+    c.textAlign = 'center'; c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#e8e8f4';
+    if (!ready) c.fillText(sel[0].ok ? '' : 'Tippe auf einen Kämpfer – nochmal tippen zum Bestätigen', W / 2, 548);
+    return;
+  }
+  const ly = 512;
+  if (!ready) {
+    ctrlRow(c, x0, ly, '#ff5a4a', 'P1', [['A D', 'laufen'], ['W', 'springen'], ['S', 'Schild'], ['F', 'Schlag'], ['G', 'Finisher']]);
+    if (!isCPU()) ctrlRow(c, x0 + 616, ly, '#3fa9ff', 'P2', [['← →', 'laufen'], ['↑', 'springen'], ['↓', 'Schild'], ['K', 'Schlag'], ['L', 'Finisher']]);
+    else { c.textAlign = 'left'; c.font = 'bold 15px system-ui,sans-serif'; c.fillStyle = '#3fa9ff'; c.fillText('CPU', x0 + 616, ly + 18); c.font = '13px system-ui,sans-serif'; c.fillStyle = '#d8d8e6'; c.fillText('sucht sich einen Gegner aus, sobald du bestätigst', x0 + 660, ly + 18); }
+    c.textAlign = 'center'; c.font = '14px system-ui,sans-serif'; c.fillStyle = '#b8b8cc';
+    c.fillText(isCPU() ? 'Auswählen: A/D  ·  Bestätigen: F oder Enter  ·  Zurück: S  ·  ESC: Menü' : 'Auswählen: A/D bzw. ←/→  ·  Bestätigen: F bzw. K  ·  Zurück: S bzw. ↓  ·  ESC: Menü', W / 2, 574);
+  }
+  c.textAlign = 'center'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#8f8fa6';
+  c.fillText('Treffer laden die Finisher-Leiste. Je höher die %, desto weiter fliegt man – raus aus dem Bild = Leben weg. ESC = Pause, M = Ton.', W / 2, 700);
 }
 function drawResults() {
   const c = ctx;
   c.fillStyle = 'rgba(4,3,10,0.78)'; c.fillRect(0, 0, W, H);
   const w = winner || F[0], d = w.def;
-  bigText((w.idx === 0 ? 'P1' : (settings.cpu ? 'CPU' : 'P2')) + ' · ' + d.name + ' GEWINNT!', 110, 58, d.color);
-  c.save(); c.translate(360, 560);
+  bigText((w.idx === 0 ? (isCPU() ? 'DU' : 'P1') : (isCPU() ? 'CPU' : 'P2')) + ' · ' + d.name + (w.idx === 0 && isCPU() ? ' GEWINNST!' : ' GEWINNT!'), 100, 54, d.color);
+  c.save(); c.translate(360, 540);
   const sc = 300 / Math.max(d.h, 110); c.scale(sc, sc);
   E(c, 0, 2, 32, 6, 'rgba(0,0,0,0.5)');
   c.translate(0, -Math.abs(Math.sin(frame * 0.12)) * 12);
   d.draw(c, dummy(d, { onGround: false, vy: -1 }), { kind: 'air', vy: -1 });
   c.restore();
   if (!w._q) w._q = pick(d.quotes);
-  speech(c, 360, 200, w._q);
-  const x0 = 620, y0 = 200;
-  const rows = [['', 'P1 ' + F[0].def.short, (settings.cpu ? 'CPU ' : 'P2 ') + F[1].def.short], ['KOs', F[0].stats.kos, F[1].stats.kos], ['Schaden ausgeteilt', F[0].stats.dealt + '%', F[1].stats.dealt + '%'],
+  speech(c, 360, 190, w._q);
+  const x0 = 620, y0 = 190;
+  const rows = [['', 'P1 ' + F[0].def.short, (isCPU() ? 'CPU ' : 'P2 ') + F[1].def.short], ['KOs', F[0].stats.kos, F[1].stats.kos], ['Schaden ausgeteilt', F[0].stats.dealt + '%', F[1].stats.dealt + '%'],
     ['Treffer', F[0].stats.hits, F[1].stats.hits], ['Finisher', F[0].stats.fins, F[1].stats.fins]];
   rows.forEach((r, i) => {
-    const y = y0 + i * 48;
+    const y = y0 + i * 46;
     c.font = i === 0 ? 'bold 17px system-ui,sans-serif' : '20px system-ui,sans-serif';
     c.textAlign = 'left'; c.fillStyle = '#bdbdd0'; c.fillText(r[0], x0, y);
     c.textAlign = 'center';
     c.fillStyle = i === 0 ? '#ff5a4a' : '#fff'; c.fillText(r[1], x0 + 330, y);
     c.fillStyle = i === 0 ? '#3fa9ff' : '#fff'; c.fillText(r[2], x0 + 500, y);
   });
-  if (Math.floor(frame / 30) % 2 === 0) bigText('ENTER = REVANCHE  ·  ESC = KÄMPFERWAHL', 640, 30, '#fff');
+  btn('rematch', W / 2 - 350, 590, 220, 58, 'REVANCHE', '#ffd23f', 26);
+  btn('select', W / 2 - 110, 590, 220, 58, 'KÄMPFERWAHL', '#5bc8ff', 24);
+  btn('menu', W / 2 + 130, 590, 220, 58, 'MENÜ', '#cfcfe0', 26);
+  if (!TOUCH) { c.textAlign = 'center'; c.font = '14px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Enter = Revanche  ·  Esc = Kämpferwahl  ·  Q = Menü', W / 2, 682); }
+}
+function drawTouch() {
+  const c = ctx, f = F[0];
+  for (const b of TBTN) {
+    const on = touchHeld.has(b.code), fin = b.code === 'KeyG', ready = fin && f && f.meter >= 100;
+    c.save(); c.globalAlpha = fin && !ready ? 0.4 : (on ? 0.92 : 0.55);
+    c.fillStyle = ready ? f.def.color : (on ? '#ffffff' : 'rgba(30,26,48,0.95)');
+    c.beginPath(); c.arc(b.x, b.y, b.r, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 3; c.stroke();
+    if (fin && f) { c.strokeStyle = f.def.color; c.lineWidth = 6; c.beginPath(); c.arc(b.x, b.y, b.r + 6, -PI / 2, -PI / 2 + TAU * f.meter / 100); c.stroke(); }
+    c.fillStyle = on || ready ? '#1a1024' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.font = b.label.length > 2 ? 'bold 14px system-ui,sans-serif' : 'bold 34px system-ui,sans-serif'; c.fillText(b.label, b.x, b.y + 1);
+    c.textBaseline = 'alphabetic'; c.restore();
+  }
+}
+function drawRotate() {
+  const c = ctx;
+  c.fillStyle = '#07050f'; c.fillRect(0, 0, W, H);
+  c.save(); c.translate(W / 2, H / 2 - 60); c.rotate(-Math.min(1, (frame % 120) / 60) * PI / 2);
+  RR(c, -60, -100, 120, 200, 18, '#ffd23f'); RR(c, -48, -84, 96, 168, 8, '#1a1024'); c.restore();
+  bigText('Bitte quer drehen', H / 2 + 150, 64, '#fff');
 }
 
 /* ---- Render ---- */
 function render() {
   const c = ctx;
   c.setTransform(RS, 0, 0, RS, 0, 0);
+  ui = [];
+  if (isPortrait()) { drawRotate(); return; }
   drawBackground(frame);
+  if (scene === 'title') { drawTitle(); return; }
   if (scene === 'select') { drawSelect(); return; }
   c.save();
   const sx = shake ? rand(-shake, shake) : 0, sy = shake ? rand(-shake, shake) : 0;
@@ -1343,6 +1645,12 @@ function render() {
   if (flashScreen > 0) { c.fillStyle = `rgba(${flashCol},${flashScreen / 16})`; c.fillRect(0, 0, W, H); }
   drawOffscreen();
   drawHUD();
+  if (touchActive() && !cutin && !gameOverT) drawTouch();
+  if ((scene === 'fight' || scene === 'countdown') && !paused && !cutin && !gameOverT) {
+    c.save(); c.globalAlpha = 0.8; Cc(c, 1236, 38, 24, 'rgba(20,16,36,0.92)'); c.strokeStyle = '#fff'; c.lineWidth = 2; c.beginPath(); c.arc(1236, 38, 24, 0, TAU); c.stroke();
+    RR(c, 1227, 27, 6, 22, 2, '#fff'); RR(c, 1239, 27, 6, 22, 2, '#fff'); c.restore();
+    ui.push({ id: 'pause', x: 1204, y: 6, w: 64, h: 64 });
+  }
   if (scene === 'countdown') {
     const n = Math.ceil(countdown / 60), p = (countdown % 60) / 60;
     bigText(String(n), 330, 150 + p * 60, '#ffd23f', clamp(p * 2, 0, 1));
@@ -1352,9 +1660,12 @@ function render() {
   if (gameOverT > 0) bigText('SPIEL!', 340, 150, '#fff', clamp((130 - gameOverT) / 10, 0, 1), '#c0122f');
   if (paused) {
     c.fillStyle = 'rgba(0,0,0,0.6)'; c.fillRect(0, 0, W, H);
-    bigText('PAUSE', 320, 110, '#fff');
-    c.font = 'bold 20px system-ui,sans-serif'; c.fillStyle = '#ccc'; c.textAlign = 'center';
-    c.fillText('ESC = weiter   ·   Q = zur Kämpferwahl', W / 2, 380);
+    bigText('PAUSE', 260, 110, '#fff');
+    btn('resume', W / 2 - 330, 330, 200, 60, 'WEITER', '#ffd23f', 28);
+    btn('select', W / 2 - 100, 330, 200, 60, 'KÄMPFERWAHL', '#5bc8ff', 22);
+    btn('menu', W / 2 + 130, 330, 200, 60, 'MENÜ', '#cfcfe0', 28);
+    muteButton(W / 2, 450);
+    if (!TOUCH) { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#ccc'; c.textAlign = 'center'; c.fillText('ESC = weiter   ·   Q = Menü   ·   M = Ton', W / 2, 530); }
   }
   if (scene === 'results') drawResults();
 }
@@ -1370,7 +1681,7 @@ function loop(now) {
 requestAnimationFrame(loop);
 cv.focus();
 // Für automatisierte Tests
-window.__brawl = { get F() { return F; }, get scene() { return scene; }, sel, settings, startMatch };
+window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, sel, settings, startMatch, onUI };
 </script>
 </body>
 </html>
