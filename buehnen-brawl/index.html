@@ -839,7 +839,7 @@ const ROSTER = [
     speed: 6.0, airSpeed: 5.3, airAcc: 0.6, jump: 14.2, airJump: 12.6, airJumps: 2, grav: 0.64, maxFall: 12, fastFall: 18, weight: 1.1,
     color: '#47d6ff', color2: '#c4f2ff', hitColor: '#9be8ff', stats: [4, 1, 4], pt: [-1, -112, 1.6],
     atk: { name: 'Schal-Peitsche', s: 5, a: 5, r: 12, dmg: 7, kb: 5.2, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 6, y: -104, w: 72, h: 60 } },
-    fin: 'strobe', finName: 'STROBO', finQuote: 'Achtung, sensible Augen … ach, egal: STROBO!', finRange: 620,
+    fin: 'strobe', finName: 'DEPLATZIERTER STROBO', finQuote: 'Der Strobo steht völlig falsch. PERFEKT.', finRange: 620,
     whiny: ['Aua!', 'Mein Schal!', 'Hey, vorsichtig!', 'Das gibt einen Fleck!'],
     quotes: ['Das Licht war perfekt – bis du kamst.', 'Bitte nicht anfassen, das ist Kaschmir.', 'Ich bin Künstler, kein Techniker.', 'Mein Cue, nicht deiner.', 'Das war jetzt unter meinem Niveau.'],
     style: S_OP, draw: (c, f, A) => drawHuman(c, f, A, S_OP)
@@ -1098,7 +1098,7 @@ function stepFinisher(f, inp, o) {
     }
   } else if (Fn.type === 'strobe') {
     f.armor = Fn.t < 20; f.vx *= 0.8;
-    if (!o.dead) Fn.tx = o.x;
+    if (!o.dead) { Fn.tx = o.x; Fn.ty = o.y; }
     if (Fn.t === 20 || Fn.t === 36 || Fn.t === 52 || Fn.t === 70) {
       const big = Fn.t === 70;
       sfx.strobe(big);
@@ -1634,7 +1634,7 @@ function snapshot() {
     t: 'st', sc: scene, cd: countdown, go: goT, gt: gameOverT, fz: freeze, sh: r1(shake), fl: flashScreen, fc: flashCol,
     cu: cutin ? [cutin.f.idx, cutin.t, cutin.dur] : 0, w: winner ? winner.idx : -1,
     f: F.map(f => [r1(f.x), r1(f.y), r2(f.vx), r2(f.vy), f.facing, f.damage, f.stocks, Math.round(f.meter), f.atk ? f.atkT : -1, f.hitstun, r2(f.rot),
-      f.fin ? [f.fin.type, f.fin.t, f.fin.dir, r2(f.fin.spin), r2(f.fin.fork), r1(f.fin.tx || 0)] : 0, f.shielding ? 1 : 0, Math.round(f.shield), f.invuln, f.plat, f.dead ? 1 : 0,
+      f.fin ? [f.fin.type, f.fin.t, f.fin.dir, r2(f.fin.spin), r2(f.fin.fork), r1(f.fin.tx || 0), r1(f.fin.ty || 0)] : 0, f.shielding ? 1 : 0, Math.round(f.shield), f.invuln, f.plat, f.dead ? 1 : 0,
       f.flash, f.squash, f.cough, f.zapped, f.broken, f.onGround ? 1 : 0, f.dmgShake, f.quote ? [f.quote.text, f.quote.t] : 0, f.t,
       [f.stats.dealt, f.stats.kos, f.stats.fins, f.stats.hits], f.boost ? [f.boost.kind, f.boost.t] : 0]),
     e: ents.map(e => { const o = Object.assign({}, e); o.owner = e.owner ? e.owner.idx : -1; return o; }),
@@ -1653,7 +1653,7 @@ function applySnap(m) {
     const f = F[i];
     [f.x, f.y, f.vx, f.vy, f.facing, f.damage, f.stocks, f.meter] = a;
     f.atk = a[8] >= 0 ? f.def.atk : null; f.atkT = Math.max(0, a[8]); f.hitstun = a[9]; f.rot = a[10];
-    const fn = a[11]; f.fin = fn ? { type: fn[0], t: fn[1], dir: fn[2], spin: fn[3], fork: fn[4], tx: fn[5], hit: false } : null;
+    const fn = a[11]; f.fin = fn ? { type: fn[0], t: fn[1], dir: fn[2], spin: fn[3], fork: fn[4], tx: fn[5], ty: fn[6], hit: false } : null;
     f.shielding = !!a[12]; f.shield = a[13]; f.invuln = a[14]; f.plat = a[15]; f.dead = !!a[16]; f.flash = a[17]; f.squash = a[18];
     f.cough = a[19]; f.zapped = a[20]; f.broken = a[21]; f.onGround = !!a[22]; f.dmgShake = a[23];
     f.quote = a[24] ? { text: a[24][0], t: a[24][1] } : null; f.t = a[25];
@@ -1885,7 +1885,7 @@ function drawFighter(f) {
     if (tp === 'food' && t < 62) q = 'JEDER NUR EINS!!!!!!!';
     if (tp === 'stamp' && t < 30) q = t < 13 ? 'Ich hab da mal drübergeschaut …' : 'ABGELEHNT!';
     if (tp === 'drill' && t < 20) q = 'KUUURWA!!!';
-    if (tp === 'strobe' && t < 20) q = 'Achtung … STROBO!';
+    if (tp === 'strobe' && t < 20) q = 'Wer hat den Strobo DA hingestellt?';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
   if (q) speech(c, 0, ty - 18, q);
@@ -2032,13 +2032,23 @@ function drawEnts() {
       c.fillStyle = '#ff3b3b'; c.font = 'bold 18px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('ACHTUNG – ABLEHNUNG!', Fn.tx, STAGE.top - 44);
       c.restore();
     }
-    if (Fn.type === 'strobe' && Fn.t >= 12 && Fn.tx !== undefined) {   // Strobo: örtlich begrenzt, höchstens ~3 Blitze pro Sekunde
-      const on = [20, 36, 52, 70].some(p => Fn.t >= p && Fn.t < p + 5), topY = STAGE.top - 470, x = Fn.tx;
-      RR(c, x - 16, topY - 14, 32, 20, 5, '#24242c'); Cc(c, x, topY + 8, 9, on ? '#fff' : '#555');
-      c.save(); c.globalCompositeOperation = 'lighter';
-      const g = c.createLinearGradient(0, topY, 0, STAGE.top); g.addColorStop(0, on ? 'rgba(255,255,255,0.55)' : 'rgba(200,230,255,0.16)'); g.addColorStop(1, on ? 'rgba(255,255,255,0.25)' : 'rgba(200,230,255,0.05)');
-      c.fillStyle = g; c.beginPath(); c.moveTo(x - 8, topY + 8); c.lineTo(x + 8, topY + 8); c.lineTo(x + 110, STAGE.top); c.lineTo(x - 110, STAGE.top); c.closePath(); c.fill();
+    if (Fn.type === 'strobe' && Fn.t >= 10 && Fn.tx !== undefined) {   // deplatzierter Strobo: steht auf dem Boden direkt vor dem Gegner
+      const on = [20, 36, 52, 70].some(p => Fn.t >= p && Fn.t < p + 5);   // höchstens ~3 Blitze pro Sekunde, nur örtlich
+      const d = Math.sign(Fn.tx - f.x) || f.facing, gy = Fn.ty || STAGE.top, sx = Fn.tx - d * 62;
+      const drop = Math.min(1, (Fn.t - 10) / 8);
+      c.save(); c.translate(sx, gy - (1 - drop) * 120); c.scale(d, 1);
+      Ln(c, -10, 0, -4, -14, '#3a3a40', 3); Ln(c, 10, 0, 4, -14, '#3a3a40', 3);
+      RR(c, -16, -36, 32, 24, 4, '#24242c'); RR(c, 10, -33, 7, 18, 2, on ? '#ffffff' : '#7d838b');
+      c.fillStyle = '#ffd23f'; c.font = 'bold 6px sans-serif'; txt(c, 'STROBE', -13, -16);
       c.restore();
+      if (drop >= 1) {
+        c.save(); c.globalCompositeOperation = 'lighter';
+        const lx = sx + d * 17, ly = gy - 24, hy = gy - F[1 - f.idx].def.h;
+        const g = c.createLinearGradient(lx, 0, lx + d * 140, 0);
+        g.addColorStop(0, on ? 'rgba(255,255,255,0.85)' : 'rgba(200,230,255,0.16)'); g.addColorStop(1, on ? 'rgba(255,255,255,0.3)' : 'rgba(200,230,255,0.03)');
+        c.fillStyle = g; c.beginPath(); c.moveTo(lx, ly - 9); c.lineTo(lx, ly + 9); c.lineTo(lx + d * 140, gy + 4); c.lineTo(lx + d * 140, hy - 30); c.closePath(); c.fill();
+        c.restore();
+      }
     }
   }
   for (const e of ents) {
