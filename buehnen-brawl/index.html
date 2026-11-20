@@ -229,7 +229,7 @@ function drawHuman(c, f, A, S) {
     Cc(c, q.bx, q.by, S.handR, S.hand); return q;
   };
   leg(P.fB, S.pantsD, false);
-  arm(P.hB, S.sleeveD);
+  P.qB = arm(P.hB, S.sleeveD);
   const vx = SH.x - HIP.x, vy = SH.y - HIP.y, L = Math.hypot(vx, vy);
   c.save(); c.translate(HIP.x, HIP.y); c.rotate(Math.atan2(vy, vx) + PI / 2);
   RR(c, -S.torsoW / 2, -L - 5, S.torsoW, L + 9, S.torsoW * 0.3, S.shirt);
@@ -510,6 +510,89 @@ const S_GERCH = {
   }
 };
 
+/* ---- Caterin: klein, pummelig, Hygienehaube, weiße Kochjacke mit Schürze ---- */
+function drawFood(c, kind, x, y, rot, sc = 1) {
+  c.save(); c.translate(x, y); c.rotate(rot); c.scale(sc, sc);
+  if (kind === 'roll') {   // Käsebrötchen
+    E(c, 0, 2, 13, 6, '#c98b44');
+    RR(c, -14, -2, 28, 4, 1, '#ffd23f');
+    c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(6, 2); c.lineTo(9, 8); c.lineTo(12, 2); c.fill();
+    E(c, 0, -5, 12, 7, '#e2a95c');
+    for (const [sx, sy] of [[-5, -8], [0, -10], [5, -8], [-2, -6]]) E(c, sx, sy, 1.4, 0.8, '#f7e8c4');
+  } else {                 // süßes Teilchen (Schnecke mit Zuckerguss)
+    const r = kind === 'big' ? 22 : 12;
+    Cc(c, 0, 0, r, '#e0a050');
+    c.strokeStyle = '#b8762f'; c.lineWidth = r * 0.14; c.beginPath();
+    for (let a = 0; a < TAU * 2.2; a += 0.3) { const rr = r * 0.12 + a / (TAU * 2.2) * r * 0.78; if (a === 0) c.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); else c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+    c.stroke();
+    c.fillStyle = kind === 'big' ? 'rgba(255,158,196,0.9)' : 'rgba(255,246,240,0.85)';
+    c.beginPath(); c.ellipse(0, -r * 0.15, r * 0.82, r * 0.6, 0, 0, TAU); c.fill();
+    const cols = ['#ff4f7a', '#3fa9ff', '#ffd23f', '#7ad15a'];
+    for (let i = 0; i < (kind === 'big' ? 9 : 4); i++) { const a = i * 2.4, rr = r * 0.45; c.fillStyle = cols[i % 4]; c.fillRect(Math.cos(a) * rr - 1, Math.sin(a) * rr * 0.7 - r * 0.15, r * 0.18, r * 0.07 + 1); }
+  }
+  c.restore();
+}
+const S_CATERER = {
+  hip: -36, sh: -66, hunch: 2, thigh: 19, shin: 18, upper: 18, fore: 17, legW: 14, armW: 10, handR: 5,
+  pants: '#3b3b44', pantsD: '#2f2f37', sleeve: '#f2f2ee', sleeveD: '#dcdcd5', shirt: '#f7f7f3', hand: '#f0c4a4', boot: '#ececec', bootL: 16,
+  torsoW: 36, headOff: { x: 3, y: -11 },
+  torsoDeco(c, tw, L) {
+    c.fillStyle = 'rgba(0,0,0,0.07)'; c.fillRect(-tw / 2, -L - 2, 6, L + 6);
+    RR(c, 0, -L * 0.6, tw / 2 + 2, L * 0.6 + 6, 4, '#9c2f3f');           // Schürze
+    Ln(c, 3, -L * 0.6, 5, -L - 3, '#9c2f3f', 2.5);
+    for (const y of [-L * 0.92, -L * 0.8, -L * 0.68]) { Cc(c, 4, y, 1.7, '#9aa0a6'); Cc(c, 12, y, 1.7, '#9aa0a6'); }   // doppelreihige Kochjacke
+    E(c, 7, -L - 2, 7, 3.2, '#d9473e');                                      // Halstuch
+    RR(c, -9, -L * 0.86, 10, 5, 1, '#ffd23f');                               // Namensschild
+  },
+  hipFront(c) {   // Kittel und Schürze fallen über die Oberschenkel
+    RR(c, -19, -46, 38, 26, 9, '#f7f7f3');
+    c.fillStyle = 'rgba(0,0,0,0.07)'; c.fillRect(-19, -44, 6, 22);
+    RR(c, 0, -46, 20, 26, 4, '#9c2f3f');
+    Ln(c, -19, -40, 0, -40, '#9c2f3f', 3); E(c, -21, -40, 4.5, 2.5, '#9c2f3f'); Ln(c, -21, -40, -24, -32, '#9c2f3f', 2);   // Schleife hinten
+    RR(c, 4, -36, 10, 9, 2, '#86283a');                                      // Schürzentasche
+  },
+  head(c, hx, hy, f, A, P) {
+    const skin = '#f0c4a4';
+    Cc(c, hx, hy, 11, skin);
+    E(c, hx + 6, hy + 3.5, 3.2, 2.2, 'rgba(240,110,120,0.45)');
+    E(c, hx - 2.5, hy + 0.5, 2.4, 3.2, '#dca98a'); Cc(c, hx - 2.5, hy + 4.4, 1.3, '#ffd23f');
+    if (P.eyes === 'x') { Ln(c, hx + 4, hy - 4, hx + 8, hy, '#222', 1.5); Ln(c, hx + 8, hy - 4, hx + 4, hy, '#222', 1.5); }
+    else { Cc(c, hx + 6, hy - 1.5, 1.6, '#222'); Ln(c, hx + 5, hy - 3.6, hx + 8.8, hy - 4.4, '#222', 1.1); }
+    Ln(c, hx + 3.5, hy - 6, hx + 9, hy - 6.3, '#7a4a2a', 1.4);
+    E(c, hx + 10.5, hy + 1, 2.4, 2, '#e3b090');
+    if (P.shout) E(c, hx + 8, hy + 6, 3, 3.6, '#5a1a1a'); else E(c, hx + 7.5, hy + 6, 2.6, 1.3, '#d0404a');
+    c.fillStyle = '#7a4a2a'; c.beginPath(); c.ellipse(hx + 3, hy - 7, 6, 2.2, -0.2, 0, TAU); c.fill();   // Haarsträhne
+    c.fillStyle = '#d6e8f7'; c.beginPath(); c.ellipse(hx - 1, hy - 8, 14.5, 10.5, -0.12, PI * 0.93, PI * 2.1); c.fill();   // Hygienehaube
+    c.strokeStyle = 'rgba(110,140,175,0.45)'; c.lineWidth = 1;
+    for (const dx of [-8, -2, 4]) { c.beginPath(); c.moveTo(hx + dx, hy - 17); c.quadraticCurveTo(hx + dx + 3, hy - 11, hx + dx + 1, hy - 5); c.stroke(); }
+    for (let i = 0; i <= 8; i++) Cc(c, hx - 14 + i * 3.4, hy - 5 - i * 0.45 + (i % 2) * 1.2, 1.9, '#c4dbef');   // Gummizug
+  },
+  atkPose(P, e) { P.prop = 'ladle'; P.hF = { x: lerp(-4, 40, e), y: lerp(-96, -62, e) }; P.rot = 0.1 * e; },
+  finPose(P, A) {
+    P.prop = 'basket'; P.hB = { x: 16, y: -48 };
+    const t = A.t || 0;
+    if (t < 14) { P.hF = { x: -6, y: -96 }; P.hold = 'roll'; }
+    else {
+      const cyc = ((t - 14) % 6) / 6, k = cyc < 0.5 ? cyc * 2 : 2 - cyc * 2;
+      P.hF = { x: lerp(-10, 36, k), y: lerp(-94, -72, k) }; P.rot = 0.06; P.shout = true;
+      P.hold = cyc >= 0.5 ? ((((t - 14) / 6) | 0) % 2 ? 'roll' : 'pastry') : null;
+    }
+  },
+  prop(c, q, f, A, P) {
+    if (P.prop === 'ladle') {
+      c.save(); c.translate(q.bx, q.by); c.rotate(-0.7 + (A.e || 0) * 1.1);
+      Ln(c, 0, 2, 0, -24, '#c9ccd1', 3); E(c, 0, -28, 7.5, 5, '#aeb3b9'); E(c, 0, -29, 5.5, 2.5, '#8d939b'); c.restore();
+    } else if (P.prop === 'basket') {
+      const b = P.qB;
+      E(c, b.bx - 5, b.by - 9, 7.5, 5, '#e2a95c'); E(c, b.bx + 6, b.by - 10, 7, 5, '#e0a050'); E(c, b.bx + 6, b.by - 11, 5, 3, '#fff4f0');
+      RR(c, b.bx - 15, b.by - 7, 30, 15, 5, '#a0703a');
+      c.strokeStyle = '#7a5226'; c.lineWidth = 1.2;
+      for (let i = 1; i < 5; i++) { c.beginPath(); c.moveTo(b.bx - 15 + i * 6, b.by - 6); c.lineTo(b.bx - 15 + i * 6, b.by + 7); c.stroke(); }
+      if (P.hold) drawFood(c, P.hold, q.bx, q.by - 4, 0.3, 0.75);
+    }
+  }
+};
+
 /* ---------------- Roster ---------------- */
 const ROSTER = [
   {
@@ -556,6 +639,15 @@ const ROSTER = [
     fin: 'boom', finName: '180 dB ÜBERSCHALLKNALL', finQuote: 'Fader auf Anschlag – 180 dB!', finRange: 380,
     quotes: ['Check, eins, zwei.', 'Zu laut gibt es nicht.', 'Das war nur der Soundcheck.', 'Pegel passt.', 'Wer hat am Pult gedreht?!'],
     style: S_GERCH, draw: (c, f, A) => drawHuman(c, f, A, S_GERCH)
+  },
+  {
+    id: 'caterer', name: 'CATERIN', short: 'Caterin', w: 46, h: 92,
+    speed: 4.8, airSpeed: 4.5, airAcc: 0.5, jump: 12.8, airJump: 11.6, airJumps: 2, grav: 0.7, maxFall: 12, fastFall: 18, weight: 0.9,
+    color: '#e05a8a', color2: '#ffd0e0', hitColor: '#ffb3cc', stats: [2, 4, 2], pt: [5, -78, 1.7],
+    atk: { name: 'Schöpfkellen-Klatsche', s: 5, a: 5, r: 12, dmg: 8, kb: 5.4, scale: 0.12, ang: 45, meter: 20, lunge: 3, box: { x: 6, y: -86, w: 58, h: 56 } },
+    fin: 'food', finName: 'JEDER NUR EINS!!!!!!!', finQuote: 'Käsebrötchen und Teilchen – aber JEDER NUR EINS!', finRange: 520,
+    quotes: ['Jeder nur eins!', 'Die Brötchen sind für die Crew!', 'Finger weg vom Buffet!', 'Catering schließt um 14 Uhr!', 'Das Hörnchen war abgezählt!'],
+    style: S_CATERER, draw: (c, f, A) => drawHuman(c, f, A, S_CATERER)
   }
 ];
 const FMOVE = {
@@ -563,8 +655,10 @@ const FMOVE = {
   zap: { dmg: 24, kb: 11, scale: 0.21, ang: 60, meter: 0 },
   forklift: { dmg: 25, kb: 12, scale: 0.21, ang: 65, meter: 0 },
   chain: { dmg: 25, kb: 12, scale: 0.21, ang: 35, meter: 0 },
-  boom: { dmg: 24, kb: 11.5, scale: 0.21, ang: 45, meter: 0 }
+  boom: { dmg: 24, kb: 11.5, scale: 0.21, ang: 45, meter: 0 },
+  food: { dmg: 13, kb: 11, scale: 0.21, ang: 50, meter: 0 }
 };
+const FOOD_SMALL = { dmg: 3, kb: 1.6, scale: 0.01, ang: 10, meter: 0 }, FOOD_G = 0.5;
 const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 
 /* ---------------- Spielzustand ---------------- */
@@ -746,12 +840,44 @@ function stepFinisher(f, inp, o) {
       popText(f.x + f.facing * 60, f.y - f.def.h - 40, '180 dB!', '#ffb070', 48, 50);
     }
     if (Fn.t >= 60) { f.fin = null; f.armor = false; f.lag = 10; }
+  } else if (Fn.type === 'food') {
+    f.armor = Fn.t < 20; f.vx *= 0.8;
+    if (Fn.t >= 14 && Fn.t <= 56 && (Fn.t - 14) % 6 === 0) {
+      const n = (Fn.t - 14) / 6, big = n === 7;
+      const sx = f.x + f.facing * 26, sy = f.y - 74;
+      const tx = (o.dead ? f.x + f.facing * 300 : o.x) + rand(-18, 18), ty = o.dead ? STAGE.top - 20 : o.y - o.def.h * 0.5 + rand(-10, 10);
+      let dx = tx - sx; const T = clamp(Math.abs(dx) / 13, 12, 36);
+      if (!o.dead) dx += clamp(o.vx, -6, 6) * T;   // vorhalten, wo der Gegner gleich ist
+      ents.push({ type: 'food', kind: big ? 'big' : (n % 2 ? 'pastry' : 'roll'), x: sx, y: sy, vx: dx / T, vy: clamp((ty - sy - 0.5 * FOOD_G * T * T) / T, -16, 10),
+        rot: 0, vr: rand(0.15, 0.35) * f.facing, owner: f, hit: false, landed: false, t: 0 });
+      sfx.swing(); tone(big ? 300 : 700, 0.08, 'triangle', 0.05, 200);
+    }
+    if (Fn.t >= 72) { f.fin = null; f.armor = false; f.lag = 8; }
   }
 }
 function stepEnts() {
   for (const e of ents) {
     e.t++;
     if (e.type === 'bolt') { if (e.t > 22) e.dead = true; continue; }
+    if (e.type === 'food') {
+      const owner = e.owner, o = F[1 - owner.idx];
+      if (e.landed) { if (e.t > 50) e.dead = true; continue; }
+      e.vy += FOOD_G; e.x += e.vx; e.y += e.vy; e.rot += e.vr;
+      const sz = e.kind === 'big' ? 22 : 13;
+      if (!e.hit && hittable(o) && overlap({ x: e.x - sz, y: e.y - sz, w: sz * 2, h: sz * 2 }, hurtbox(o))) {
+        e.hit = true; e.dead = true;
+        const big = e.kind === 'big';
+        if (big || Math.random() < 0.45) popText(e.x, e.y - 20, big ? 'JEDER NUR EINS!!!' : pick(['MAMPF!', 'KRÜMEL!', 'LECKER!', 'PLOPP!']), big ? '#ffd0e0' : '#ffe9a8', big ? 36 : 20, 34);
+        for (let i = 0; i < 8; i++) parts.push({ x: e.x, y: e.y, vx: rand(-4, 4), vy: rand(-5, 1), life: 26, max: 26, col: i % 2 ? '#e2a95c' : '#ffd23f', size: 2.5, g: 0.3, kind: 'spark' });
+        applyHit(owner, o, big ? FMOVE.food : FOOD_SMALL, Math.sign(e.vx) || owner.facing, e.x, e.y);
+        continue;
+      }
+      if (e.vy > 0 && e.x > STAGE.x1 && e.x < STAGE.x2 && e.y + sz * 0.6 >= STAGE.top) {
+        e.y = STAGE.top - sz * 0.6; e.landed = true; e.t = 0; e.vx = 0; e.vy = 0; dust(e.x, STAGE.top, 3, 'rgba(232,180,106,');
+      }
+      if (e.y > BLAST.y2 || e.x < BLAST.x1 || e.x > BLAST.x2) e.dead = true;
+      continue;
+    }
     if (e.type === 'boom') {
       const owner = e.owner, o = F[1 - owner.idx];
       e.r += 18;
@@ -1190,6 +1316,7 @@ function drawFighter(f) {
     if (tp === 'smoke' && t < 22) q = '*klick* … *ziiieh*';
     if (tp === 'zap' && t < 32) q = 'Phase Braun liegt an!';
     if (tp === 'chain' && t < 26) q = 'Moin.';
+    if (tp === 'food' && t < 62) q = 'JEDER NUR EINS!!!!!!!';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
   if (q) speech(c, 0, ty - 18, q);
@@ -1220,7 +1347,7 @@ function drawBackground(T) {
   c.fillStyle = lg; c.fillRect(lx, ly, lw, lh);
   for (let i = 0; i < 6; i++) { const y = ly + lh / 2 + Math.sin(T * 0.03 + i) * 70; c.fillStyle = `hsla(${(hue + i * 40) % 360},90%,60%,0.18)`; c.fillRect(lx, y, lw, 10); }
   c.font = 'bold 96px Impact,"Arial Black",sans-serif'; c.textBaseline = 'middle';
-  const msg = 'BÜHNEN-BRAWL ✦ HAMSTER ✦ HALLENMEISTER ✦ CEMIL ✦ RIGGER ✦ ';
+  const msg = 'BÜHNEN-BRAWL ✦ HAMSTER ✦ HALLENMEISTER ✦ CEMIL ✦ RIGGER ✦ GERCH ✦ CATERIN ✦ ';
   const mw = c.measureText(msg).width, off = (T * 2.2) % mw;
   c.fillStyle = 'rgba(255,255,255,0.85)'; c.fillText(msg, lx - off, ly + lh / 2); c.fillText(msg, lx - off + mw, ly + lh / 2);
   c.textBaseline = 'alphabetic';
@@ -1302,6 +1429,8 @@ function drawEnts() {
         c.fillStyle = `rgba(${200 + i * 5},${205 + i * 4},${190 + i * 3},${a * 0.55})`;
         c.beginPath(); c.arc(e.x + ox, e.y + oy, e.r * (0.45 + (i % 3) * 0.1), 0, TAU); c.fill();
       }
+    } else if (e.type === 'food') {
+      c.save(); if (e.landed) c.globalAlpha = clamp(1 - (e.t - 30) / 20, 0, 1); drawFood(c, e.kind, e.x, e.y, e.rot); c.restore();
     } else if (e.type === 'boom') {
       const a = clamp(1 - e.t / 32, 0, 1);
       c.save(); c.globalAlpha = a;
@@ -1478,9 +1607,9 @@ function drawTitle() {
   c.fillText('Die Prügelei hinter der Bühne', W / 2, 150);
   // Kämpfer-Aufstellung
   ROSTER.forEach((d, i) => {
-    const x = 150 + i * 245, gy = 676;
+    const x = 115 + i * 210, gy = 676;
     E(c, x, gy + 2, 40, 6, 'rgba(0,0,0,0.5)');
-    c.save(); c.translate(x, gy); c.scale(i < 2 ? 1.2 : -1.2, 1.2); d.draw(c, dummy(d, { t: frame + i * 23 }), { kind: 'idle' }); c.restore();
+    c.save(); c.translate(x, gy); c.scale(i < 3 ? 1.2 : -1.2, 1.2); d.draw(c, dummy(d, { t: frame + i * 23 }), { kind: 'idle' }); c.restore();
   });
   const rows = menuRows(), mx = W / 2 - 230, mw = 460;
   let y = 178;
@@ -1520,7 +1649,7 @@ function drawSelect() {
   bigText('KÄMPFERWAHL', 66, 54, '#ffd23f', 1, '#2a0d3d');
   c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
   c.fillText(isCPU() ? `1 Spieler gegen den Computer  ·  CPU ${DIFFS[settings.diff].name.toLowerCase()}  ·  ${settings.stocks} Leben` : `2 Spieler  ·  ${settings.stocks} Leben`, W / 2, 98);
-  const N = ROSTER.length, cw = 228, ch = 380, gap = 14, x0 = (W - (N * cw + (N - 1) * gap)) / 2, y0 = 114;
+  const N = ROSTER.length, cw = 196, ch = 380, gap = 12, x0 = (W - (N * cw + (N - 1) * gap)) / 2, y0 = 114;
   ROSTER.forEach((d, i) => {
     const x = x0 + i * (cw + gap), h0 = sel[0].i === i, h1 = sel[1].i === i && (!isCPU() || sel[1].ok);
     RR(c, x, y0, cw, ch, 16, 'rgba(12,10,24,0.88)');
@@ -1537,7 +1666,7 @@ function drawSelect() {
     d.draw(c, dummy(d, { t: frame + i * 17 }), chosen ? { kind: 'atk', e: 0.5 + 0.5 * Math.sin(frame * 0.15) } : { kind: 'idle' });
     c.restore();
     c.textAlign = 'center';
-    c.font = '900 23px Impact,"Arial Black",sans-serif'; c.lineWidth = 5; c.strokeStyle = '#000';
+    c.font = '900 21px Impact,"Arial Black",sans-serif'; c.lineWidth = 5; c.strokeStyle = '#000';
     c.strokeText(d.name, x + cw / 2, y0 + 262); c.fillStyle = d.color; c.fillText(d.name, x + cw / 2, y0 + 262);
     c.font = '12px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Schlag: ' + d.atk.name, x + cw / 2, y0 + 283);
     c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Finisher', x + cw / 2, y0 + 302);
@@ -1545,8 +1674,8 @@ function drawSelect() {
     c.textAlign = 'left';
     ['Tempo', 'Gewicht', 'Reichweite'].forEach((lab, j) => {
       const yy = y0 + 332 + j * 14;
-      c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(lab, x + 22, yy + 9);
-      for (let b = 0; b < 5; b++) RR(c, x + 100 + b * 21, yy, 18, 9, 3, b < d.stats[j] ? d.color : '#2e2c3a');
+      c.font = '11px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(lab, x + 14, yy + 9);
+      for (let b = 0; b < 5; b++) RR(c, x + 84 + b * 20, yy, 17, 9, 3, b < d.stats[j] ? d.color : '#2e2c3a');
     });
     const badge = (p, col, inset) => {
       c.strokeStyle = col; c.lineWidth = 4; strokeRR(c, x + inset, y0 + inset, cw - inset * 2, ch - inset * 2, 16 - inset);
