@@ -893,11 +893,12 @@ const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
 if (TOUCH) settings.mode = 1;
+settings.stocks = 3;   // immer 3 Leben – nicht einstellbar, damit es fair bleibt
 function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringify(settings)); } catch (e) { /* egal */ } }
 const isCPU = () => settings.mode === 1 && !NET.role;
 // Beim ersten Start auf Touch-Geräten (noch nicht als App installiert): Anleitung „Zum Home-Bildschirm“
 // „Was ist neu“-Fenster: einmal pro Gerät nach jedem größeren Update
-const GAME_VERSION = '3.2';
+const GAME_VERSION = '3.3';
 let news = (() => { try { return localStorage.getItem('bb-version') !== GAME_VERSION; } catch (e) { return false; } })();
 let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
@@ -1522,7 +1523,6 @@ function stepTitle() {
 function selectOptionKeys() {   // C = CPU-Stärke, 1–5 = Leben, X = Gadgets
   if (isCPU() && pressed.has('KeyC')) onUI('diffC');
   if (pressed.has('KeyX')) onUI('itemsR');
-  for (let i = 1; i <= 5; i++) if (pressed.has('Digit' + i) && settings.stocks !== i) { settings.stocks = i; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: i, items: settings.items }); }
 }
 function stepSelect() {
   const N = ROSTER.length;
@@ -1713,7 +1713,7 @@ function remoteInput() {
 }
 function snapshot() {
   const m = {
-    t: 'st', sc: scene, cd: countdown, go: goT, gt: gameOverT, fz: freeze, sh: r1(shake), fl: flashScreen, fc: flashCol,
+    t: 'st', sc: scene, mt: matchT, cd: countdown, go: goT, gt: gameOverT, fz: freeze, sh: r1(shake), fl: flashScreen, fc: flashCol,
     cu: cutin ? [cutin.f.idx, cutin.t, cutin.dur] : 0, w: winner ? winner.idx : -1,
     f: F.map(f => [r1(f.x), r1(f.y), r2(f.vx), r2(f.vy), f.facing, f.damage, f.stocks, Math.round(f.meter), f.atk ? f.atkT : -1, f.hitstun, r2(f.rot),
       f.fin ? [f.fin.type, f.fin.t, f.fin.dir, r2(f.fin.spin), r2(f.fin.fork), r1(f.fin.tx || 0), r1(f.fin.ty || 0), f.fin.lt === undefined ? -1 : f.fin.lt] : 0, f.shielding ? 1 : 0, Math.round(f.shield), f.invuln, f.plat, f.dead ? 1 : 0,
@@ -1728,7 +1728,8 @@ function snapshot() {
 }
 function applySnap(m) {
   if (F.length !== 2) return;
-  scene = m.sc; countdown = m.cd; goT = m.go; gameOverT = m.gt; freeze = m.fz; shake = Math.max(shake, m.sh); flashScreen = m.fl; flashCol = m.fc;
+  const prevScene = scene;
+  scene = m.sc; matchT = m.mt || 0; countdown = m.cd; goT = m.go; gameOverT = m.gt; freeze = m.fz; shake = Math.max(shake, m.sh); flashScreen = m.fl; flashCol = m.fc;
   cutin = m.cu ? { f: F[m.cu[0]], t: m.cu[1], dur: m.cu[2] } : null;
   winner = m.w >= 0 ? F[m.w] : null;
   m.f.forEach((a, i) => {
@@ -1745,6 +1746,7 @@ function applySnap(m) {
   });
   ents = m.e.map(e => Object.assign(e, { owner: e.owner >= 0 ? F[e.owner] : null }));
   koFx = m.k.map(k => ({ x: k[0], y: k[1], t: k[2], ang: k[3], col: k[4] }));
+  if (scene === 'results' && prevScene !== 'results') onMatchEnd();
   for (const ev of m.ev || []) {
     if (ev[0] === 'p') sparks(ev[1], ev[2], ev[3], ev[4]);
     else if (ev[0] === 'd') dust(ev[1], ev[2], ev[3], ev[4]);
@@ -1808,18 +1810,18 @@ async function makeQR() {
 
 /* =========================================================================
    HIGHSCORES – global, 5 Plätze
-   Wertung: schnellster Sieg gegen die CPU (Kampfzeit vom „LOS!“ bis zum letzten K.O.).
-   Nach jedem gewonnenen Spiel sieht man sofort, ob die Zeit für die Top 5 reicht. Gespeichert in Firestore – gleiches Projekt und gleiche
-   Ablageform wie der Sync der POS-App (Dokument „brawlzeit001“ kann nie ein Sync-Code sein).
+   Wertung: schnellster Sieg im Online-Duell (Kampfzeit vom „LOS!“ bis zum letzten K.O., immer 3 Leben).
+   Der Gewinner sieht auf seinem Gerät sofort, ob die Zeit für die Top 5 reicht. Gespeichert in Firestore – gleiches Projekt und gleiche
+   Ablageform wie der Sync der POS-App (Dokument „brawlonline1“ kann nie ein Sync-Code sein).
    ========================================================================= */
-const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlzeit001?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlonline1?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
 const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
 let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
 const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
 const hsName = n => String(n || '').replace(/[^\p{L}\p{N} ._!\-]/gu, '').trim().slice(0, 12) || 'Anonym';
 function hsClean(arr) {
   return (Array.isArray(arr) ? arr : []).filter(e => e && Number.isFinite(+e.p))
-    .map(e => ({ n: hsName(e.n), p: Math.max(1, Math.min(99999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), s: clamp(+e.s | 0, 0, 2), l: clamp(+e.l | 0, 1, 5), d: +e.d || 0 }))
+    .map(e => ({ n: hsName(e.n), p: Math.max(1, Math.min(99999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), o: String(e.o || '').slice(0, 12), d: +e.d || 0 }))
     .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, 5);   // kleinste Zeit zuerst
 }
 async function hsLoad() {
@@ -1851,10 +1853,12 @@ async function hsSubmit(entry) {
   }
   return false;
 }
-function onMatchEnd() {   // nach jedem 1-Spieler-Match sofort prüfen, ob die Siegzeit in die Top 5 kommt
-  if (!isCPU() || settings.demo || F.length !== 2) return;
-  if (winner !== F[0]) { HS.last = { lost: true }; return; }
-  const t = Math.max(1, Math.round(matchT / 6)), entry = { p: t, c: F[0].def.id, s: settings.diff, l: F[0].maxStocks };
+function onMatchEnd() {   // nach jedem Online-Duell sofort prüfen, ob die Siegzeit des Gewinners in die Top 5 kommt
+  HS.last = null;
+  if (!isOnline() || settings.demo || F.length !== 2) return;
+  const me = F[myIdx()], other = F[1 - myIdx()];
+  if (winner !== me) { HS.last = { lost: true }; return; }
+  const t = Math.max(1, Math.round(matchT / 6)), entry = { p: t, c: me.def.id, o: other.def.id };
   HS.last = { t, check: 'loading' };
   hsLoad().then(ok => {
     if (!ok) { HS.last.check = 'error'; return; }
@@ -2536,14 +2540,12 @@ function drawSelect() {
   const cells = [], host = NET.role === 'host';
   if (isOnline()) {
     cells.push(['room', 'RAUM', NET.code, 150, false]);
-    cells.push(['stocks', 'LEBEN', String(host ? settings.stocks : NET.stocks), 160, host]);
     cells.push(['items', 'GADGETS', (host ? settings.items : NET.items) ? 'AN' : 'AUS', 170, host]);
   } else {
     if (isCPU()) cells.push(['diff', 'CPU-STÄRKE', DIFFS[settings.diff].name, 230, true]);
-    cells.push(['stocks', 'LEBEN', String(settings.stocks), 160, true]);
     cells.push(['items', 'GADGETS', settings.items ? 'AN' : 'AUS', 170, true]);
   }
-  const keyHint = { diff: ' [C]', stocks: ' [1–5]', items: ' [X]' };
+  const keyHint = { diff: ' [C]', items: ' [X]' };
   let cx = W / 2 - (cells.reduce((a, q) => a + q[3], 0) + (cells.length - 1) * 8) / 2;
   for (const [id, lab, val, w, edit] of cells) {
     RR(c, cx, 62, w, 52, 12, 'rgba(20,16,36,0.92)'); c.strokeStyle = edit ? 'rgba(255,210,63,0.6)' : 'rgba(255,255,255,0.2)'; c.lineWidth = 1.5; strokeRR(c, cx, 62, w, 52, 12);
@@ -2641,7 +2643,7 @@ function drawResults() {
     c.fillStyle = i === 0 ? '#3fa9ff' : '#fff'; c.fillText(r[2], x0 + 500, y);
   });
   let again = 'REVANCHE';
-  if (isCPU() && !settings.demo) {
+  if (isOnline() && !settings.demo) {
     const L = HS.last || {};
     c.textAlign = 'center';
     if (L.t) {
@@ -2649,7 +2651,7 @@ function drawResults() {
       c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = L.check === 'yes' ? '#7ad15a' : '#cfcfe0';
       c.fillText({ loading: 'Prüfe Bestenliste …', yes: '🏆 Das reicht für die Bestenliste!', error: 'Bestenliste gerade nicht erreichbar',
         no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0) }[L.check] || '', W / 2, 568);
-    } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur Siege kommen in die Bestenliste – nochmal!', W / 2, 560); }
+    } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur der Gewinner kommt in die Bestenliste – Revanche!', W / 2, 560); }
   }
   btn('rematch', W / 2 - 350, 590, 220, 58, again, '#ffd23f', again.length > 9 ? 21 : 26);
   btn('select', W / 2 - 110, 590, 220, 58, 'KÄMPFERWAHL', '#5bc8ff', 24);
@@ -2715,7 +2717,7 @@ function drawNews() {
   });
   const items = [
     ['🎬', 'Neuer Name: BACKSTAGE BRAWL'],
-    ['🏆', 'Bestenliste auf der Startseite: Wer besiegt die CPU am schnellsten?'],
+    ['🏆', 'Bestenliste auf der Startseite: schnellster Sieg im Online-Duell (immer 3 Leben)'],
     ['🎁', 'Gadgets mit klaren Symbolen: Schild, Energy, Tempo'],
     ['🔨', 'Neuer Messebauer-Finisher, schnellerer Stempel, Balance überarbeitet'],
     ['🔍', 'Kamera zoomt auf den Siegerspruch, ruhigere LED-Wand']
@@ -2732,7 +2734,7 @@ function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
   RR(c, x, y, w, h, 16, 'rgba(20,16,36,0.92)'); c.strokeStyle = '#ffd23f'; c.lineWidth = 2; strokeRR(c, x, y, w, h, 16);
   c.textAlign = 'left'; c.font = '900 21px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('🏆 BESTENLISTE', x + 16, y + 30);
-  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Wer besiegt die CPU am schnellsten?', x + 16, y + 48);
+  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Schnellster Sieg im Online-Duell', x + 16, y + 48);
   const list = HS.list || [], medal = ['#ffd23f', '#d0d4dc', '#d08a4a', '#6a6880', '#6a6880'];
   for (let i = 0; i < 5; i++) {
     const e = list[i], ry = y + 58 + i * 32;
@@ -2754,8 +2756,8 @@ function drawBoard() {
   c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(0, 0, W, H);
   RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
   bigText('🏆 HIGHSCORES', y + 66, 50, '#ffd23f', 1, '#2a0d3d');
-  c.textAlign = 'center'; c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText('Schnellster Sieg gegen die CPU', W / 2, y + 100);
-  c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Gemessen wird die Kampfzeit vom „LOS!“ bis zum letzten K.O.', W / 2, y + 124);
+  c.textAlign = 'center'; c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText('Schnellster Sieg im Online-Duell', W / 2, y + 100);
+  c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Gemessen wird die Kampfzeit vom „LOS!“ bis zum letzten K.O. – immer 3 Leben, Mensch gegen Mensch.', W / 2, y + 124);
   if (HS.state === 'loading' && !HS.list) { c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Lade …', W / 2, y + 300); }
   else if (HS.state === 'error') {
     c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ff9a8a'; c.fillText('Highscores gerade nicht erreichbar', W / 2, y + 280);
@@ -2770,7 +2772,7 @@ function drawBoard() {
       if (!e) { c.textAlign = 'left'; c.font = '18px system-ui,sans-serif'; c.fillStyle = '#6a6880'; c.fillText('— noch frei —', x + 160, ry + 35); continue; }
       const d = ROSTER.find(r => r.id === e.c); if (d) drawPortrait(c, d, x + 130, ry + 28, 22);
       c.textAlign = 'left'; c.font = 'bold 22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(e.n, x + 166, ry + 30);
-      c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(`${d ? d.short + ' · ' : ''}CPU ${DIFFS[e.s].name.toLowerCase()} · ${e.l} ${e.l === 1 ? 'Leben' : 'Leben'}`, x + 166, ry + 48);
+      c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText((d ? d.short : '') + ((ROSTER.find(r => r.id === e.o) || {}).short ? ' gegen ' + ROSTER.find(r => r.id === e.o).short : ''), x + 166, ry + 48);
       c.textAlign = 'right'; c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = medal[i] === '#6a6880' ? '#e8e8f4' : medal[i]; c.fillText(fmtT(e.p), x + w - 64, ry + 39);
     }
   }

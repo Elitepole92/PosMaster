@@ -29,7 +29,7 @@ Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt wer
 ## Bonus: Backstage Brawl (`buehnen-brawl/`)
 Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. Einfach `buehnen-brawl/index.html` öffnen (der Ordnername bleibt, damit bestehende Links und Home-Bildschirm-Apps weiter funktionieren).
 
-**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*. CPU-Stärke, Leben und Gadgets stellt man danach in der Kämpferwahl ein (Tasten C, 1–5, X oder antippen). `M` schaltet den Ton an/aus.
+**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*. CPU-Stärke und Gadgets stellt man danach in der Kämpferwahl ein (Tasten C, X oder antippen). Gespielt wird immer mit 3 Leben. `M` schaltet den Ton an/aus.
 
 | | P1 | P2 |
 |---|---|---|
@@ -42,7 +42,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 
 **Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
-**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg gegen die CPU – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Nach jedem gewonnenen Spiel sieht man sofort die Siegzeit und ob sie für die Top 5 reicht; dann trägt man seinen Namen ein. In der Liste stehen Figur, CPU-Stärke und Leben dabei. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlzeit001`).
+**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht; dann trägt er seinen Namen ein. In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
