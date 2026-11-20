@@ -26,14 +26,10 @@ Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt wer
 `sw.js` (Service Worker) speichert beim ersten Öffnen alle App-Dateien auf dem Gerät, danach läuft die App auch ohne Netz. `index.html` und `data.js` werden zuerst aus dem Netz geholt (Updates), bei Funkloch nach 4 s aus dem Speicher.
 **Nach jeder Änderung an App-Dateien `python3 tools/build-sw.py` ausführen**, damit die Geräte die neuen Dateien bekommen.
 
-## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
-Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` öffnen.
+## Bonus: Backstage Brawl (`buehnen-brawl/`)
+Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. Einfach `buehnen-brawl/index.html` öffnen (der Ordnername bleibt, damit bestehende Links und Home-Bildschirm-Apps weiter funktionieren).
 
-**Startmenü:** *1 Spieler* (gegen den Computer, CPU-Stärke leicht/mittel/schwer) oder *2 Spieler* (zu zweit an einer Tastatur), dazu die Anzahl der Leben. `M` schaltet den Ton an/aus.
-
-**Online-Duell (zwei Geräte, z. B. Handy gegen Handy):** Im Startmenü „Online-Duell“ wählen. Ein Gerät tippt *Raum erstellen* und bekommt einen 4-stelligen Code plus QR-Code, das andere tippt *Beitreten* und gibt den Code ein (oder scannt den QR-Code). Danach wählt jeder auf seinem Gerät seinen Kämpfer. Technik: WebRTC über PeerJS (kostenloser öffentlicher Vermittlungsserver, kein Account nötig); das erstellende Gerät rechnet das Spiel, das andere schickt nur seine Eingaben. Am zuverlässigsten im selben WLAN. Funktioniert nur über die GitHub-Pages-Adresse, nicht im Claude-Link.
-
-**Mac / PC:** Tastatur.
+**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*. CPU-Stärke, Leben und Gadgets stellt man danach in der Kämpferwahl ein (Tasten C, 1–5, X oder antippen). `M` schaltet den Ton an/aus.
 
 | | P1 | P2 |
 |---|---|---|
@@ -42,7 +38,11 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | Schlag | `F` | `K` (oder Numpad 1) |
 | Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
-**iPhone / iPad:** Das Spiel erkennt Touch-Geräte automatisch und zeigt Touch-Buttons (◀ ▶, Sprung, Schlag, Schild, Finisher). Dort gibt es nur den Einzelspieler-Modus, gespielt wird im Querformat. In Safari über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App (Manifest + Icons liegen im Ordner).
+**iPhone / iPad:** Touch-Buttons, nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
+
+**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
+
+**Highscores (global, 5 Plätze):** Gewertet werden die Punkte einer Siegesserie gegen die CPU – pro Sieg leicht 50 / mittel 100 / schwer 200 Punkte plus bis zu 150 für übrige Leben; die Serie endet mit der ersten Niederlage. Wer in die Top 5 kommt, trägt seinen Namen ein. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlhiscore`).
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
@@ -51,13 +51,14 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
 | **Headrigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
 | **Gerch** | Tontechniker mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
-| **Caterin** | Hygienehaube, Kochjacke, Schürze | Jeder nur eins!!!!!!! |
-| **Projektleiterin** | Senior PL, Mitte 30, mit Handy am Ohr und Laptop | Angebot abgelehnt – Riesenstempel |
-| **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – das „bombenfeste“ Wandelement kippt um |
-| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – ausgerechnet im ruhigsten Moment |
+| **Projektleiterin** | Senior PL, Mitte 30, Handy am Ohr, Laptop | Angebot abgelehnt – Riesenstempel |
+| **Messebauer** | riesige Boombox, Akkuschrauber, Gummihammer | KURWA! – Gummihammer-Kombo |
+| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – im ruhigsten Moment |
 
-**Finisher** laufen in Zeitlupe, damit man sie gut sieht. Im Startmenü lässt sich unter **BLITZE** zwischen VOLL und SANFT wählen (SANFT = langsamere, schwächere Strobo-Blitze für lichtempfindliche Mitspieler).
+Die Caterin ist im Code noch enthalten, aber gerade nicht auswählbar (`hidden: true` im Roster).
 
-**Gadgets** (im Startmenü abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
+Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera kurz heran.
+
+**Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
