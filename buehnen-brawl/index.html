@@ -1225,7 +1225,14 @@ let netEv = [], toast = null;
 const isOnline = () => NET.role !== null && NET.open;
 const myIdx = () => NET.role === 'guest' ? 1 : 0;
 const r1 = v => Math.round(v * 10) / 10, r2 = v => Math.round(v * 100) / 100;
-const who = i => isOnline() ? (i === myIdx() ? 'DU' : 'GEGNER') : (i === 0 ? 'P1' : (isCPU() ? 'CPU' : 'P2'));
+// Beschriftung der Spieler; online stehen die Namen der Figuren da (bei gleicher Figur mit 1/2)
+const who = i => {
+  if (isOnline()) {
+    if (scene === 'select' || F.length !== 2) return i === 0 ? 'P1' : 'P2';
+    return F[i].def.short + (F[0].def === F[1].def ? ' ' + (i + 1) : '');
+  }
+  return i === 0 ? 'P1' : (isCPU() ? 'CPU' : 'P2');
+};
 function showToast(text) { toast = { text, t: 260 }; }
 // Sounds des Hosts auch beim Gast abspielen
 for (const k of Object.keys(sfx)) {
@@ -1743,7 +1750,7 @@ function drawHUD() {
     c.strokeStyle = i === 0 ? '#ff5a4a' : '#3fa9ff'; c.lineWidth = 2.5; strokeRR(c, x, y, w, 80, 14);
     drawPortrait(c, f.def, x + 42, y + 40, 30);
     c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#ddd'; c.textAlign = 'left';
-    c.fillText(who(i) + ' · ' + f.def.short, x + 82, y + 18);
+    c.fillText(isOnline() ? who(i) : who(i) + ' · ' + f.def.short, x + 82, y + 18);
     const sh = f.dmgShake > 0 ? rand(-3, 3) : 0;
     c.font = `900 ${f.damage >= 100 ? 32 : 40}px Impact,"Arial Black",sans-serif`; c.lineWidth = 6; c.strokeStyle = '#000';
     const tx = f.dead && f.stocks <= 0 ? '—' : Math.floor(f.damage) + '%';
@@ -2013,7 +2020,7 @@ function drawResults() {
   const c = ctx;
   c.fillStyle = 'rgba(4,3,10,0.78)'; c.fillRect(0, 0, W, H);
   const w = winner || F[0], d = w.def;
-  bigText(who(w.idx) + ' · ' + d.name + (who(w.idx) === 'DU' ? ' GEWINNST!' : ' GEWINNT!'), 100, 54, d.color);
+  bigText(isOnline() ? d.name + ' GEWINNT!' : who(w.idx) + ' · ' + d.name + (who(w.idx) === 'DU' ? ' GEWINNST!' : ' GEWINNT!'), 100, 54, d.color);
   c.save(); c.translate(360, 540);
   const sc = 300 / Math.max(d.h, 110); c.scale(sc, sc);
   E(c, 0, 2, 32, 6, 'rgba(0,0,0,0.5)');
@@ -2023,7 +2030,7 @@ function drawResults() {
   if (!w._q) w._q = pick(d.quotes);
   speech(c, 360, 190, w._q);
   const x0 = 620, y0 = 190;
-  const rows = [['', who(0) + ' ' + F[0].def.short, who(1) + ' ' + F[1].def.short], ['KOs', F[0].stats.kos, F[1].stats.kos], ['Schaden ausgeteilt', F[0].stats.dealt + '%', F[1].stats.dealt + '%'],
+  const rows = [['', isOnline() ? who(0) : who(0) + ' ' + F[0].def.short, isOnline() ? who(1) : who(1) + ' ' + F[1].def.short], ['KOs', F[0].stats.kos, F[1].stats.kos], ['Schaden ausgeteilt', F[0].stats.dealt + '%', F[1].stats.dealt + '%'],
     ['Treffer', F[0].stats.hits, F[1].stats.hits], ['Finisher', F[0].stats.fins, F[1].stats.fins]];
   rows.forEach((r, i) => {
     const y = y0 + i * 46;
