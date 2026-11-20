@@ -44,5 +44,6 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
 | **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
 | **Gerch** | Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille | 180 dB Überschallknall – Druckwelle in alle Richtungen |
+| **Caterin** | klein, pummelig, Hygienehaube, weiße Kochjacke mit Schürze | Jeder nur eins!!!!!!! – Käsebrötchen- und Teilchen-Hagel |
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
