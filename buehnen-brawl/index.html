@@ -147,6 +147,7 @@ const sfx = {
   drill() { tone(240, 0.1, 'sawtooth', 0.06, 60); noise(0.08, 0.06, 3000, 'highpass'); },
   strobe(big) { noise(0.06, big ? 0.3 : 0.15, 5000, 'highpass'); tone(big ? 90 : 1800, big ? 0.4 : 0.05, big ? 'sine' : 'square', big ? 0.4 : 0.04); },
   stamp() { noise(0.5, 0.5, 260); tone(70, 0.5, 'sine', 0.5, -30); },
+  tick() { noise(0.03, 0.1, 6000, 'highpass'); },
   calm() { [262, 330, 392].forEach((f, i) => tone(f, 1.2, 'sine', 0.035, 0, i * 0.18)); }
 };
 
@@ -857,7 +858,7 @@ const FMOVE = {
   drill: { dmg: 12, kb: 11.5, scale: 0.2, ang: 40, meter: 0 },
   strobe: { dmg: 12, kb: 11, scale: 0.21, ang: 55, meter: 0 }
 };
-const DRILL_SMALL = { dmg: 2, kb: 0.8, scale: 0, ang: 20, meter: 0 }, STROBE_SMALL = { dmg: 4, kb: 1.2, scale: 0, ang: 20, meter: 0 };
+const DRILL_SMALL = { dmg: 2, kb: 0.8, scale: 0, ang: 20, meter: 0 }, STROBE_SMALL = { dmg: 2, kb: 0.6, scale: 0, ang: 15, meter: 0 };
 // Gadgets, die ab und zu vom Himmel fallen
 const GADGETS = {
   coffee: { name: 'KAFFEE', txt: 'TEMPO!', col: '#c98b44' },
@@ -870,7 +871,7 @@ const FOOD_SMALL = { dmg: 3, kb: 1.6, scale: 0.01, ang: 10, meter: 0 }, FOOD_G =
 const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 
 /* ---------------- Spielzustand ---------------- */
-const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true };
+const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true, fx: 'voll' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
 if (TOUCH) settings.mode = 1;
 function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringify(settings)); } catch (e) { /* egal */ } }
@@ -972,7 +973,7 @@ function applyHit(att, o, m, dirX, hx, hy) {
   if (o.fin) { o.fin = null; o.armor = false; }
   o.jumps = Math.max(o.jumps, 1);
   o.tumble = kb > 13 ? 0.28 * dirX : 0; o.rot = 0;
-  freeze = Math.min(18, Math.floor(3 + m.dmg * 0.45 + kb * 0.15));
+  freeze = !m.meter && m.dmg >= 10 ? 28 : Math.min(18, Math.floor(3 + m.dmg * 0.45 + kb * 0.15));   // großer Finisher-Treffer friert länger ein
   shake = Math.max(shake, Math.min(24, kb * 0.6));
   sparks(hx, hy, att.def.hitColor, 8 + Math.floor(kb));
   if (m.meter && kb > 8) popText(hx, hy - 20, pick(['POW!', 'BÄM!', 'KRACH!', 'ZACK!', 'WUMMS!', 'BONK!']), att.def.hitColor, 22 + Math.min(30, kb * 1.4), 36);
@@ -987,7 +988,7 @@ function breakShield(o) {
 function startFinisher(f, o) {
   f.meter = 0; f.stats.fins++; f.atk = null; f.shielding = false; f.buf = null;
   if (!o.dead) f.facing = Math.sign(o.x - f.x) || f.facing;
-  cutin = { f, t: 0, dur: 62 }; sfx.fin();
+  cutin = { f, t: 0, dur: 110 }; sfx.fin();
   f.fin = { type: f.def.fin, t: 0, dir: f.facing, hit: false, spin: 0, fork: 0 };
   if (f.def.fin === 'forklift') sfx.engine();
 }
@@ -1104,15 +1105,16 @@ function stepFinisher(f, inp, o) {
     f.armor = Fn.t < 30; f.vx *= 0.8;
     if (!o.dead) { Fn.tx = o.x; Fn.ty = o.y; }
     if (Fn.t === 6) sfx.calm();
-    if (Fn.t === 30 || Fn.t === 46 || Fn.t === 62 || Fn.t === 80) {
-      const big = Fn.t === 80;
-      sfx.strobe(big);
-      if (hittable(o) && Math.abs(o.x - f.x) < 620 && Math.abs(o.y - f.y) < 360) {
-        applyHit(f, o, big ? FMOVE.strobe : STROBE_SMALL, Math.sign(o.x - f.x) || f.facing, o.x, o.y - o.def.h * 0.75);
-        if (big) popText(o.x, o.y - o.def.h - 30, 'GEBLENDET!', '#c4f2ff', 40, 50); else o.hitstun = Math.max(o.hitstun, 16);
-      }
+    const inRange = hittable(o) && Math.abs(o.x - f.x) < 620 && Math.abs(o.y - f.y) < 360;
+    if (Fn.t >= 30 && Fn.t < 96) {
+      if ((Fn.t - 30) % 3 === 0) sfx.tick();
+      if ((Fn.t - 30) % 12 === 0 && inRange) { applyHit(f, o, STROBE_SMALL, Math.sign(o.x - f.x) || f.facing, o.x, o.y - o.def.h * 0.75); o.hitstun = Math.max(o.hitstun, 18); }
     }
-    if (Fn.t >= 96) { f.fin = null; f.armor = false; f.lag = 8; }
+    if (Fn.t === 96) {
+      sfx.strobe(true);
+      if (inRange) { popText(o.x, o.y - o.def.h - 30, 'GEBLENDET!', '#c4f2ff', 42, 60); applyHit(f, o, FMOVE.strobe, Math.sign(o.x - f.x) || f.facing, o.x, o.y - o.def.h * 0.75); }
+    }
+    if (Fn.t >= 106) { f.fin = null; f.armor = false; f.lag = 8; }
   }
 }
 function stepEnts() {
@@ -1387,7 +1389,7 @@ function stepCamera() {
 /* ---------------- Haupt-Step ---------------- */
 function cpuPick() { let i; do { i = Math.floor(Math.random() * ROSTER.length); } while (i === sel[0].i); return i; }
 function cpuConfirm() { sel[1].i = cpuPick(); sel[1].ok = true; sfx.confirm(); }
-const menuRows = () => TOUCH ? ['mode1', 'online', 'diff', 'stocks', 'items'] : ['mode1', 'mode2', 'online', 'diff', 'stocks', 'items'];
+const menuRows = () => TOUCH ? ['mode1', 'online', 'diff', 'stocks', 'items', 'fx'] : ['mode1', 'mode2', 'online', 'diff', 'stocks', 'items', 'fx'];
 
 // Alle Klicks/Taps und Menü-Aktionen laufen hier zusammen
 function onUI(id) {
@@ -1395,6 +1397,7 @@ function onUI(id) {
   switch (id) {
     case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
+    case 'fxL': case 'fxR': settings.fx = settings.fx === 'sanft' ? 'voll' : 'sanft'; saveSettings(); sfx.move(); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); break;
     case 'newsOk': news = false; try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
@@ -1453,6 +1456,7 @@ function stepTitle() {
   if ((l || r) && row === 'diff') onUI(r ? 'diffR' : 'diffL');
   if ((l || r) && row === 'stocks') onUI(r ? 'stocksR' : 'stocksL');
   if ((l || r) && row === 'items') onUI('itemsR');
+  if ((l || r) && row === 'fx') onUI('fxR');
   if (any(['Enter', 'Space', 'KeyF', 'KeyK'])) onUI(row.startsWith('mode') || row === 'online' ? row : (settings.mode === 2 ? 'mode2' : 'mode1'));
 }
 function stepSelect() {
@@ -1506,6 +1510,7 @@ function step() {
     if (goT > 0) goT--;
     if (cutin) { cutin.t++; if (cutin.t >= cutin.dur) cutin = null; stepCamera(); pressed.clear(); return; }
     if (freeze > 0) { freeze--; pressed.clear(); return; }
+    if (F.some(f => f.fin) && frame % 2) { stepCamera(); return; }   // Zeitlupe, solange ein Finisher läuft (Tasten bleiben gemerkt)
     const fighting = scene === 'fight' && !(gameOverT && gameOverT < 100);
     const in0 = fighting ? (isOnline() ? localInput() : readInput(0)) : NOINPUT;
     const in1 = fighting ? (isOnline() ? remoteInput() : isCPU() ? cpuInput(F[1], F[0]) : readInput(1)) : NOINPUT;
@@ -1893,7 +1898,7 @@ function drawFighter(f) {
     if (tp === 'stamp' && t < 30) q = t < 13 ? 'Ich hab da mal drübergeschaut …' : 'ABGELEHNT!';
     if (tp === 'drill' && t < 20) q = 'KUUURWA!!!';
     if (tp === 'strobe' && t < 30) q = 'Psst … Rede vom Vorstand.';
-    if (tp === 'strobe' && t >= 30 && t < 46) q = '… und jetzt: STROBO!';
+    if (tp === 'strobe' && t >= 30 && t < 60) q = '… und jetzt: STROBO!';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
   if (q) speech(c, 0, ty - 18, q);
@@ -2040,25 +2045,26 @@ function drawEnts() {
       c.fillStyle = '#ff3b3b'; c.font = 'bold 18px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('ACHTUNG – ABLEHNUNG!', Fn.tx, STAGE.top - 44);
       c.restore();
     }
-    if (Fn.type === 'strobe' && Fn.tx !== undefined) {   // deplatzierter Strobo: zündet mitten in den ruhigsten Moment
-      const pulses = [30, 46, 62, 80], on = pulses.some(p => Fn.t >= p && Fn.t < p + 5);   // höchstens ~3 Blitze pro Sekunde, nur örtlich
-      const calm = Fn.t < 30 ? Math.min(1, Fn.t / 10) : Math.max(0, 1 - (Fn.t - 30) / 6);
-      if (calm > 0) {
-        const vw = W / cam.z, vh = H / cam.z;
-        c.fillStyle = `rgba(4,3,14,${0.55 * calm})`; c.fillRect(cam.x - vw, cam.y - vh, vw * 2, vh * 2);
-        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = calm;
-        const g = c.createLinearGradient(0, f.y - 420, 0, f.y);
-        g.addColorStop(0, 'rgba(255,210,150,0.05)'); g.addColorStop(1, 'rgba(255,210,150,0.28)');
-        c.fillStyle = g; c.beginPath(); c.moveTo(f.x - 12, f.y - 420); c.lineTo(f.x + 12, f.y - 420); c.lineTo(f.x + 70, f.y + 4); c.lineTo(f.x - 70, f.y + 4); c.closePath(); c.fill();
-        c.restore();
-      }
+    if (Fn.type === 'strobe' && Fn.tx !== undefined) {   // deplatzierter Strobo: mitten in den ruhigsten Moment
+      const soft = settings.fx === 'sanft', per = soft ? 14 : 6, onW = soft ? 3 : 2;
+      const active = Fn.t >= 30 && Fn.t <= 97, on = active && ((Fn.t - 30) % per) < onW;
+      const dark = Fn.t < 30 ? Math.min(1, Fn.t / 10) : (Fn.t <= 97 ? 1 : Math.max(0, 1 - (Fn.t - 97) / 6));
+      if (dark > 0) { const vw = W / cam.z, vh = H / cam.z; c.fillStyle = `rgba(3,2,10,${0.62 * dark})`; c.fillRect(cam.x - vw, cam.y - vh, vw * 2, vh * 2); }
       if (Fn.t >= 26) {
-        const topY = STAGE.top - 470, x = Fn.tx;
-        RR(c, x - 16, topY - 14, 32, 20, 5, '#24242c'); Cc(c, x, topY + 8, 9, on ? '#fff' : '#555');
+        const o = F[1 - f.idx], x = Fn.tx, gy = Fn.ty || STAGE.top, cy = gy - o.def.h / 2, topY = gy - 430;
+        RR(c, x - 18, topY - 14, 36, 22, 5, '#24242c'); RR(c, x - 14, topY + 6, 28, 6, 2, on ? '#ffffff' : '#666');
         c.save(); c.globalCompositeOperation = 'lighter';
-        const g = c.createLinearGradient(0, topY, 0, STAGE.top);
-        g.addColorStop(0, on ? 'rgba(255,255,255,0.7)' : 'rgba(200,230,255,0.12)'); g.addColorStop(1, on ? 'rgba(255,255,255,0.3)' : 'rgba(200,230,255,0.03)');
-        c.fillStyle = g; c.beginPath(); c.moveTo(x - 8, topY + 8); c.lineTo(x + 8, topY + 8); c.lineTo(x + 110, STAGE.top); c.lineTo(x - 110, STAGE.top); c.closePath(); c.fill();
+        if (on) {   // ultrahell – aber nur rund um den Gegner, nie über den ganzen Bildschirm
+          const a = soft ? 0.55 : 1;
+          const g = c.createLinearGradient(0, topY, 0, gy);
+          g.addColorStop(0, `rgba(255,255,255,${0.95 * a})`); g.addColorStop(1, `rgba(235,245,255,${0.7 * a})`);
+          c.fillStyle = g; c.beginPath(); c.moveTo(x - 14, topY + 10); c.lineTo(x + 14, topY + 10); c.lineTo(x + 130, gy + 6); c.lineTo(x - 130, gy + 6); c.closePath(); c.fill();
+          const rg = c.createRadialGradient(x, cy, 10, x, cy, 190);
+          rg.addColorStop(0, `rgba(255,255,255,${a})`); rg.addColorStop(0.45, `rgba(255,255,255,${0.75 * a})`); rg.addColorStop(1, 'rgba(255,255,255,0)');
+          c.fillStyle = rg; c.fillRect(x - 200, cy - 200, 400, 400);
+        } else if (active) {
+          c.fillStyle = 'rgba(200,230,255,0.07)'; c.beginPath(); c.moveTo(x - 14, topY + 10); c.lineTo(x + 14, topY + 10); c.lineTo(x + 130, gy + 6); c.lineTo(x - 130, gy + 6); c.closePath(); c.fill();
+        }
         c.restore();
       }
     }
@@ -2292,12 +2298,12 @@ function drawTitle() {
   });
   // Einstellungen in einer Zeile: CPU-Stärke, Leben, Gadgets
   let cx = mx;
-  [['diff', 'CPU-STÄRKE', DIFFS[settings.diff].name, 190], ['stocks', 'LEBEN', String(settings.stocks), 125], ['items', 'GADGETS', settings.items ? 'AN' : 'AUS', 135]].forEach(([r, lab, val, w]) => {
+  [['diff', 'CPU-STÄRKE', DIFFS[settings.diff].name, 130], ['stocks', 'LEBEN', String(settings.stocks), 98], ['items', 'GADGETS', settings.items ? 'AN' : 'AUS', 104], ['fx', 'BLITZE', settings.fx === 'sanft' ? 'SANFT' : 'VOLL', 113]].forEach(([r, lab, val, w]) => {
     const on = rows[menuRow] === r;
     RR(c, cx, y, w, 58, 14, 'rgba(20,16,36,0.92)');
     c.strokeStyle = on ? '#fff' : 'rgba(255,255,255,0.2)'; c.lineWidth = on ? 3 : 1.5; strokeRR(c, cx, y, w, 58, 14);
     c.textAlign = 'center'; c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(lab, cx + w / 2, y + 19);
-    c.font = '900 23px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText(val, cx + w / 2, y + 46);
+    c.font = '900 21px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText(val, cx + w / 2, y + 46);
     c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('◀', cx + 15, y + 44); c.fillText('▶', cx + w - 15, y + 44);
     ui.push({ id: r + 'L', x: cx, y, w: w / 2, h: 58 }); ui.push({ id: r + 'R', x: cx + w / 2, y, w: w / 2, h: 58 });
     cx += w + 5;

@@ -56,6 +56,8 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – Schrauber-Ansturm |
 | **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – ausgerechnet im ruhigsten Moment |
 
+**Finisher** laufen in Zeitlupe, damit man sie gut sieht. Im Startmenü lässt sich unter **BLITZE** zwischen VOLL und SANFT wählen (SANFT = langsamere, schwächere Strobo-Blitze für lichtempfindliche Mitspieler).
+
 **Gadgets** (im Startmenü abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
