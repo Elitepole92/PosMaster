@@ -880,9 +880,9 @@ const MALLET_SMALL = { dmg: 3, kb: 0.6, scale: 0, ang: 20, meter: 0 };
 const DRILL_SMALL = { dmg: 2, kb: 0.8, scale: 0, ang: 20, meter: 0 }, STROBE_SMALL = { dmg: 2, kb: 0.6, scale: 0, ang: 15, meter: 0 };
 // Gadgets, die ab und zu vom Himmel fallen
 const GADGETS = {
-  coffee: { name: 'KAFFEE', txt: 'TEMPO!', col: '#c98b44' },
-  gaffa: { name: 'GAFFA', txt: 'PANZER!', col: '#b9c0c9' },
-  energy: { name: 'ENERGY', txt: 'POWER!', col: '#7ad15a' }
+  coffee: { name: 'TEMPO', col: '#7ad15a' },    // Doppelpfeil: schneller
+  gaffa: { name: 'SCHILD', col: '#5bc8ff' },    // Schild: weniger Schaden und Rückstoß
+  energy: { name: 'ENERGY', col: '#ffd23f' }    // Blitz: stärkere Schläge
 };
 const BOOST_T = 540;
 let itemT = 600;
@@ -897,7 +897,7 @@ function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringi
 const isCPU = () => settings.mode === 1 && !NET.role;
 // Beim ersten Start auf Touch-Geräten (noch nicht als App installiert): Anleitung „Zum Home-Bildschirm“
 // „Was ist neu“-Fenster: einmal pro Gerät nach jedem größeren Update
-const GAME_VERSION = '3.1';
+const GAME_VERSION = '3.2';
 let news = (() => { try { return localStorage.getItem('bb-version') !== GAME_VERSION; } catch (e) { return false; } })();
 let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
@@ -926,7 +926,7 @@ function startMatch() {
   parts = []; texts = []; ents = []; koFx = []; itemT = 600;
   freeze = 0; shake = 0; cutin = null; gameOverT = 0; paused = false; winner = null; goT = 0; flashScreen = 0;
   cam.x = 640; cam.y = 420; cam.z = 1; focusCam = null;
-  scene = 'countdown'; countdown = 180;
+  scene = 'countdown'; countdown = 180; matchT = 0; HS.last = null;
 }
 function toSelect() { scene = 'select'; sel[0].ok = false; sel[1].ok = false; }
 
@@ -1191,7 +1191,7 @@ function stepEnts() {
       } else if (e.t > 600) e.dead = true;
       for (const f of F) if (!f.dead && f.plat <= 0 && overlap({ x: e.x - 20, y: e.y - 40, w: 40, h: 40 }, hurtbox(f))) {
         const g = GADGETS[e.kind]; e.dead = true; f.boost = { kind: e.kind, t: BOOST_T };
-        popText(f.x, f.y - f.def.h - 30, g.name + ': ' + g.txt, g.col, 28, 50); sfx.pickup(); sparks(e.x, e.y - 20, g.col, 12);
+        sfx.pickup(); sparks(e.x, e.y - 20, g.col, 16);
         break;
       }
       continue;
@@ -1452,7 +1452,7 @@ function selNav(i, dx, dy) {
 }
 function cpuPick() { const L = PICK().filter(i => i !== sel[0].i); return pick(L); }
 function cpuConfirm() { sel[1].i = cpuPick(); sel[1].ok = true; sfx.confirm(); }
-const menuRows = () => TOUCH ? ['mode1', 'online', 'hs'] : ['mode1', 'mode2', 'online', 'hs'];
+const menuRows = () => TOUCH ? ['mode1', 'online'] : ['mode1', 'mode2', 'online'];
 
 // Alle Klicks/Taps und Menü-Aktionen laufen hier zusammen
 function onUI(id) {
@@ -1481,7 +1481,7 @@ function onUI(id) {
     case 'leaveYes': leaveOnline(); break;
     case 'leaveNo': NET.leaveAsk = false; sfx.select(); break;
     case 'resume': paused = false; sfx.select(); break;
-    case 'menu': if (isOnline()) { leaveOnline(); break; } paused = false; scene = 'title'; sfx.select(); if (run.pts > 0) finishRun(); break;
+    case 'menu': if (isOnline()) { leaveOnline(); break; } paused = false; scene = 'title'; sfx.select(); hsLoad(); break;
     case 'hs': HS.show = true; HS.mark = null; hsLoad(); sfx.confirm(); break;
     case 'hsClose': HS.show = false; sfx.select(); break;
     case 'rematch':
@@ -1576,6 +1576,7 @@ function step() {
       if (--countdown <= 0) { scene = 'fight'; goT = 50; sfx.go(); }
     }
     if (goT > 0) goT--;
+    if (scene === 'fight' && !gameOverT) matchT++;
     if (cutin) { cutin.t++; if (cutin.t >= cutin.dur) cutin = null; stepCamera(); pressed.clear(); return; }
     if (freeze > 0) { freeze--; pressed.clear(); return; }
     if (F.some(f => f.fin) && frame % 2) { stepCamera(); return; }   // Zeitlupe, solange ein Finisher läuft (Tasten bleiben gemerkt)
@@ -1807,19 +1808,19 @@ async function makeQR() {
 
 /* =========================================================================
    HIGHSCORES – global, 5 Plätze
-   Wertung: Punkte einer Siegesserie gegen die CPU. Pro Sieg: leicht 50 / mittel 100 /
-   schwer 200 + bis zu 150 für übrige Leben. Die Serie endet mit der ersten Niederlage
-   (oder wenn man ins Menü geht). Gespeichert in Firestore – gleiches Projekt und gleiche
-   Ablageform wie der Sync der POS-App (Dokument „brawlhiscore“ kann nie ein Sync-Code sein).
+   Wertung: schnellster Sieg gegen die CPU (Kampfzeit vom „LOS!“ bis zum letzten K.O.).
+   Nach jedem gewonnenen Spiel sieht man sofort, ob die Zeit für die Top 5 reicht. Gespeichert in Firestore – gleiches Projekt und gleiche
+   Ablageform wie der Sync der POS-App (Dokument „brawlzeit001“ kann nie ein Sync-Code sein).
    ========================================================================= */
-const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlhiscore?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlzeit001?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
 const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
-const run = { wins: 0, pts: 0, last: 0, final: 0 };
+let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
+const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
 const hsName = n => String(n || '').replace(/[^\p{L}\p{N} ._!\-]/gu, '').trim().slice(0, 12) || 'Anonym';
 function hsClean(arr) {
   return (Array.isArray(arr) ? arr : []).filter(e => e && Number.isFinite(+e.p))
-    .map(e => ({ n: hsName(e.n), p: Math.max(0, Math.min(999999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), w: Math.max(0, Math.min(999, +e.w | 0)), d: +e.d || 0 }))
-    .sort((a, b) => b.p - a.p || a.d - b.d).slice(0, 5);
+    .map(e => ({ n: hsName(e.n), p: Math.max(1, Math.min(99999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), s: clamp(+e.s | 0, 0, 2), l: clamp(+e.l | 0, 1, 5), d: +e.d || 0 }))
+    .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, 5);   // kleinste Zeit zuerst
 }
 async function hsLoad() {
   HS.state = 'loading';
@@ -1835,7 +1836,7 @@ async function hsLoad() {
     HS.state = 'ok'; return true;
   } catch (e) { HS.state = 'error'; return false; }
 }
-const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p > HS.list[HS.list.length - 1].p);
+const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p < HS.list[HS.list.length - 1].p);
 async function hsSubmit(entry) {
   for (let tries = 0; tries < 3; tries++) {   // bei gleichzeitigem Schreiben neu laden und nochmal versuchen
     if (!await hsLoad()) return false;
@@ -1850,22 +1851,21 @@ async function hsSubmit(entry) {
   }
   return false;
 }
-const winPoints = f => [50, 100, 200][settings.diff] + Math.round(150 * f.stocks / f.maxStocks);
-function onMatchEnd() {
+function onMatchEnd() {   // nach jedem 1-Spieler-Match sofort prüfen, ob die Siegzeit in die Top 5 kommt
   if (!isCPU() || settings.demo || F.length !== 2) return;
-  if (winner === F[0]) { run.last = winPoints(F[0]); run.wins++; run.pts += run.last; }
-  else finishRun();
-}
-async function finishRun() {
-  const total = run.pts, wins = run.wins, char = F[0] ? F[0].def.id : '';
-  run.final = total; run.wins = 0; run.pts = 0; run.last = 0;
-  if (total <= 0) return;
-  if (await hsLoad() && hsQualifies(total)) openNameBox({ p: total, w: wins, c: char });
+  if (winner !== F[0]) { HS.last = { lost: true }; return; }
+  const t = Math.max(1, Math.round(matchT / 6)), entry = { p: t, c: F[0].def.id, s: settings.diff, l: F[0].maxStocks };
+  HS.last = { t, check: 'loading' };
+  hsLoad().then(ok => {
+    if (!ok) { HS.last.check = 'error'; return; }
+    if (hsQualifies(t)) { HS.last.check = 'yes'; openNameBox(entry); }
+    else { HS.last.check = 'no'; HS.last.need = HS.list[HS.list.length - 1].p; }
+  });
 }
 // Namenseingabe als echtes Eingabefeld (damit auf dem iPhone die Tastatur kommt)
 const nameBox = document.createElement('div');
 nameBox.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:5;background:#17122a;border:3px solid #ffd23f;border-radius:22px;padding:22px 26px;color:#fff;font:600 17px system-ui,sans-serif;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.7);width:min(460px,88vw)';
-nameBox.innerHTML = '<div style="font:900 32px Impact,\'Arial Black\',sans-serif;color:#ffd23f">🏆 NEUER HIGHSCORE!</div>' +
+nameBox.innerHTML = '<div style="font:900 32px Impact,\'Arial Black\',sans-serif;color:#ffd23f">🏆 AB IN DIE BESTENLISTE!</div>' +
   '<div class="info" style="margin:8px 0 16px;color:#e8e8f4"></div>' +
   '<input maxlength="12" autocomplete="off" autocapitalize="words" placeholder="Dein Name" style="font:700 22px system-ui,sans-serif;padding:10px 14px;border-radius:12px;border:2px solid #fff;width:70%;text-align:center;-webkit-user-select:text;user-select:text">' +
   '<div style="margin-top:14px;display:flex;gap:10px;justify-content:center"><button class="save" style="font:900 20px Impact,\'Arial Black\',sans-serif;padding:11px 22px;border-radius:14px;border:0;background:#ffd23f;color:#1a1024">EINTRAGEN</button>' +
@@ -1875,7 +1875,7 @@ document.body.appendChild(nameBox);
 const nbInput = nameBox.querySelector('input'), nbMsg = nameBox.querySelector('.msg');
 function openNameBox(entry) {
   HS.entry = entry;
-  nameBox.querySelector('.info').textContent = `${entry.p} Punkte mit ${entry.w} ${entry.w === 1 ? 'Sieg' : 'Siegen'} in Folge – das reicht für die Top 5!`;
+  nameBox.querySelector('.info').textContent = `Siegzeit ${fmtT(entry.p)} – das reicht für die Bestenliste!`;
   try { nbInput.value = localStorage.getItem('bb-name') || ''; } catch (e) { nbInput.value = ''; }
   nbMsg.textContent = ''; nameBox.style.display = 'block'; sfx.ready();
   setTimeout(() => nbInput.focus(), 60);
@@ -2036,9 +2036,8 @@ function drawFighter(f) {
       c.globalAlpha = 0.35 + pul * 0.2; c.fillStyle = ag; c.beginPath(); c.ellipse(0, -d.h / 2, d.w * 1.3, d.h * 0.8, 0, 0, TAU); c.fill(); c.restore();
       c.save(); c.globalAlpha = 0.85; c.strokeStyle = g.col; c.lineWidth = 4; c.beginPath(); c.ellipse(0, -2, d.w * 1.1, 10, 0, 0, TAU); c.stroke(); c.restore();
     }
-    if (f.boost.kind === 'coffee' && Math.abs(f.vx) > 2) for (let k = 0; k < 3; k++) Ln(c, -Math.sign(f.vx) * (d.w / 2 + 10 + k * 8), -d.h * (0.3 + k * 0.2), -Math.sign(f.vx) * (d.w / 2 + 40 + k * 8), -d.h * (0.3 + k * 0.2), 'rgba(255,220,170,0.7)', 3);
-    if (f.boost.kind === 'gaffa') { c.save(); c.globalAlpha = 0.85; Ln(c, -d.w * 0.5, -d.h * 0.62, d.w * 0.5, -d.h * 0.48, '#b9c0c9', 7); Ln(c, -d.w * 0.5, -d.h * 0.32, d.w * 0.5, -d.h * 0.42, '#b9c0c9', 7); c.restore(); }
-    if (f.boost.kind === 'energy' && frame % 3 === 0) parts.push({ x: f.x + rand(-d.w, d.w) * 0.7, y: f.y - rand(0, d.h), vx: rand(-1, 1), vy: -2, life: 16, max: 16, col: '#7ad15a', size: 3, g: 0, kind: 'spark' });
+    if (f.boost.kind === 'coffee' && Math.abs(f.vx) > 2) for (let k = 0; k < 3; k++) Ln(c, -Math.sign(f.vx) * (d.w / 2 + 10 + k * 8), -d.h * (0.3 + k * 0.2), -Math.sign(f.vx) * (d.w / 2 + 40 + k * 8), -d.h * (0.3 + k * 0.2), 'rgba(170,240,140,0.75)', 3);
+    if (f.boost.kind === 'energy' && frame % 3 === 0) parts.push({ x: f.x + rand(-d.w, d.w) * 0.7, y: f.y - rand(0, d.h), vx: rand(-1, 1), vy: -2, life: 16, max: 16, col: '#ffd23f', size: 3, g: 0, kind: 'spark' });
   }
   if (f.shielding) {
     const r = 18 + d.h * 0.45 * (0.4 + 0.6 * f.shield / 100);
@@ -2055,12 +2054,10 @@ function drawFighter(f) {
   c.fillStyle = tc; c.beginPath(); c.moveTo(-6, ty + 6); c.lineTo(6, ty + 6); c.lineTo(0, ty + 13); c.fill();
   c.font = 'bold 15px system-ui,sans-serif'; c.textAlign = 'center';
   c.lineWidth = 4; c.strokeStyle = '#000'; c.strokeText(tag, 0, ty + 2); c.fillStyle = tc; c.fillText(tag, 0, ty + 2);
-  if (f.boost) {   // Boost-Schild über dem Kopf: Symbol, Name, Restzeit
-    const g = GADGETS[f.boost.kind], by2 = ty - 44;
-    RR(c, -48, by2 - 16, 96, 30, 15, 'rgba(14,10,28,0.92)'); c.strokeStyle = g.col; c.lineWidth = 2.5; strokeRR(c, -48, by2 - 16, 96, 30, 15);
-    drawGadget(c, f.boost.kind, -30, by2 - 1, 0.6);
-    c.font = '900 14px Impact,"Arial Black",sans-serif'; c.textAlign = 'left'; c.fillStyle = g.col; c.fillText(g.txt, -16, by2 + 1);
-    RR(c, -16, by2 + 5, 56 * f.boost.t / BOOST_T, 4, 2, g.col); c.textAlign = 'center';
+  if (f.boost) {   // Symbol über dem Kopf mit Restzeit-Ring
+    const g = GADGETS[f.boost.kind], by2 = ty - 30;
+    drawGadget(c, f.boost.kind, 0, by2, 0.85);
+    c.strokeStyle = g.col; c.lineWidth = 3.5; c.beginPath(); c.arc(0, by2, 18, -PI / 2, -PI / 2 + TAU * f.boost.t / BOOST_T); c.stroke();
   }
   let q = f.quote ? f.quote.text : null;
   if (!q && f.fin) {
@@ -2076,7 +2073,7 @@ function drawFighter(f) {
     if (tp === 'strobe' && t >= 30 && t < 60) q = '… und jetzt: STROBO!';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
-  if (q) speech(c, 0, ty - 18 - (f.boost ? 52 : 0), q);
+  if (q) speech(c, 0, ty - 18 - (f.boost ? 36 : 0), q);
   c.restore();
 }
 function speech(c, x, y, text) {
@@ -2180,22 +2177,15 @@ function drawStage(T) {
   }
   c.textAlign = 'left';
 }
-function drawGadget(c, kind, x, y, s = 1) {
+function drawGadget(c, kind, x, y, s = 1) {   // einfache Symbole: Doppelpfeil, Schild, Blitz
+  const g = GADGETS[kind];
   c.save(); c.translate(x, y); c.scale(s, s);
-  if (kind === 'coffee') {
-    c.fillStyle = '#f4efe6'; c.beginPath(); c.moveTo(-9, -12); c.lineTo(9, -12); c.lineTo(6, 14); c.lineTo(-6, 14); c.closePath(); c.fill();
-    RR(c, -8.5, -2, 17, 8, 1, '#a0703a'); RR(c, -11, -16, 22, 5, 2, '#333');
-    c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 1.5; for (let k = 0; k < 2; k++) { c.beginPath(); c.moveTo(-3 + k * 6, -19); c.quadraticCurveTo(k * 6, -24, -3 + k * 6, -29); c.stroke(); }
-  } else if (kind === 'gaffa') {
-    c.strokeStyle = '#b9c0c9'; c.lineWidth = 9; c.beginPath(); c.arc(0, 0, 12, 0, TAU); c.stroke();
-    c.strokeStyle = '#8d939b'; c.lineWidth = 2; c.beginPath(); c.arc(0, 0, 7.5, 0, TAU); c.stroke();
-    RR(c, 10, 6, 10, 6, 1, '#b9c0c9');
-  } else {
-    RR(c, -8, -15, 16, 29, 4, '#2b2b30'); RR(c, -8, -7, 16, 12, 1, '#7ad15a');
-    c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(1, -6); c.lineTo(-4, 1); c.lineTo(0, 1); c.lineTo(-2, 6); c.lineTo(4, -1); c.lineTo(0, -1); c.closePath(); c.fill();
-    RR(c, -6, -17, 12, 3, 1, '#9aa0a6');
-  }
-  c.restore();
+  Cc(c, 0, 0, 15, g.col); c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.beginPath(); c.arc(0, 0, 15, 0, TAU); c.stroke();
+  c.fillStyle = '#1a1024'; c.beginPath();
+  if (kind === 'coffee') { for (const dx of [-8, 0]) { c.moveTo(dx, -7); c.lineTo(dx + 8, 0); c.lineTo(dx, 7); c.closePath(); } }
+  else if (kind === 'gaffa') { c.moveTo(0, -9); c.lineTo(8, -6); c.lineTo(7, 2); c.quadraticCurveTo(4, 7, 0, 10); c.quadraticCurveTo(-4, 7, -7, 2); c.lineTo(-8, -6); c.closePath(); }
+  else { c.moveTo(2, -10); c.lineTo(-6, 2); c.lineTo(-1, 2); c.lineTo(-3, 10); c.lineTo(6, -2); c.lineTo(1, -2); c.closePath(); }
+  c.fill(); c.restore();
 }
 function drawEnts() {
   const c = ctx;
@@ -2269,11 +2259,7 @@ function drawEnts() {
       c.save(); c.globalCompositeOperation = 'lighter';
       const gg = c.createRadialGradient(e.x, e.y - 24, 4, e.x, e.y - 24, 52 + pul * 10); gg.addColorStop(0, g.col); gg.addColorStop(1, 'rgba(0,0,0,0)');
       c.globalAlpha = 0.55 + pul * 0.3; c.fillStyle = gg; c.beginPath(); c.arc(e.x, e.y - 24, 62, 0, TAU); c.fill(); c.restore();
-      c.strokeStyle = '#fff'; c.lineWidth = 3; c.beginPath(); c.arc(e.x, e.y - 24, 30 + pul * 4, 0, TAU); c.stroke();
-      drawGadget(c, e.kind, e.x, e.y - 24, 1.7);
-      c.font = '900 18px Impact,"Arial Black",sans-serif'; c.textAlign = 'center';
-      const lab = g.name + ' · ' + g.txt.replace('!', ''), lw = c.measureText(lab).width + 18, ly = e.y - (e.landed ? 74 : 112);
-      RR(c, e.x - lw / 2, ly - 18, lw, 26, 13, g.col); c.fillStyle = '#1a1024'; c.fillText(lab, e.x, ly + 1);
+      drawGadget(c, e.kind, e.x, e.y - 24, 1.8);
     } else if (e.type === 'food') {
       c.save(); if (e.landed) c.globalAlpha = clamp(1 - (e.t - 30) / 20, 0, 1); drawFood(c, e.kind, e.x, e.y, e.rot); c.restore();
     } else if (e.type === 'boom') {
@@ -2462,8 +2448,8 @@ function drawTitle() {
     E(c, x, gy + 2, 32, 5, 'rgba(0,0,0,0.5)');
     c.save(); c.translate(x, gy); c.scale(k < LU.length / 2 ? 0.95 : -0.95, 0.95); d.draw(c, dummy(d, { t: frame + k * 23 }), { kind: 'idle' }); c.restore();
   });
-  const rows = menuRows(), mx = W / 2 - 240, mw = 480;
-  let y = 176;
+  const rows = menuRows(), mx = 200, mw = 460;
+  let y = 186;
   rows.forEach((r, k) => {
     const on = k === menuRow;
     if (r === 'mode1' || r === 'mode2' || r === 'online') {
@@ -2471,17 +2457,13 @@ function drawTitle() {
       RR(c, mx, y, mw, 62, 16, on ? col : 'rgba(20,16,36,0.92)');
       if (!on) { c.strokeStyle = col; c.lineWidth = 3; strokeRR(c, mx, y, mw, 62, 16); }
       c.textAlign = 'center'; c.font = '900 29px Impact,"Arial Black",sans-serif'; c.fillStyle = on ? '#1a1024' : col;
-      c.fillText({ mode1: '1 SPIELER', mode2: '2 SPIELER', online: 'ONLINE-DUELL' }[r], W / 2, y + 32);
+      c.fillText({ mode1: '1 SPIELER', mode2: '2 SPIELER', online: 'ONLINE-DUELL' }[r], mx + mw / 2, y + 32);
       c.font = 'bold 14px system-ui,sans-serif'; c.fillStyle = on ? '#2a1d38' : '#cfcfe0';
-      c.fillText({ mode1: 'gegen den Computer', mode2: 'zu zweit an einer Tastatur', online: 'zwei Geräte, übers Internet' }[r], W / 2, y + 52);
+      c.fillText({ mode1: 'gegen den Computer', mode2: 'zu zweit an einer Tastatur', online: 'zwei Geräte, übers Internet' }[r], mx + mw / 2, y + 52);
       ui.push({ id: r, x: mx, y, w: mw, h: 62 }); y += 72;
-    } else if (r === 'hs') {   // Highscores
-      RR(c, mx + 110, y, mw - 220, 46, 14, on ? '#ffd23f' : 'rgba(20,16,36,0.92)');
-      if (!on) { c.strokeStyle = '#ffd23f'; c.lineWidth = 2; strokeRR(c, mx + 110, y, mw - 220, 46, 14); }
-      c.textAlign = 'center'; c.font = '900 22px Impact,"Arial Black",sans-serif'; c.fillStyle = on ? '#1a1024' : '#ffd23f'; c.fillText('🏆 HIGHSCORES', W / 2, y + 31);
-      ui.push({ id: 'hs', x: mx + 110, y, w: mw - 220, h: 46 }); y += 56;
     }
   });
+  drawTopList(700, 186);
   muteButton(1232, 44);
   c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#6f6f86'; c.fillText('v' + GAME_VERSION, W - 14, 712);
   c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
@@ -2660,10 +2642,14 @@ function drawResults() {
   });
   let again = 'REVANCHE';
   if (isCPU() && !settings.demo) {
-    const won = winner === F[0];
-    c.textAlign = 'center'; c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = won ? '#ffd23f' : '#cfcfe0';
-    c.fillText(won ? `SERIE: ${run.wins} ${run.wins === 1 ? 'SIEG' : 'SIEGE'}  ·  ${run.pts} PUNKTE  (+${run.last})` : `SERIE BEENDET: ${run.final} PUNKTE`, W / 2, 560);
-    again = won ? 'WEITER' : 'NEUER VERSUCH';
+    const L = HS.last || {};
+    c.textAlign = 'center';
+    if (L.t) {
+      c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('SIEGZEIT ' + fmtT(L.t), W / 2, 540);
+      c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = L.check === 'yes' ? '#7ad15a' : '#cfcfe0';
+      c.fillText({ loading: 'Prüfe Bestenliste …', yes: '🏆 Das reicht für die Bestenliste!', error: 'Bestenliste gerade nicht erreichbar',
+        no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0) }[L.check] || '', W / 2, 568);
+    } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur Siege kommen in die Bestenliste – nochmal!', W / 2, 560); }
   }
   btn('rematch', W / 2 - 350, 590, 220, 58, again, '#ffd23f', again.length > 9 ? 21 : 26);
   btn('select', W / 2 - 110, 590, 220, 58, 'KÄMPFERWAHL', '#5bc8ff', 24);
@@ -2729,9 +2715,9 @@ function drawNews() {
   });
   const items = [
     ['🎬', 'Neuer Name: BACKSTAGE BRAWL'],
-    ['🏆', 'Globale Highscores: Siegesserien gegen die CPU'],
+    ['🏆', 'Bestenliste auf der Startseite: Wer besiegt die CPU am schnellsten?'],
+    ['🎁', 'Gadgets mit klaren Symbolen: Schild, Energy, Tempo'],
     ['🔨', 'Neuer Messebauer-Finisher, schnellerer Stempel, Balance überarbeitet'],
-    ['🎁', 'Gadgets viel besser zu erkennen – am Boden und im Einsatz'],
     ['🔍', 'Kamera zoomt auf den Siegerspruch, ruhigere LED-Wand']
   ];
   c.textAlign = 'left';
@@ -2742,13 +2728,34 @@ function drawNews() {
   });
   btn('newsOk', W / 2 - 150, y + h - 84, 300, 60, "LOS GEHT'S!", '#ffd23f', 30);
 }
+function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
+  const c = ctx, w = 380, h = 222;
+  RR(c, x, y, w, h, 16, 'rgba(20,16,36,0.92)'); c.strokeStyle = '#ffd23f'; c.lineWidth = 2; strokeRR(c, x, y, w, h, 16);
+  c.textAlign = 'left'; c.font = '900 21px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('🏆 BESTENLISTE', x + 16, y + 30);
+  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Wer besiegt die CPU am schnellsten?', x + 16, y + 48);
+  const list = HS.list || [], medal = ['#ffd23f', '#d0d4dc', '#d08a4a', '#6a6880', '#6a6880'];
+  for (let i = 0; i < 5; i++) {
+    const e = list[i], ry = y + 58 + i * 32;
+    Cc(c, x + 28, ry + 14, 11, medal[i]); c.textAlign = 'center'; c.font = '900 13px Impact,"Arial Black",sans-serif'; c.fillStyle = '#1a1024'; c.fillText(String(i + 1), x + 28, ry + 19);
+    c.textAlign = 'left';
+    if (!e) {
+      c.font = '15px system-ui,sans-serif'; c.fillStyle = '#6a6880';
+      c.fillText(i === 0 && HS.state === 'loading' ? 'Lade …' : i === 0 && HS.state === 'error' ? 'gerade nicht erreichbar' : '— noch frei —', x + 48, ry + 19);
+      continue;
+    }
+    const d = ROSTER.find(r => r.id === e.c); if (d) drawPortrait(c, d, x + 60, ry + 14, 12);
+    c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(e.n, x + 80, ry + 20);
+    c.textAlign = 'right'; c.font = '900 19px Impact,"Arial Black",sans-serif'; c.fillStyle = i < 3 ? medal[i] : '#e8e8f4'; c.fillText(fmtT(e.p), x + w - 16, ry + 21);
+  }
+  ui.push({ id: 'hs', x, y, w, h });
+}
 function drawBoard() {
   const c = ctx, x = W / 2 - 370, y = 70, w = 740, h = 580;
   c.fillStyle = 'rgba(0,0,0,0.75)'; c.fillRect(0, 0, W, H);
   RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
   bigText('🏆 HIGHSCORES', y + 66, 50, '#ffd23f', 1, '#2a0d3d');
-  c.textAlign = 'center'; c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText('Punkte einer Siegesserie gegen die CPU', W / 2, y + 100);
-  c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Pro Sieg: leicht 50 · mittel 100 · schwer 200 Punkte + bis zu 150 für übrige Leben. Die Serie endet mit der ersten Niederlage.', W / 2, y + 124);
+  c.textAlign = 'center'; c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText('Schnellster Sieg gegen die CPU', W / 2, y + 100);
+  c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Gemessen wird die Kampfzeit vom „LOS!“ bis zum letzten K.O.', W / 2, y + 124);
   if (HS.state === 'loading' && !HS.list) { c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Lade …', W / 2, y + 300); }
   else if (HS.state === 'error') {
     c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ff9a8a'; c.fillText('Highscores gerade nicht erreichbar', W / 2, y + 280);
@@ -2763,8 +2770,8 @@ function drawBoard() {
       if (!e) { c.textAlign = 'left'; c.font = '18px system-ui,sans-serif'; c.fillStyle = '#6a6880'; c.fillText('— noch frei —', x + 160, ry + 35); continue; }
       const d = ROSTER.find(r => r.id === e.c); if (d) drawPortrait(c, d, x + 130, ry + 28, 22);
       c.textAlign = 'left'; c.font = 'bold 22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(e.n, x + 166, ry + 30);
-      c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(`${e.w} ${e.w === 1 ? 'Sieg' : 'Siege'} in Folge${d ? ' · ' + d.short : ''}`, x + 166, ry + 48);
-      c.textAlign = 'right'; c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = medal[i] === '#6a6880' ? '#e8e8f4' : medal[i]; c.fillText(String(e.p), x + w - 64, ry + 39);
+      c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(`${d ? d.short + ' · ' : ''}CPU ${DIFFS[e.s].name.toLowerCase()} · ${e.l} ${e.l === 1 ? 'Leben' : 'Leben'}`, x + 166, ry + 48);
+      c.textAlign = 'right'; c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = medal[i] === '#6a6880' ? '#e8e8f4' : medal[i]; c.fillText(fmtT(e.p), x + w - 64, ry + 39);
     }
   }
   btn('hsClose', W / 2 - 120, y + h - 70, 240, 52, 'SCHLIESSEN', '#ffd23f', 26);
@@ -2851,6 +2858,7 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 cv.focus();
+hsLoad();   // Bestenliste für die Startseite laden
 // Einladungslink aus dem QR-Code: ?join=1234 tritt direkt dem Raum bei
 if (/^\d{4}$/.test(QS.get('join') || '')) {
   const code = QS.get('join'); a2hs = false; scene = 'online'; NET.entry = code;
@@ -2858,7 +2866,7 @@ if (/^\d{4}$/.test(QS.get('join') || '')) {
   joinGame(code);
 }
 // Für automatisierte Tests
-window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, get a2hs() { return a2hs; }, get news() { return news; }, HS, run, sel, settings, startMatch, onUI, NET };
+window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, get a2hs() { return a2hs; }, get news() { return news; }, HS, sel, settings, startMatch, onUI, NET };
 </script>
 </body>
 </html>
