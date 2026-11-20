@@ -31,6 +31,8 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 
 **Startmenü:** *1 Spieler* (gegen den Computer, CPU-Stärke leicht/mittel/schwer) oder *2 Spieler* (zu zweit an einer Tastatur), dazu die Anzahl der Leben. `M` schaltet den Ton an/aus.
 
+**Online-Duell (zwei Geräte, z. B. Handy gegen Handy):** Im Startmenü „Online-Duell“ wählen. Ein Gerät tippt *Raum erstellen* und bekommt einen 4-stelligen Code plus QR-Code, das andere tippt *Beitreten* und gibt den Code ein (oder scannt den QR-Code). Danach wählt jeder auf seinem Gerät seinen Kämpfer. Technik: WebRTC über PeerJS (kostenloser öffentlicher Vermittlungsserver, kein Account nötig); das erstellende Gerät rechnet das Spiel, das andere schickt nur seine Eingaben. Am zuverlässigsten im selben WLAN. Funktioniert nur über die GitHub-Pages-Adresse, nicht im Claude-Link.
+
 **Mac / PC:** Tastatur.
 
 | | P1 | P2 |
