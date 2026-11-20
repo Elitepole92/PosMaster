@@ -15,7 +15,7 @@
 <style>
 :root{
   --bg:#f3f4f6; --panel:#ffffff; --ink:#15191e; --muted:#5d6670; --line:#e1e4e8;
-  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f;
+  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f; --pink:#e0218a; --pink-bg:#ffeaf5; --pink-line:#f7a8d3;
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
@@ -65,6 +65,17 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .dim .spot:not(.match){opacity:.25}
 /* To-do-Route */
 .todomode .spot{opacity:.18}
+/* Pink-Markierung */
+.spot.pin{opacity:1!important;background:rgba(224,33,138,.32);box-shadow:inset 0 0 0 3px var(--pink),0 0 0 4px rgba(224,33,138,.25)}
+.todomode .spot.pin.todo{box-shadow:inset 0 0 0 3px var(--pink),0 0 0 5px var(--todo)}
+.tbtn.pin{width:48px;color:#b9c0c8}
+.row .tbtn.pin[aria-pressed="true"]{background:var(--pink);border-color:var(--pink);color:#fff}
+.row.todo .tbtn.pin:not([aria-pressed="true"]){color:#b9c0c8}
+.row.pinned .item{box-shadow:inset 6px 0 0 var(--pink)}
+.row.pinned:not(.todo) .item{background:var(--pink-bg);border-color:var(--pink-line)}
+.row.pinned:not(.todo) .item .no{color:var(--pink)}
+.btn.pin-off{flex:0 0 auto;padding:0 14px;background:var(--panel);color:var(--pink);border-color:var(--pink)}
+.btn.pin-on{flex:0 0 auto;padding:0 14px;background:var(--pink);border-color:var(--pink);color:#fff}
 .todomode .spot.todo{opacity:1;background:rgba(228,106,16,.38);box-shadow:inset 0 0 0 3px var(--todo),0 0 0 7px rgba(228,106,16,.35),0 0 18px 8px rgba(228,106,16,.35)}
 .todomode .spot.todo.tdone{background:rgba(120,130,140,.18);box-shadow:inset 0 0 0 2px rgba(120,130,140,.8);opacity:.75}
 .fab button[data-a="todos"]{position:relative;color:var(--todo)}
@@ -168,7 +179,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .iconbtn svg{width:20px;height:20px}
 .sheet .body{overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(16px + var(--safe-b))}
 .sheet .body img{width:100%;height:auto;display:block;border-radius:6px;background:#fff}
-.sheet .actions{display:flex;gap:8px;margin-bottom:12px}
+.sheet .actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .btn{flex:1;height:44px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn.sec{background:var(--panel);color:var(--accent)}
 .btn.todo-add{background:var(--panel);color:var(--todo);border-color:var(--todo)}
@@ -215,7 +226,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
   <div class="menu" id="menu" role="menu" aria-hidden="true">
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.11 · Daten-Stand <span id="menuStand"></span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.12 · Daten-Stand <span id="menuStand"></span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -371,7 +382,7 @@ function fitTodos(P){
 }
 function markTodos(){
   Object.keys(plans).forEach(function(k){ var Q=plans[k], open=0;
-    Q.stage.querySelectorAll(".spot").forEach(function(b){ var t=todoFind(b.dataset.id); b.classList.toggle("todo",!!t); b.classList.toggle("tdone",!!(t&&t.done)); });
+    Q.stage.querySelectorAll(".spot").forEach(function(b){ var t=todoFind(b.dataset.id); b.classList.toggle("todo",!!t); b.classList.toggle("tdone",!!(t&&t.done)); b.classList.toggle("pin",pinOn(b.dataset.id)); });
     todoSpots(Q).forEach(function(s){ if(!todoFind(s.id).done) open++; });
     Q.fab.querySelector('[data-a="todos"] .badge').textContent=open?String(open):""; });
 }
@@ -505,6 +516,12 @@ function todoList(){ return todoAll.filter(function(t){return !t.del && byId[t.i
 function todoRaw(id){ for(var i=0;i<todoAll.length;i++) if(todoAll[i].id===id) return todoAll[i]; return null; }
 function todoFind(id){ var t=todoRaw(id); return t&&!t.del?t:null; }
 function todoSave(){ lsSet("todo",JSON.stringify(todoAll)); Sync.schedule(); }
+/* Pink-Markierungen: {id:{on:bool,t:zeit}} – eigener Merge pro Position */
+function cleanPins(o){ var r={}; if(o&&typeof o==="object"&&!Array.isArray(o)) Object.keys(o).forEach(function(k){ var v=o[k]; if(v&&byId[k]) r[k]={on:!!v.on,t:+v.t||0}; }); return r; }
+var pinsAll=(function(){ try{ return cleanPins(JSON.parse(lsGet("pins","{}"))); }catch(_){ return {}; } })();
+function pinOn(id){ return !!(pinsAll[id]&&pinsAll[id].on); }
+function pinToggle(id){ pinsAll[id]={on:!pinOn(id),t:now()}; lsSet("pins",JSON.stringify(pinsAll)); Sync.schedule(); rerenderList(); }
+var ICON_FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4.5L17 13H5"></path></svg>', ICON_FLAGF='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4" fill="none"></path><path d="M5 4h12l-2.5 4.5L17 13H5z"></path></svg>';
 function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; if(typeof sheetTodoUi==="function"&&openId) sheetTodoUi(openId); markTodos(); }
 function todoAdd(id){ var ts=now(), r=todoRaw(id); if(r&&!r.del) return; if(r){ r.del=false; r.done=false; r.a=ts; r.t=ts; } else todoAll.push({id:id,done:false,del:false,a:ts,t:ts}); todoSave(); rerenderList(); }
 function todoRemove(id){ var t=todoFind(id); if(!t) return; t.del=true; t.t=now(); todoSave(); rerenderList(); }
@@ -548,6 +565,9 @@ var Sync=(function(){
   var devs={}; try{ devs=JSON.parse(lsGet("syncDevs","{}"))||{}; }catch(_){ devs={}; }
   function cleanDevs(o){ var r={}, cut=now()-60*864e5; if(o&&typeof o==="object") Object.keys(o).forEach(function(k){ var d=o[k]; if(d&&/^[a-z0-9]{10}$/.test(k)&&+d.s>cut) r[k]={n:String(d.n||"Gerät").slice(0,40),s:+d.s}; }); return r; }
   function mergeDevs(A,B){ var r={}; [A,B].forEach(function(o){ Object.keys(o).forEach(function(k){ if(!r[k]||o[k].s>r[k].s) r[k]=o[k]; }); }); return r; }
+  function mergePins(A,B){ var r={}, cut=now()-60*864e5; [A,B].forEach(function(o){ Object.keys(o).forEach(function(k){ if(!r[k]||o[k].t>r[k].t) r[k]=o[k]; }); });
+    Object.keys(r).forEach(function(k){ if(!r[k].on&&r[k].t<cut) delete r[k]; }); return r; }
+  function pinCanon(o){ return JSON.stringify(Object.keys(o).sort().map(function(k){return [k,o[k].on?1:0,o[k].t];})); }
   function devCanon(o){ return JSON.stringify(Object.keys(o).sort().map(function(k){return [k,o[k].n,o[k].s];})); }
   function ago(t){ var m=Math.round((now()-t)/60000); if(m<1) return "gerade eben"; if(m<60) return "vor "+m+" Min."; var h=Math.round(m/60); if(h<24) return "vor "+h+" Std.";
     return new Date(t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+new Date(t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}); }
@@ -585,23 +605,26 @@ var Sync=(function(){
     if(navigator.onLine===false){ set("offline"); return; }
     busy=true; set("sync"); var c=code;
     fetch(url(c),{cache:"no-store"}).then(function(r){
-      if(r.status===404) return {exists:false,items:[],devs:{}};
+      if(r.status===404) return {exists:false,items:[],devs:{},pins:{}};
       if(!r.ok) throw new Error("GET "+r.status);
-      return r.json().then(function(d){ var items=[], dv={}; try{ var j=JSON.parse(d.fields.data.stringValue);
-          if(Array.isArray(j)) items=cleanTodos(j); else { items=cleanTodos(j.items); dv=cleanDevs(j.devices); } }catch(_){}
-        return {exists:true,updateTime:d.updateTime,items:items,devs:dv}; });
+      return r.json().then(function(d){ var items=[], dv={}, pn={}; try{ var j=JSON.parse(d.fields.data.stringValue);
+          if(Array.isArray(j)) items=cleanTodos(j); else { items=cleanTodos(j.items); dv=cleanDevs(j.devices); pn=cleanPins(j.pins); } }catch(_){}
+        return {exists:true,updateTime:d.updateTime,items:items,devs:dv,pins:pn}; });
     }).then(function(rem){
       if(c!==code){ again=true; return; }
       var merged=merge(todoAll,rem.items);
-      if(canon(merged)!==canon(todoAll)){ todoAll=merged; lsSet("todo",JSON.stringify(todoAll)); rerenderList(); }
+      var mpins=mergePins(pinsAll,rem.pins), chg=false;
+      if(pinCanon(mpins)!==pinCanon(pinsAll)){ pinsAll=mpins; lsSet("pins",JSON.stringify(pinsAll)); chg=true; }
+      if(canon(merged)!==canon(todoAll)){ todoAll=merged; lsSet("todo",JSON.stringify(todoAll)); chg=true; }
+      if(chg) rerenderList();
       var mine=rem.devs[me], t=now();
       var meEntry=(!mine||mine.n!==myName||t-mine.s>5*60000)?{n:myName,s:t}:mine;
       var o={}; o[me]=meEntry; var mdev=mergeDevs(rem.devs,o);
       devs=mdev; lsSet("syncDevs",JSON.stringify(devs));
-      if(rem.exists && canon(merged)===canon(rem.items) && devCanon(mdev)===devCanon(rem.devs)) return;
+      if(rem.exists && canon(merged)===canon(rem.items) && devCanon(mdev)===devCanon(rem.devs) && pinCanon(mpins)===pinCanon(rem.pins)) return;
       var pre=rem.exists?"&currentDocument.updateTime="+encodeURIComponent(rem.updateTime):"&currentDocument.exists=false";
       return fetch(url(c)+pre,{method:"PATCH",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify({v:2,items:merged,devices:mdev})},updated:{integerValue:String(now())}}})}).then(function(r){
+        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify({v:2,items:merged,devices:mdev,pins:mpins})},updated:{integerValue:String(now())}}})}).then(function(r){
         if((r.status===400||r.status===409||r.status===412) && tries<3){ tries++; again=true; return; }
         if(!r.ok) throw new Error("PATCH "+r.status);
       });
@@ -641,7 +664,8 @@ function item(e,inTodo){
   var ctl=t ? '<button class="tbtn chk" data-a="toggle" aria-label="'+(t.done?'Als offen markieren':'Abhaken')+'"><span class="box">'+ICON_CHECK+'</span></button>'
             : '<button class="tbtn add" data-a="add" aria-label="Zur To-do-Liste hinzufügen">'+ICON_PLUS+'</button>';
   var rm=inTodo ? '<button class="tbtn rm" data-a="remove" aria-label="Aus To-do-Liste entfernen">'+ICON_X+'</button>' : '';
-  return '<div class="row'+(t?' todo':'')+(t&&t.done?' done':'')+'" data-id="'+esc(e.id)+'">'+ctl+'<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>'+rm+'</div>';
+  var pn=pinOn(e.id), pb='<button class="tbtn pin" data-a="pin" aria-pressed="'+(pn?"true":"false")+'" aria-label="'+(pn?"Pink-Markierung entfernen":"Pink markieren")+'">'+(pn?ICON_FLAGF:ICON_FLAG)+'</button>';
+  return '<div class="row'+(t?' todo':'')+(t&&t.done?' done':'')+(pn?' pinned':'')+'" data-id="'+esc(e.id)+'">'+ctl+'<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>'+pb+rm+'</div>';
 }
 $("#list").addEventListener("click",function(e){
   var c=e.target.closest("[data-a]");
@@ -651,6 +675,7 @@ $("#list").addEventListener("click",function(e){
     if(a==="add"){ todoAdd(id); return; }
     if(a==="remove"){ todoRemove(id); return; }
     if(a==="toggle" && t){ t.done=!t.done; t.t=ts; }
+    if(a==="pin"){ pinToggle(id); return; }
     if(a==="restore"){ var g=todoRaw(id); if(g&&g.del){ g.del=false; g.t=ts; } }
     if(a==="clear-done") todoAll.forEach(function(x){ if(x.done&&!x.del){ x.del=true; x.t=ts; } });
     todoSave(); rerenderList();
@@ -694,22 +719,24 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Auf Plan zeigen</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Auf Plan zeigen</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
   var sb=$("#sShow"); if(sb) sb.addEventListener("click",function(){ showOnPlan(id); });
   $("#sBody").querySelectorAll("[data-doc]").forEach(function(b){ b.addEventListener("click",function(){ var pg=+b.dataset.doc; closeSheet(false); show("montage"); openDoc(pg); }); });
   $("#sTodo").addEventListener("click",function(){ if(todoFind(id)) todoRemove(id); else todoAdd(id); });
+  $("#sPin").addEventListener("click",function(){ pinToggle(id); });
   sheetTodoUi(id);
   openSheet(id,push);
 }
 function docLinks(id){ var l=(D.docs||[]).filter(function(d){ return d.pos.indexOf(id)>-1; });
   if(!l.length) return "";
   return '<div class="doclinks">'+l.map(function(d){ return '<button class="btn sec" data-doc="'+d.page+'">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>'+esc(d.title)+' · S. '+d.page+'</button>'; }).join("")+'</div>'; }
-function sheetTodoUi(id){ var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
+function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(on?"Pink markiert":"Pink markieren"); pb.setAttribute("aria-pressed",on?"true":"false"); }
+  var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
-  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen"):ICON_PLUS+"Zu To-dos hinzufügen";
+  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen"):ICON_PLUS+"Zu To-dos";
   b.setAttribute("aria-label",t?"Von der To-do-Liste entfernen":"Zur To-do-Liste hinzufügen"); }
 function openSheet(id,push){
   openId=id; sheet.classList.add("open"); sheet.setAttribute("aria-hidden","false");
