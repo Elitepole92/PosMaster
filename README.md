@@ -46,11 +46,16 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
-| **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
-| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun – Stromschlag |
+| **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht |
+| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun |
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
-| **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
-| **Gerch** | Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille | 180 dB Überschallknall – Druckwelle in alle Richtungen |
-| **Caterin** | klein, pummelig, Hygienehaube, weiße Kochjacke mit Schürze | Jeder nur eins!!!!!!! – Käsebrötchen- und Teilchen-Hagel |
+| **Headrigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
+| **Gerch** | Tontechniker mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
+| **Caterin** | Hygienehaube, Kochjacke, Schürze | Jeder nur eins!!!!!!! |
+| **Projektleiterin** | Senior PL mit Handy am Ohr und Laptop | Angebot abgelehnt – Riesenstempel |
+| **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – Schrauber-Ansturm |
+| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Strobo |
+
+**Gadgets** (im Startmenü abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
