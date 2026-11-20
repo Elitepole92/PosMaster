@@ -146,7 +146,8 @@ const sfx = {
   kurwa() { noise(0.45, 0.25, 500, 'bandpass'); tone(180, 0.45, 'sawtooth', 0.14, -70); },
   drill() { tone(240, 0.1, 'sawtooth', 0.06, 60); noise(0.08, 0.06, 3000, 'highpass'); },
   strobe(big) { noise(0.06, big ? 0.3 : 0.15, 5000, 'highpass'); tone(big ? 90 : 1800, big ? 0.4 : 0.05, big ? 'sine' : 'square', big ? 0.4 : 0.04); },
-  stamp() { noise(0.5, 0.5, 260); tone(70, 0.5, 'sine', 0.5, -30); }
+  stamp() { noise(0.5, 0.5, 260); tone(70, 0.5, 'sine', 0.5, -30); },
+  calm() { [262, 330, 392].forEach((f, i) => tone(f, 1.2, 'sine', 0.035, 0, i * 0.18)); }
 };
 
 /* ---------------- Bühne ---------------- */
@@ -839,7 +840,7 @@ const ROSTER = [
     speed: 6.0, airSpeed: 5.3, airAcc: 0.6, jump: 14.2, airJump: 12.6, airJumps: 2, grav: 0.64, maxFall: 12, fastFall: 18, weight: 1.1,
     color: '#47d6ff', color2: '#c4f2ff', hitColor: '#9be8ff', stats: [4, 1, 4], pt: [-1, -112, 1.6],
     atk: { name: 'Schal-Peitsche', s: 5, a: 5, r: 12, dmg: 7, kb: 5.2, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 6, y: -104, w: 72, h: 60 } },
-    fin: 'strobe', finName: 'DEPLATZIERTER STROBO', finQuote: 'Der Strobo steht völlig falsch. PERFEKT.', finRange: 620,
+    fin: 'strobe', finName: 'DEPLATZIERTER STROBO', finQuote: 'Ganz ruhiger Moment? Perfekt für STROBO.', finRange: 620,
     whiny: ['Aua!', 'Mein Schal!', 'Hey, vorsichtig!', 'Das gibt einen Fleck!'],
     quotes: ['Das Licht war perfekt – bis du kamst.', 'Bitte nicht anfassen, das ist Kaschmir.', 'Ich bin Künstler, kein Techniker.', 'Mein Cue, nicht deiner.', 'Das war jetzt unter meinem Niveau.'],
     style: S_OP, draw: (c, f, A) => drawHuman(c, f, A, S_OP)
@@ -1097,17 +1098,18 @@ function stepFinisher(f, inp, o) {
       }
     }
   } else if (Fn.type === 'strobe') {
-    f.armor = Fn.t < 20; f.vx *= 0.8;
+    f.armor = Fn.t < 30; f.vx *= 0.8;
     if (!o.dead) { Fn.tx = o.x; Fn.ty = o.y; }
-    if (Fn.t === 20 || Fn.t === 36 || Fn.t === 52 || Fn.t === 70) {
-      const big = Fn.t === 70;
+    if (Fn.t === 6) sfx.calm();
+    if (Fn.t === 30 || Fn.t === 46 || Fn.t === 62 || Fn.t === 80) {
+      const big = Fn.t === 80;
       sfx.strobe(big);
       if (hittable(o) && Math.abs(o.x - f.x) < 620 && Math.abs(o.y - f.y) < 360) {
         applyHit(f, o, big ? FMOVE.strobe : STROBE_SMALL, Math.sign(o.x - f.x) || f.facing, o.x, o.y - o.def.h * 0.75);
         if (big) popText(o.x, o.y - o.def.h - 30, 'GEBLENDET!', '#c4f2ff', 40, 50); else o.hitstun = Math.max(o.hitstun, 16);
       }
     }
-    if (Fn.t >= 86) { f.fin = null; f.armor = false; f.lag = 8; }
+    if (Fn.t >= 96) { f.fin = null; f.armor = false; f.lag = 8; }
   }
 }
 function stepEnts() {
@@ -1885,7 +1887,8 @@ function drawFighter(f) {
     if (tp === 'food' && t < 62) q = 'JEDER NUR EINS!!!!!!!';
     if (tp === 'stamp' && t < 30) q = t < 13 ? 'Ich hab da mal drübergeschaut …' : 'ABGELEHNT!';
     if (tp === 'drill' && t < 20) q = 'KUUURWA!!!';
-    if (tp === 'strobe' && t < 20) q = 'Wer hat den Strobo DA hingestellt?';
+    if (tp === 'strobe' && t < 30) q = 'Psst … Rede vom Vorstand.';
+    if (tp === 'strobe' && t >= 30 && t < 46) q = '… und jetzt: STROBO!';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
   }
   if (q) speech(c, 0, ty - 18, q);
@@ -2032,21 +2035,25 @@ function drawEnts() {
       c.fillStyle = '#ff3b3b'; c.font = 'bold 18px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('ACHTUNG – ABLEHNUNG!', Fn.tx, STAGE.top - 44);
       c.restore();
     }
-    if (Fn.type === 'strobe' && Fn.t >= 10 && Fn.tx !== undefined) {   // deplatzierter Strobo: steht auf dem Boden direkt vor dem Gegner
-      const on = [20, 36, 52, 70].some(p => Fn.t >= p && Fn.t < p + 5);   // höchstens ~3 Blitze pro Sekunde, nur örtlich
-      const d = Math.sign(Fn.tx - f.x) || f.facing, gy = Fn.ty || STAGE.top, sx = Fn.tx - d * 62;
-      const drop = Math.min(1, (Fn.t - 10) / 8);
-      c.save(); c.translate(sx, gy - (1 - drop) * 120); c.scale(d, 1);
-      Ln(c, -10, 0, -4, -14, '#3a3a40', 3); Ln(c, 10, 0, 4, -14, '#3a3a40', 3);
-      RR(c, -16, -36, 32, 24, 4, '#24242c'); RR(c, 10, -33, 7, 18, 2, on ? '#ffffff' : '#7d838b');
-      c.fillStyle = '#ffd23f'; c.font = 'bold 6px sans-serif'; txt(c, 'STROBE', -13, -16);
-      c.restore();
-      if (drop >= 1) {
+    if (Fn.type === 'strobe' && Fn.tx !== undefined) {   // deplatzierter Strobo: zündet mitten in den ruhigsten Moment
+      const pulses = [30, 46, 62, 80], on = pulses.some(p => Fn.t >= p && Fn.t < p + 5);   // höchstens ~3 Blitze pro Sekunde, nur örtlich
+      const calm = Fn.t < 30 ? Math.min(1, Fn.t / 10) : Math.max(0, 1 - (Fn.t - 30) / 6);
+      if (calm > 0) {
+        const vw = W / cam.z, vh = H / cam.z;
+        c.fillStyle = `rgba(4,3,14,${0.55 * calm})`; c.fillRect(cam.x - vw, cam.y - vh, vw * 2, vh * 2);
+        c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = calm;
+        const g = c.createLinearGradient(0, f.y - 420, 0, f.y);
+        g.addColorStop(0, 'rgba(255,210,150,0.05)'); g.addColorStop(1, 'rgba(255,210,150,0.28)');
+        c.fillStyle = g; c.beginPath(); c.moveTo(f.x - 12, f.y - 420); c.lineTo(f.x + 12, f.y - 420); c.lineTo(f.x + 70, f.y + 4); c.lineTo(f.x - 70, f.y + 4); c.closePath(); c.fill();
+        c.restore();
+      }
+      if (Fn.t >= 26) {
+        const topY = STAGE.top - 470, x = Fn.tx;
+        RR(c, x - 16, topY - 14, 32, 20, 5, '#24242c'); Cc(c, x, topY + 8, 9, on ? '#fff' : '#555');
         c.save(); c.globalCompositeOperation = 'lighter';
-        const lx = sx + d * 17, ly = gy - 24, hy = gy - F[1 - f.idx].def.h;
-        const g = c.createLinearGradient(lx, 0, lx + d * 140, 0);
-        g.addColorStop(0, on ? 'rgba(255,255,255,0.85)' : 'rgba(200,230,255,0.16)'); g.addColorStop(1, on ? 'rgba(255,255,255,0.3)' : 'rgba(200,230,255,0.03)');
-        c.fillStyle = g; c.beginPath(); c.moveTo(lx, ly - 9); c.lineTo(lx, ly + 9); c.lineTo(lx + d * 140, gy + 4); c.lineTo(lx + d * 140, hy - 30); c.closePath(); c.fill();
+        const g = c.createLinearGradient(0, topY, 0, STAGE.top);
+        g.addColorStop(0, on ? 'rgba(255,255,255,0.7)' : 'rgba(200,230,255,0.12)'); g.addColorStop(1, on ? 'rgba(255,255,255,0.3)' : 'rgba(200,230,255,0.03)');
+        c.fillStyle = g; c.beginPath(); c.moveTo(x - 8, topY + 8); c.lineTo(x + 8, topY + 8); c.lineTo(x + 110, STAGE.top); c.lineTo(x - 110, STAGE.top); c.closePath(); c.fill();
         c.restore();
       }
     }

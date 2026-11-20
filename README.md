@@ -54,7 +54,7 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | **Caterin** | Hygienehaube, Kochjacke, Schürze | Jeder nur eins!!!!!!! |
 | **Projektleiterin** | Senior PL mit Handy am Ohr und Laptop | Angebot abgelehnt – Riesenstempel |
 | **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – Schrauber-Ansturm |
-| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo |
+| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – ausgerechnet im ruhigsten Moment |
 
 **Gadgets** (im Startmenü abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
 
