@@ -22,6 +22,10 @@ Reine statische Seite ohne Build-Schritt und ohne externe Abhängigkeiten. Ordne
 
 Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt werden.
 
+## Offline
+`sw.js` (Service Worker) speichert beim ersten Öffnen alle App-Dateien auf dem Gerät, danach läuft die App auch ohne Netz. `index.html` und `data.js` werden zuerst aus dem Netz geholt (Updates), bei Funkloch nach 4 s aus dem Speicher.
+**Nach jeder Änderung an App-Dateien `python3 tools/build-sw.py` ausführen**, damit die Geräte die neuen Dateien bekommen.
+
 ## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
 Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` öffnen.
 
