@@ -42,7 +42,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 
 **Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
-**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht; dann trägt er seinen Namen ein. In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
+**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht – eintragen kann er sich immer (gespeichert werden bis zu 50 Siege, gezeigt die Top 5 plus der eigene Platz). In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
