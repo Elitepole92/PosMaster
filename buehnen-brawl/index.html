@@ -876,6 +876,9 @@ if (TOUCH) settings.mode = 1;
 function saveSettings() { try { localStorage.setItem('bb-settings', JSON.stringify(settings)); } catch (e) { /* egal */ } }
 const isCPU = () => settings.mode === 1 && !NET.role;
 // Beim ersten Start auf Touch-Geräten (noch nicht als App installiert): Anleitung „Zum Home-Bildschirm“
+// „Was ist neu“-Fenster: einmal pro Gerät nach jedem größeren Update
+const GAME_VERSION = '3.0';
+let news = (() => { try { return localStorage.getItem('bb-version') !== GAME_VERSION; } catch (e) { return false; } })();
 let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
 const DIFFS = [
@@ -1394,6 +1397,7 @@ function onUI(id) {
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); break;
+    case 'newsOk': news = false; try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '1'); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
     case 'back': if (isOnline()) { leaveOnline(); break; } scene = 'title'; sfx.select(); break;
@@ -1439,6 +1443,7 @@ function onUI(id) {
 }
 function stepTitle() {
   if (a2hs) { if (['Enter', 'Space'].some(k => pressed.has(k))) onUI('a2hsOk'); return; }
+  if (news) { if (['Enter', 'Space', 'Escape', 'KeyF', 'KeyK'].some(k => pressed.has(k))) onUI('newsOk'); return; }
   const rows = menuRows();
   menuRow = clamp(menuRow, 0, rows.length - 1);
   const any = a => a.some(k => pressed.has(k));
@@ -2298,6 +2303,7 @@ function drawTitle() {
     cx += w + 5;
   });
   muteButton(1232, 44);
+  c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#6f6f86'; c.fillText('v' + GAME_VERSION, W - 14, 712);
   c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
   let hint = '↑ / ↓ auswählen  ·  ← / → ändern  ·  Enter starten  ·  M Ton an/aus';
   if (TOUCH) hint = IOS && !STANDALONE ? 'Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.' : 'Tippe auf „1 Spieler“ zum Starten.';
@@ -2501,6 +2507,34 @@ function drawA2HS() {
   });
   btn('a2hsOk', W / 2 - 150, y + h - 92, 300, 62, 'VERSTANDEN', '#ffd23f', 30);
 }
+function drawNews() {
+  const c = ctx, x = W / 2 - 420, y = 70, w = 840, h = 580;
+  c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(0, 0, W, H);
+  RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
+  c.textAlign = 'center'; c.font = '900 54px Impact,"Arial Black",sans-serif'; c.lineWidth = 7; c.strokeStyle = '#2a0d3d';
+  c.strokeText('UPDATE ' + GAME_VERSION, W / 2, y + 70); c.fillStyle = '#ffd23f'; c.fillText('UPDATE ' + GAME_VERSION, W / 2, y + 70);
+  c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Das ist neu:', W / 2, y + 102);
+  // die drei neuen Kämpfer
+  ['pm', 'mb', 'op'].forEach((id, k) => {
+    const d = ROSTER.find(r => r.id === id), px = W / 2 - 150 + k * 150;
+    drawPortrait(c, d, px, y + 156, 38);
+    c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = d.color; c.fillText(d.short, px, y + 210);
+  });
+  const items = [
+    ['🆕', 'Drei neue Kämpfer: Projektleiterin, Messebauer und Operator'],
+    ['🎁', 'Gadgets vom Himmel: Kaffee, Gaffa und Energy geben einen Boost'],
+    ['🌐', 'Online-Duell: zwei Geräte, ein Raum-Code'],
+    ['📱', 'Touch-Steuerung am iPhone repariert – keine hängenden Tasten mehr'],
+    ['🔧', 'Headrigger, Gerch mit Espresso, D8+ entschärft, neue LED-Wand']
+  ];
+  c.textAlign = 'left';
+  items.forEach(([ic, t], i) => {
+    const yy = y + 262 + i * 46;
+    c.font = '22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, yy);
+    c.font = 'bold 19px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText(t, x + 112, yy);
+  });
+  btn('newsOk', W / 2 - 150, y + h - 84, 300, 60, "LOS GEHT'S!", '#ffd23f', 30);
+}
 function drawRotate() {
   const c = ctx;
   c.fillStyle = '#07050f'; c.fillRect(0, 0, W, H);
@@ -2516,7 +2550,7 @@ function render() {
   ui = [];
   if (isPortrait()) { drawRotate(); return; }
   drawBackground(frame);
-  if (scene === 'title') { drawTitle(); if (a2hs) { ui = []; drawA2HS(); } drawToast(); return; }
+  if (scene === 'title') { drawTitle(); if (a2hs) { ui = []; drawA2HS(); } else if (news) { ui = []; drawNews(); } drawToast(); return; }
   if (scene === 'online') { drawOnline(); drawToast(); return; }
   if (scene === 'select') { drawSelect(); drawToast(); return; }
   c.save();
@@ -2590,7 +2624,7 @@ if (/^\d{4}$/.test(QS.get('join') || '')) {
   joinGame(code);
 }
 // Für automatisierte Tests
-window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, get a2hs() { return a2hs; }, sel, settings, startMatch, onUI, NET };
+window.__brawl = { get F() { return F; }, get scene() { return scene; }, get ui() { return ui; }, get a2hs() { return a2hs; }, get news() { return news; }, sel, settings, startMatch, onUI, NET };
 </script>
 </body>
 </html>
