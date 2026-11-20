@@ -52,8 +52,8 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | **Headrigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
 | **Gerch** | Tontechniker mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
 | **Caterin** | Hygienehaube, Kochjacke, Schürze | Jeder nur eins!!!!!!! |
-| **Projektleiterin** | Senior PL mit Handy am Ohr und Laptop | Angebot abgelehnt – Riesenstempel |
-| **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – Schrauber-Ansturm |
+| **Projektleiterin** | Senior PL, Mitte 30, mit Handy am Ohr und Laptop | Angebot abgelehnt – Riesenstempel |
+| **Messebauer** | riesige Boombox, Akkuschrauber, Knieschoner | KURWA! – das „bombenfeste“ Wandelement kippt um |
 | **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – ausgerechnet im ruhigsten Moment |
 
 **Finisher** laufen in Zeitlupe, damit man sie gut sieht. Im Startmenü lässt sich unter **BLITZE** zwischen VOLL und SANFT wählen (SANFT = langsamere, schwächere Strobo-Blitze für lichtempfindliche Mitspieler).

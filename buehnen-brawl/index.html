@@ -628,13 +628,16 @@ const S_PM = {
   hipFront(c) { RR(c, -14, -60, 28, 34, 6, '#2f3542'); c.fillStyle = 'rgba(0,0,0,0.15)'; c.fillRect(-14, -58, 5, 30); },
   head(c, hx, hy, f, A, P) {
     const skin = '#ecc1a3';
-    c.fillStyle = '#cfcad6'; c.beginPath(); c.ellipse(hx - 2, hy - 1, 13, 13, 0, PI * 0.62, PI * 2.02); c.fill();   // silberner Bob
+    c.fillStyle = '#6b4530'; c.beginPath(); c.ellipse(hx - 3, hy + 3, 12, 17, 0.05, PI * 0.55, PI * 2.0); c.fill();   // brauner, schulterlanger Schnitt
     Cc(c, hx + 1, hy, 10.5, skin);
-    c.fillStyle = '#d9d4df'; c.beginPath(); c.ellipse(hx + 2, hy - 8, 11, 5, -0.15, PI, TAU); c.fill();
-    E(c, hx - 2.5, hy + 1, 2.3, 3, '#dca98a'); Cc(c, hx - 2.5, hy + 4.6, 1.4, '#fff');
+    c.fillStyle = '#7a5038'; c.beginPath(); c.ellipse(hx + 1, hy - 7, 11.5, 6, -0.2, PI, TAU); c.fill();
+    c.fillStyle = '#6b4530'; c.beginPath(); c.ellipse(hx + 6, hy - 8, 7, 3.4, -0.45, 0, TAU); c.fill();   // Seitenscheitel
+    E(c, hx - 2.5, hy + 1, 2.3, 3, '#dca98a'); Cc(c, hx - 2.5, hy + 4.4, 1.1, '#e0b04a');
+    E(c, hx + 6, hy + 3.2, 2.6, 1.6, 'rgba(240,120,120,0.3)');
     if (P.eyes === 'x') { Ln(c, hx + 4, hy - 4, hx + 8, hy, '#222', 1.5); Ln(c, hx + 8, hy - 4, hx + 4, hy, '#222', 1.5); }
     else Cc(c, hx + 6.5, hy - 1.5, 1.4, '#222');
-    c.strokeStyle = '#7a2a3a'; c.lineWidth = 1.5; c.strokeRect(hx + 3.5, hy - 4, 7, 5); Ln(c, hx - 1, hy - 2.5, hx + 3.5, hy - 2.5, '#7a2a3a', 1.2);
+    c.strokeStyle = '#1b1b1d'; c.lineWidth = 1.6; c.strokeRect(hx + 3.5, hy - 4, 7.5, 4.6); Ln(c, hx - 1, hy - 2.5, hx + 3.5, hy - 2.5, '#1b1b1d', 1.2);
+    Ln(c, hx + 3.5, hy - 6.2, hx + 10, hy - 6.6, '#5a3a28', 1.3);
     E(c, hx + 11, hy + 1.5, 2.3, 2, '#dfb095');
     E(c, hx + 7.5, hy + 6, 2.6, 1.3, '#b8455a');
   },
@@ -687,9 +690,11 @@ const S_MB = {
   basePose(P) { P.hB = { x: -2, y: -104 }; },
   atkPose(P, e) { P.hB = { x: -2, y: -104 }; P.hF = { x: lerp(14, 54, e), y: lerp(-60, -74, e) }; P.rot = 0.08 * e; P.spin = e > 0.9; },
   finPose(P, A) {
-    P.hB = { x: -2, y: -104 }; P.shout = A.t < 40;
-    if (A.t < 16) { P.hF = { x: 22, y: -96 }; }
-    else { P.hF = { x: 52, y: -70 }; P.rot = 0.22; P.spin = true; const s = Math.sin(A.t * 0.7); P.fF = { x: 14 * s + 4, y: -Math.max(0, Math.cos(A.t * 0.7)) * 9 }; P.fB = { x: -14 * s, y: -Math.max(0, -Math.cos(A.t * 0.7)) * 9 }; }
+    P.hB = { x: -2, y: -104 }; P.prop = 'mallet'; const t = A.t || 0;
+    if (t < 14) P.hF = { x: 22, y: -64 };
+    else if (t < 22) { const k = (t - 14) / 8; P.hF = { x: lerp(-4, 40, k), y: lerp(-124, -84, k) }; P.rot = 0.12 * k; }
+    else if (t < 30) P.hF = { x: 38, y: -84 };
+    else { P.hF = { x: 26, y: -120 }; P.shout = true; P.rot = -0.1; }   // Hände über dem Kopf: „KURWA!“
   },
   backProp(c, qb, f, A, P) {   // Boombox
     if (A.kind === 'drive' || !qb) return;
@@ -704,7 +709,13 @@ const S_MB = {
     for (let k = 0; k < 2; k++) { const ph = ((t + k * 30) % 60) / 60; c.globalAlpha = 1 - ph; txt(c, k ? '♫' : '♪', bx - 14 + k * 22, by - 22 - ph * 26); }
     c.globalAlpha = 1;
   },
-  prop(c, q, f, A, P) {   // Akkuschrauber
+  prop(c, q, f, A, P) {   // Akkuschrauber bzw. Gummihammer im Finisher
+    if (P.prop === 'mallet') {
+      const t = A.t || 0, r = t >= 14 && t < 22 ? lerp(-1.6, 0.2, (t - 14) / 8) : (t < 14 ? -0.4 : 0.2);
+      c.save(); c.translate(q.bx, q.by); c.rotate(r);
+      Ln(c, 0, 6, 0, -26, '#a0703a', 3.5); RR(c, -10, -36, 20, 12, 3, '#1b1b1d'); c.restore();
+      return;
+    }
     c.save(); c.translate(q.bx, q.by); c.rotate(-0.12);
     RR(c, -4, -9, 23, 11, 3, '#f2b705'); RR(c, -4, -9, 7, 11, 2, '#222'); RR(c, -2, 0, 8, 14, 2, '#222'); RR(c, -4, 13, 13, 5, 1, '#333');
     RR(c, 17, -7, 4, 7, 1, '#555'); Ln(c, 21, -3.5, 31, -3.5, '#c9ccd1', 2);
@@ -832,7 +843,7 @@ const ROSTER = [
     speed: 5.1, airSpeed: 4.6, airAcc: 0.5, jump: 13, airJump: 11.6, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.9,
     color: '#b07a3a', color2: '#f0d2a8', hitColor: '#ffcf70', stats: [2, 4, 3], pt: [8, -97, 1.6],
     atk: { name: 'Schrauber-Stich', s: 5, a: 6, r: 12, dmg: 8, kb: 5.2, scale: 0.12, ang: 35, meter: 20, lunge: 3, box: { x: 10, y: -84, w: 68, h: 52 } },
-    fin: 'drill', finName: 'KURWA!', finQuote: 'Wer hat meinen Stand umgeschraubt?! KURWA!', finRange: 420,
+    fin: 'wall', finName: 'KURWA!', finQuote: 'Hält. Bombenfest. … KURWA!', finRange: 300,
     quotes: ['Stand steht. Fast.', 'Wer hat meinen Bit geklaut?', 'Musik lauter!', 'Morgen um sechs ist Abbau.', 'Passt, wackelt, hat Luft.'],
     style: S_MB, draw: (c, f, A) => drawHuman(c, f, A, S_MB)
   },
@@ -855,7 +866,7 @@ const FMOVE = {
   boom: { dmg: 24, kb: 11.5, scale: 0.21, ang: 45, meter: 0 },
   food: { dmg: 13, kb: 11, scale: 0.21, ang: 50, meter: 0 },
   stamp: { dmg: 22, kb: 11, scale: 0.2, ang: 60, meter: 0 },
-  drill: { dmg: 12, kb: 11.5, scale: 0.2, ang: 40, meter: 0 },
+  wall: { dmg: 23, kb: 11.5, scale: 0.2, ang: 62, meter: 0 },
   strobe: { dmg: 12, kb: 11, scale: 0.21, ang: 55, meter: 0 }
 };
 const DRILL_SMALL = { dmg: 2, kb: 0.8, scale: 0, ang: 20, meter: 0 }, STROBE_SMALL = { dmg: 2, kb: 0.6, scale: 0, ang: 15, meter: 0 };
@@ -1080,27 +1091,12 @@ function stepFinisher(f, inp, o) {
     if (!o.dead && Fn.t < 26) Fn.tx = lerp(Fn.tx, o.x, 0.15);
     if (Fn.t === 26) { ents.push({ type: 'stamp', x: Fn.tx, y: Math.min(cam.y - H / 2 / cam.z - 80, 0), vy: 10, owner: f, hit: false, landed: false, t: 0 }); sfx.swing(); }
     if (Fn.t >= 48) { f.fin = null; f.armor = false; f.lag = 8; }
-  } else if (Fn.type === 'drill') {
-    f.armor = true;
-    if (Fn.t === 2) sfx.kurwa();
-    if (Fn.t < 16) f.vx *= 0.8;
-    else if (!Fn.lock) {
-      const g = f.ground;
-      f.vx = Fn.dir * 11;
-      if (f.onGround && Fn.t % 4 === 0) dust(f.x - Fn.dir * 20, f.y, 2);
-      const reach = f.def.w / 2 + o.def.w / 2 + 34;
-      if (hittable(o) && Math.abs(o.x - f.x) < reach && Math.sign(o.x - f.x) !== -Fn.dir && Math.abs((o.y - o.def.h / 2) - (f.y - 50)) < 80) { Fn.lock = 1; Fn.lt = 0; sfx.drill(); }
-      else if (Fn.t > 50 || (f.onGround && g && ((Fn.dir > 0 && f.x > g.x2 - 40) || (Fn.dir < 0 && f.x < g.x1 + 40)))) { f.fin = null; f.armor = false; f.lag = 14; }
-    } else {
-      f.vx = 0; Fn.lt++;
-      if (!hittable(o)) { f.fin = null; f.armor = false; f.lag = 10; return; }
-      o.x = f.x + Fn.dir * (f.def.w / 2 + o.def.w / 2 + 4); o.y = Math.min(o.y, f.y); o.vx = 0; o.vy = 0; o.atk = null; o.fin = null; o.hitstun = Math.max(o.hitstun, 8);
-      if (Fn.lt % 5 === 0 && Fn.lt <= 30) { applyHit(f, o, DRILL_SMALL, Fn.dir, o.x - Fn.dir * 10, o.y - o.def.h * 0.5); sfx.drill(); o.hitstun = Math.max(o.hitstun, 8); }
-      if (Fn.lt === 38) {
-        popText(o.x, o.y - o.def.h - 30, 'KURWA!!!', '#ffcf70', 46, 50); sfx.kurwa();
-        applyHit(f, o, FMOVE.drill, Fn.dir, o.x, o.y - o.def.h * 0.5); f.fin = null; f.armor = false; f.lag = 12;
-      }
-    }
+  } else if (Fn.type === 'wall') {   // Wandelement aufstellen, mit dem Gummihammer festklopfen … und es kippt
+    f.armor = Fn.t < 30; f.vx *= 0.7;
+    if (Fn.t === 3) { ents.push({ type: 'wall', x: f.x + Fn.dir * 48, gy: f.y, dir: Fn.dir, ang: 0, av: 0, owner: f, hit: false, landed: false, t: 0 }); dust(f.x + Fn.dir * 48, f.y, 6); sfx.land(); }
+    if (Fn.t === 22) { sfx.block(); tone(180, 0.12, 'sine', 0.2, -60); }
+    if (Fn.t === 34) sfx.kurwa();
+    if (Fn.t >= 70) { f.fin = null; f.armor = false; f.lag = 10; }
   } else if (Fn.type === 'strobe') {
     f.armor = Fn.t < 30; f.vx *= 0.8;
     if (!o.dead) { Fn.tx = o.x; Fn.ty = o.y; }
@@ -1120,6 +1116,29 @@ function stepFinisher(f, inp, o) {
 function stepEnts() {
   for (const e of ents) {
     e.t++;
+    if (e.type === 'wall') {
+      const owner = e.owner, o = F[1 - owner.idx], L = 210;
+      if (e.landed) { if (e.t > 50) e.dead = true; continue; }
+      if (e.t > 24) {   // kippt mit zunehmender Geschwindigkeit
+        e.av += 0.0035 + Math.sin(e.ang) * 0.012; e.ang = Math.min(PI / 2, e.ang + e.av);
+        if (e.t === 25) e.ang = 0.04;
+        if (!e.hit && e.ang > 0.5 && hittable(o)) {
+          const hb = hurtbox(o);
+          for (let k = 2; k <= 10; k++) {
+            const px = e.x + e.dir * L * (k / 10) * Math.sin(e.ang), py = e.gy - L * (k / 10) * Math.cos(e.ang);
+            if (px > hb.x - 8 && px < hb.x + hb.w + 8 && py > hb.y - 8 && py < hb.y + hb.h + 8) {
+              e.hit = true; popText(o.x, o.y - o.def.h - 30, 'KURWA!!!', '#ffcf70', 46, 55);
+              applyHit(owner, o, FMOVE.wall, e.dir, px, py); break;
+            }
+          }
+        }
+        if (e.ang >= PI / 2) {
+          e.landed = true; e.t = 0; shake = Math.max(shake, 18); sfx.stamp();
+          for (let k = 1; k <= 4; k++) dust(e.x + e.dir * L * k / 4, e.gy, 4);
+        }
+      }
+      continue;
+    }
     if (e.type === 'stamp') {
       const owner = e.owner, o = F[1 - owner.idx];
       if (e.landed) { if (e.t > 70) e.dead = true; continue; }
@@ -1896,7 +1915,8 @@ function drawFighter(f) {
     if (tp === 'chain' && t < 26) q = 'Moin.';
     if (tp === 'food' && t < 62) q = 'JEDER NUR EINS!!!!!!!';
     if (tp === 'stamp' && t < 30) q = t < 13 ? 'Ich hab da mal drübergeschaut …' : 'ABGELEHNT!';
-    if (tp === 'drill' && t < 20) q = 'KUUURWA!!!';
+    if (tp === 'wall' && t < 26) q = 'Hält. Bombenfest.';
+    if (tp === 'wall' && t >= 30 && t < 70) q = '… KURWA!';
     if (tp === 'strobe' && t < 30) q = 'Psst … Rede vom Vorstand.';
     if (tp === 'strobe' && t >= 30 && t < 60) q = '… und jetzt: STROBO!';
     if (tp === 'boom' && t < 30) q = t < 15 ? 'Check … eins …' : '… ZWEI!!!';
@@ -2077,6 +2097,14 @@ function drawEnts() {
         c.fillStyle = `rgba(${200 + i * 5},${205 + i * 4},${190 + i * 3},${a * 0.55})`;
         c.beginPath(); c.arc(e.x + ox, e.y + oy, e.r * (0.45 + (i % 3) * 0.1), 0, TAU); c.fill();
       }
+    } else if (e.type === 'wall') {
+      const L = 210, a = e.landed ? clamp(1 - (e.t - 30) / 20, 0, 1) : clamp(e.t / 4, 0, 1);
+      c.save(); c.globalAlpha = a; c.translate(e.x, e.gy); c.rotate(e.dir * e.ang);
+      RR(c, -12, -L, 24, L, 2, '#f4f4f2'); c.strokeStyle = '#b9c0c9'; c.lineWidth = 4; c.strokeRect(-12, -L, 24, L);
+      Ln(c, -12, -L / 2, 12, -L / 2, '#b9c0c9', 3);
+      for (const yy of [-L + 6, -6]) { Cc(c, -8, yy, 2, '#7d838b'); Cc(c, 8, yy, 2, '#7d838b'); }
+      c.save(); c.translate(0, -L * 0.72); c.rotate(-PI / 2); c.fillStyle = '#9aa0a6'; c.font = 'bold 9px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('STAND 4.12', 0, 3); c.restore();
+      c.restore();
     } else if (e.type === 'stamp') {
       if (e.landed) {
         const a = clamp(1 - (e.t - 40) / 30, 0, 1);
