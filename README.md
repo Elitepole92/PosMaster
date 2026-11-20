@@ -42,7 +42,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 
 **Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
-**Highscores (global, 5 Plätze):** Gewertet werden die Punkte einer Siegesserie gegen die CPU – pro Sieg leicht 50 / mittel 100 / schwer 200 Punkte plus bis zu 150 für übrige Leben; die Serie endet mit der ersten Niederlage. Wer in die Top 5 kommt, trägt seinen Namen ein. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlhiscore`).
+**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg gegen die CPU – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Nach jedem gewonnenen Spiel sieht man sofort die Siegzeit und ob sie für die Top 5 reicht; dann trägt man seinen Namen ein. In der Liste stehen Figur, CPU-Stärke und Leben dabei. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlzeit001`).
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
@@ -59,6 +59,6 @@ Die Caterin ist im Code noch enthalten, aber gerade nicht auswählbar (`hidden: 
 
 Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera kurz heran.
 
-**Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Gadget am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **Kaffee** = schneller, **Gaffa** = weniger Schaden und Rückstoß, **Energy** = stärkere Schläge und schnellere Finisher-Leiste.
+**Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Symbol am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **⏩ Tempo** (grün) = schneller, **🛡️ Schild** (blau) = weniger Schaden und Rückstoß, **⚡ Energy** (gelb) = stärkere Schläge und schnellere Finisher-Leiste.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
