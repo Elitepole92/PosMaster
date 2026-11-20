@@ -61,4 +61,4 @@ Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera ku
 
 **Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Symbol am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **⏩ Tempo** (grün) = schneller, **🛡️ Schild** (blau) = weniger Schaden und Rückstoß, **⚡ Energy** (gelb) = stärkere Schläge und schnellere Finisher-Leiste.
 
-Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
+Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben. Jeder Online-Gewinner kann seinen Namen eintragen – gespeichert werden bis zu 50 Siege, gezeigt die Top 5 (plus der eigene Platz).
