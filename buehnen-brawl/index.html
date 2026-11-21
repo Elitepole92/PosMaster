@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.5', news: [] },
   { v: '4.3.4', news: [] },
   { v: '4.3.3', news: [] },
   { v: '4.3.2', news: [] },
@@ -1777,7 +1778,7 @@ function drawWalkers() {
 function stepTitle() {
   stepWalkers();
   if (a2hs) { if (['Enter', 'Space'].some(k => pressed.has(k))) onUI('a2hsOk'); return; }
-  if (news) { if (['Enter', 'Space', 'Escape', 'KeyF', 'KeyK'].some(k => pressed.has(k))) onUI('newsOk'); return; }
+  if (news) { if (['Enter', 'Space', 'KeyF', 'KeyK'].some(k => pressed.has(k))) newsNext(); else if (pressed.has('Escape')) onUI('newsOk'); return; }
   const rows = menuRows();
   menuRow = clamp(menuRow, 0, rows.length - 1);
   const any = a => a.some(k => pressed.has(k));
@@ -3215,26 +3216,52 @@ function drawA2HS() {
   });
   btn('a2hsOk', W / 2 - 150, y + h - 92, 300, 62, 'VERSTANDEN', '#ffd23f', 30);
 }
-// Update-Fenster als scrollbares HTML-Fenster (passt so auch aufs iPhone im Querformat)
-let newsBox = null;
+// Update-Fenster als HTML-Fenster mit Seiten zum Durchblättern (passt so auch aufs iPhone im Querformat – ohne Scrollen)
+let newsBox = null, newsPages = [], newsPage = 0;
 function openNews() {
   if (newsBox) return;
   const short = v => v.replace(/\.0$/, ''), esc = t => String(t).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
-  const main = NEWS[0], more = NEWS.slice(1);
+  const main = NEWS[0], more = NEWS.slice(1), small = innerHeight < 520;   // Handy quer: kompakter
   const pic = id => { const d = ROSTER.find(r => r.id === id), cc = document.createElement('canvas'); cc.width = cc.height = 120;
-    drawPortrait(cc.getContext('2d'), d, 60, 60, 54); return `<div style="display:inline-block;margin:0 10px;text-align:center"><img src="${cc.toDataURL()}" style="width:72px;height:72px"><div style="color:${d.color};font:700 13px system-ui,sans-serif">${esc(d.short)}</div></div>`; };
-  const row = ([ic, t], big) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${big ? 10 : 6}px 0;text-align:left"><span style="font-size:${big ? 21 : 17}px;width:28px;flex:none">${ic}</span><span style="font:${big ? 700 : 500} ${big ? 17 : 15}px/1.35 system-ui,sans-serif;color:${big ? '#e8e8f4' : '#cfcfe0'}">${esc(t)}</span></div>`;
+    drawPortrait(cc.getContext('2d'), d, 60, 60, 54); return `<div style="display:inline-block;margin:0 10px;text-align:center"><img src="${cc.toDataURL()}" style="width:${small ? 44 : 64}px;height:${small ? 44 : 64}px"><div style="color:${d.color};font:700 13px system-ui,sans-serif">${esc(d.short)}</div></div>`; };
+  const row = ([ic, t], big) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 4 : big ? 9 : 6}px 0;text-align:left"><span style="font-size:${big ? 19 : 16}px;width:28px;flex:none">${ic}</span><span style="font:${big ? 700 : 500} ${small ? (big ? 15 : 14) : (big ? 17 : 15)}px/1.3 system-ui,sans-serif;color:${big ? '#e8e8f4' : '#cfcfe0'}">${esc(t)}</span></div>`;
+  const blocks = [];   // [html, istÜberschrift]
+  if ((main.chars || []).length) blocks.push([`<div style="margin:2px 0 4px">${main.chars.map(pic).join('')}</div>`, false]);
+  main.news.forEach(n => blocks.push([row(n, true), false]));
+  more.forEach(e => { blocks.push([`<div style="border-top:1px solid rgba(255,255,255,.12);margin-top:${small ? 6 : 10}px;padding-top:${small ? 4 : 8}px;text-align:left;color:#ffd23f;font:700 14px system-ui,sans-serif">Außerdem neu in ${short(e.v)}:</div>`, true]); e.news.forEach(n => blocks.push([row(n, false), false])); });
   newsBox = document.createElement('div');
-  newsBox.style.cssText = fbBox.style.cssText + ';width:min(760px,94vw);padding:16px 22px 0;display:block';
-  newsBox.innerHTML = `<div style="font:900 40px Impact,'Arial Black',sans-serif;color:#ffd23f">UPDATE ${short(main.v)}</div>` +
-    `<div style="color:#cfcfe0;font:700 15px system-ui,sans-serif;margin-bottom:8px">Das ist neu:</div>` +
-    ((main.chars || []).length ? `<div style="margin:4px 0 6px">${main.chars.map(pic).join('')}</div>` : '') +
-    main.news.map(n => row(n, true)).join('') +
-    more.map(e => `<div style="border-top:1px solid rgba(255,255,255,.12);margin-top:12px;padding-top:10px;text-align:left;color:#ffd23f;font:700 14px system-ui,sans-serif">Außerdem neu in ${short(e.v)}:</div>` + e.news.map(n => row(n, false)).join('')).join('') +
-    `<div style="position:sticky;bottom:0;background:#17122a;padding:12px 0 16px;margin-top:8px"><button style="font:900 24px Impact,'Arial Black',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 40px">LOS GEHT'S!</button></div>`;
-  newsBox.querySelector('button').addEventListener('click', () => onUI('newsOk'));
+  newsBox.style.cssText = fbBox.style.cssText + ';width:min(760px,94vw);padding:' + (small ? '8px 18px 10px' : '14px 22px 14px') + ';display:block;overflow:hidden;max-height:none';
+  newsBox.innerHTML = `<div style="font:900 ${small ? 24 : 34}px Impact,'Arial Black',sans-serif;color:#ffd23f">UPDATE ${short(main.v)}${small ? ' <span style="font:700 13px system-ui,sans-serif;color:#cfcfe0">– das ist neu</span>' : ''}</div>` +
+    (small ? '' : `<div style="color:#cfcfe0;font:700 14px system-ui,sans-serif">Das ist neu:</div>`) + `<div class="nb"></div>` +
+    `<div style="margin-top:${small ? 6 : 10}px;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap">` +
+    `<button class="prev" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:${small ? 8 : 11}px 18px">‹ Zurück</button>` +
+    `<button class="next" style="font:900 22px Impact,'Arial Black',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:${small ? 8 : 11}px 34px"></button>` +
+    `<span class="pg" style="color:#9a9ab0;font:600 13px system-ui,sans-serif"></span></div>`;
   newsBox.className = 'scrollbox'; document.body.appendChild(newsBox);
+  // Seiten bauen: so viele Punkte pro Seite, wie aufs Display passen
+  const body = newsBox.querySelector('.nb'), maxH = innerHeight * 0.94;
+  newsPages = []; let cur = [];
+  for (const blk of blocks) {
+    body.innerHTML = cur.concat([blk]).map(b => b[0]).join('');
+    if (cur.length && newsBox.offsetHeight > maxH) {
+      const carry = cur.length > 1 && cur[cur.length - 1][1] ? [cur.pop()] : [];   // Überschrift nicht allein unten stehen lassen
+      newsPages.push(cur); cur = carry.concat([blk]);
+    } else cur.push(blk);
+  }
+  newsPages.push(cur); newsPage = 0;
+  newsBox.querySelector('.prev').addEventListener('click', () => { if (newsPage > 0) { newsPage--; showNewsPage(); sfx.move(); } });
+  newsBox.querySelector('.next').addEventListener('click', newsNext);
+  showNewsPage();
 }
+function showNewsPage() {
+  if (!newsBox) return;
+  const last = newsPage >= newsPages.length - 1;
+  newsBox.querySelector('.nb').innerHTML = newsPages[newsPage].map(b => b[0]).join('');
+  newsBox.querySelector('.prev').style.display = newsPage > 0 ? '' : 'none';
+  newsBox.querySelector('.next').textContent = last ? "LOS GEHT'S!" : 'WEITER ›';
+  newsBox.querySelector('.pg').textContent = newsPages.length > 1 ? `Seite ${newsPage + 1}/${newsPages.length}` : '';
+}
+function newsNext() { if (newsBox && newsPage < newsPages.length - 1) { newsPage++; showNewsPage(); sfx.move(); } else onUI('newsOk'); }
 function closeNews() { if (newsBox) { newsBox.remove(); newsBox = null; } cv.focus(); }
 function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
