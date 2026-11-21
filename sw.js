@@ -1,5 +1,5 @@
 /* PosMaster Offline-Speicher – erzeugt von tools/build-sw.py, nicht von Hand ändern */
-const CACHE = "posmaster-2375d933bb";
+const CACHE = "posmaster-ce4aea3e10";
 const FILES = [
 "./",
 "index.html",
