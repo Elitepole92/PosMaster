@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.1', news: [] },
   { v: '4.3.0', news: [['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt (Glocke auf der Startseite)']] },
   { v: '4.2.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
@@ -1076,7 +1077,7 @@ const NEWS = (() => {
   return CHANGELOG.filter(e => e.news.length && verNum(e.v) > from).reverse();   // älteste (Major) zuerst
 })();
 let news = NEWS.length > 0;
-let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
+let a2hs = TOUCH && !STANDALONE && (() => { try { return localStorage.getItem('bb-a2hs') !== '2'; } catch (e) { return true; } })();   // '2' = nach 4.3 nochmal gezeigt
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
 const DIFFS = [
   { name: 'LEICHT', think: [24, 42], shield: 0.015, atk: 0.55, fin: 0.4 },
@@ -1672,7 +1673,7 @@ function onUI(id) {
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'newsOk': news = false; try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
-    case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '1'); } catch (e) { /* egal */ } sfx.confirm(); break;
+    case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '2'); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
     case 'back': if (isOnline()) { leaveOnline(); break; } scene = 'title'; sfx.select(); break;
     case 'go':
@@ -1817,8 +1818,8 @@ function step() {
   if (isPortrait()) { pressed.clear(); return; }   // Hochformat: Spiel hält an
   if (!touchActive() && (touchHeld.size || pointers.size || JOY.id !== null)) releaseAll();
   if (pressed.has('KeyM')) onUI('mute');
-  if (scene === 'title' && pushAsk && !a2hs && !news && !HS.show && !fbOpen && frame > 90) openPush();   // einmal fragen
-  if (HS.entry || fbOpen || pushOpen) { pressed.clear(); return; }   // Namens- bzw. Feedback-Eingabe offen
+  if (scene === 'title' && pushAsk && !a2hs && !news && !HS.show && !fbOpen && !reOpen && frame > 90) openPush();   // einmal fragen
+  if (HS.entry || fbOpen || pushOpen || reOpen) { pressed.clear(); return; }   // Namens- bzw. Feedback-Eingabe offen
   if (HS.show && ['Escape', 'Enter', 'Space'].some(k => pressed.has(k))) { onUI('hsClose'); pressed.clear(); return; }
   if (scene === 'title') stepTitle();
   else if (scene === 'online') stepOnlineLobby();
@@ -2207,10 +2208,10 @@ async function flushStats() {
 }
 // Feedback-Fenster (DOM, damit die Tastatur auf dem Handy aufgeht)
 const fbBox = document.createElement('div');
-fbBox.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:5;background:#17122a;border:3px solid #ffd23f;border-radius:22px;padding:20px 24px;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.7);width:min(560px,90vw);box-sizing:border-box';
-fbBox.innerHTML = '<div style="font:900 30px Impact,\'Arial Black\',sans-serif;color:#ffd23f">💬 FEEDBACK</div>' +
-  '<div style="margin:6px 0 12px;color:#cfcfe0;font-weight:500">Was gefällt dir, was nervt, welche Figur fehlt? Wir lesen alles.</div>' +
-  '<textarea maxlength="1000" rows="5" placeholder="Dein Feedback …" style="width:100%;box-sizing:border-box;font:500 17px system-ui,sans-serif;padding:10px 12px;border-radius:12px;border:2px solid #5a5470;background:#0e0b1c;color:#fff;resize:none"></textarea>' +
+fbBox.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:5;background:#17122a;border:3px solid #ffd23f;border-radius:22px;padding:20px 24px;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.7);width:min(560px,90vw);box-sizing:border-box;max-height:94vh;overflow-y:auto';
+fbBox.innerHTML = '<div style="font:900 26px Impact,\'Arial Black\',sans-serif;color:#ffd23f">💬 FEEDBACK</div>' +
+  '<div style="margin:4px 0 8px;color:#cfcfe0;font-weight:500">Was gefällt dir, was nervt, welche Figur fehlt? Wir lesen alles.</div>' +
+  '<textarea maxlength="1000" rows="3" placeholder="Dein Feedback …" style="width:100%;box-sizing:border-box;font:500 17px system-ui,sans-serif;padding:10px 12px;border-radius:12px;border:2px solid #5a5470;background:#0e0b1c;color:#fff;resize:none"></textarea>' +
   '<input maxlength="20" placeholder="Dein Name (freiwillig)" style="margin-top:8px;width:100%;box-sizing:border-box;font:600 17px system-ui,sans-serif;padding:10px 12px;border-radius:12px;border:2px solid #5a5470;background:#0e0b1c;color:#fff">' +
   '<div class="msg" style="min-height:22px;margin:8px 0;font-size:14px"></div>' +
   '<button class="send" style="font:900 22px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 30px;margin:0 6px">ABSCHICKEN</button>' +
@@ -2293,6 +2294,33 @@ function bellButton(x, y) {   // Glocke neben dem Ton-Knopf: Push an/aus
   if (!on) Ln(c, x - 12, y + 12, x + 12, y - 12, '#ff5a4a', 3);
   ui.push({ id: 'bell', x: x - 26, y: y - 26, w: 52, h: 52 });
 }
+
+// Einmalig für alle, die das Spiel schon als App auf dem Home-Bildschirm haben: neu hinzufügen (neues Icon, Push)
+const GAME_URL = 'https://elitepole92.github.io/PosMaster/buehnen-brawl/';
+let reOpen = false;
+const reBox = document.createElement('div');
+reBox.style.cssText = fbBox.style.cssText + ';width:min(760px,94vw);padding:12px 18px;font-size:15px';
+reBox.innerHTML = '<div style="font:900 24px Impact,\'Arial Black\',sans-serif;color:#ffd23f">📲 BITTE NEU HINZUFÜGEN</div>' +
+  '<div style="margin:4px 0 6px;color:#e8e8f4;font-weight:500">Für neues Icon, Push-Nachrichten und alle Updates das Spiel einmal neu auf den Home-Bildschirm legen:</div>' +
+  '<ol style="text-align:left;margin:0 0 8px;padding-left:22px;color:#fff;font-weight:600;line-height:1.45">' +
+  '<li>Diese App vom Home-Bildschirm löschen (Icon lange drücken → „App entfernen“)</li>' +
+  '<li>Den Link unten in Safari bzw. im Browser öffnen</li>' +
+  (IOS ? '<li>Teilen <span style="color:#3fa9ff">⬆︎</span> → „Zum Home-Bildschirm“ → „Hinzufügen“</li>' : '<li>Browser-Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm“</li>') + '</ol>' +
+  '<div style="font:600 13px ui-monospace,Menlo,monospace;background:#0e0b1c;border:2px solid #5a5470;border-radius:10px;padding:6px;margin-bottom:6px;word-break:break-all;user-select:all;-webkit-user-select:all">' + GAME_URL + '</div>' +
+  '<div class="msg" style="min-height:18px;margin-bottom:4px;font-size:13px;color:#7ad15a"></div>' +
+  '<button class="open" style="font:900 20px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 16px;margin:3px">IM BROWSER ÖFFNEN</button>' +
+  '<button class="copy" style="font:700 16px system-ui,sans-serif;background:#5bc8ff;color:#0d1a2a;border:0;border-radius:14px;padding:10px 16px;margin:3px">Link kopieren</button>' +
+  '<button class="later" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 16px;margin:3px">Später</button>';
+document.body.appendChild(reBox);
+function closeRe() { reOpen = false; reBox.style.display = 'none'; try { localStorage.setItem('bb-reinstall', '1'); } catch (e) { /* egal */ } cv.focus(); }
+reBox.querySelector('.open').addEventListener('click', () => { window.open(GAME_URL + '?von=app', '_blank'); });
+reBox.querySelector('.copy').addEventListener('click', async () => {
+  const m = reBox.querySelector('.msg');
+  try { await navigator.clipboard.writeText(GAME_URL); m.textContent = '✓ Link kopiert – jetzt in Safari einfügen'; }
+  catch (e) { m.textContent = 'Kopieren ging nicht – Link oben gedrückt halten und kopieren'; }
+});
+reBox.querySelector('.later').addEventListener('click', closeRe);
+if (TOUCH && STANDALONE && (() => { try { return !localStorage.getItem('bb-reinstall'); } catch (e) { return false; } })()) { reOpen = true; reBox.style.display = 'block'; }
 
 /* ---------------- Maus & Touch ---------------- */
 // Touch: links ein Joystick (laufen, nach oben schnippen = springen, nach unten = Schild/durchfallen),
