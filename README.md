@@ -40,7 +40,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 
 **iPhone / iPad:** links ein Joystick (ziehen = laufen, nach oben = springen, nach unten = Schild), rechts Sprung, Schlag, Schild und Finisher (blinkt, wenn er bereit ist). Nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
 
-**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
+**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
 **Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht; dann trägt er seinen Namen ein. In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
 
@@ -62,7 +62,7 @@ Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera ku
 
 **Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Symbol am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **⏩ Tempo** (grün) = schneller, **🛡️ Schild** (blau) = weniger Schaden und Rückstoß, **⚡ Energy** (gelb) = stärkere Schläge und schnellere Finisher-Leiste.
 
-**Auswertung & Feedback:** Jedes fertige Spiel (online jedes Duell einmal) wird anonym hochgeladen – Kämpfer, Sieger, Kampfzeit, Schaden, Treffer, Finisher, Modus, Version. Feedback von der Startseite landet ebenfalls in Firestore (Dokumente `sync/brawlstats1-JJJJwWW` pro Woche und `sync/brawlfeedback1`). Ansehen unter **`buehnen-brawl/admin.html`** (https://elitepole92.github.io/PosMaster/buehnen-brawl/admin.html): Siegquoten pro Kämpfer, Duell-Tabelle, Kampfzeiten und alle Feedbacks. Die Seite ist nicht verlinkt, aber auch nicht passwortgeschützt.
+**Auswertung & Feedback:** Jedes fertige Spiel (online jedes Duell einmal) wird anonym hochgeladen – Kämpfer, Sieger, Kampfzeit, Schaden, Treffer, Finisher, Modus, Version. Feedback von der Startseite landet ebenfalls in Firestore (Dokumente `sync/brawlJJJJwWW` pro Woche und `sync/brawlfeedbk1` – die Firestore-Regeln erlauben nur Namen mit genau 12 Zeichen aus a–z/0–9). Ansehen unter **`buehnen-brawl/admin.html`** (https://elitepole92.github.io/PosMaster/buehnen-brawl/admin.html): Siegquoten pro Kämpfer, Duell-Tabelle, Kampfzeiten und alle Feedbacks. Die Seite ist nicht verlinkt, aber auch nicht passwortgeschützt.
 
 **Versionen:** `MAJOR.MINOR.PATCH` (Major = großes Update wie neue Kämpfer, Minor = neue Funktionen, Patch = Bugfix). Gepflegt in `CHANGELOG` oben im Spielcode; die oberste Zeile ist die aktuelle Version (unten rechts auf der Startseite). Das Update-Fenster zeigt nur die Neuerungen der neuesten Version – reine Bugfix-Versionen bleiben stumm.
 

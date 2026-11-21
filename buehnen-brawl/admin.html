@@ -67,7 +67,7 @@ const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + 
 function weekId(ms) {
   const d = new Date(ms); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
-  return 'brawlstats1-' + y + 'w' + String(w).padStart(2, '0');
+  return 'brawl' + y + 'w' + String(w).padStart(2, '0');   // Firestore-Regel: genau 12 Zeichen, a–z/0–9
 }
 async function load(id) {
   const r = await fetch(BASE + id + '?' + KEY, { cache: 'no-store' });
@@ -83,7 +83,7 @@ async function reload() {
     for (let i = 0; i < n; i++) ids.add(weekId(Date.now() - i * 7 * 864e5));
     const docs = await Promise.all([...ids].map(load));
     ALL = docs.flatMap(d => Array.isArray(d.r) ? d.r : []);
-    FB = ((await load('brawlfeedback1')).f || []).slice().reverse();
+    FB = ((await load('brawlfeedbk1')).f || []).slice().reverse();
     const vers = [...new Set(ALL.map(r => r.v))].sort().reverse(), cur = $('ver').value;
     $('ver').innerHTML = '<option value="">alle</option>' + vers.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
     $('status').textContent = 'Stand: ' + new Date().toLocaleString('de-DE');
