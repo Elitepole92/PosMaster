@@ -1,6 +1,6 @@
 {
   "name": "Backstage Brawl",
-  "short_name": "Brawl",
+  "short_name": "Backstage Brawl",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",
