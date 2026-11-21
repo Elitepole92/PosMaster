@@ -26,12 +26,10 @@ Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt wer
 `sw.js` (Service Worker) speichert beim ersten Öffnen alle App-Dateien auf dem Gerät, danach läuft die App auch ohne Netz. `index.html` und `data.js` werden zuerst aus dem Netz geholt (Updates), bei Funkloch nach 4 s aus dem Speicher.
 **Nach jeder Änderung an App-Dateien `python3 tools/build-sw.py` ausführen**, damit die Geräte die neuen Dateien bekommen.
 
-## Bonus: Bühnen-Brawl (`buehnen-brawl/`)
-Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` öffnen.
+## Bonus: Backstage Brawl (`buehnen-brawl/`)
+Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. Einfach `buehnen-brawl/index.html` öffnen (der Ordnername bleibt, damit bestehende Links und Home-Bildschirm-Apps weiter funktionieren).
 
-**Startmenü:** *1 Spieler* (gegen den Computer, CPU-Stärke leicht/mittel/schwer) oder *2 Spieler* (zu zweit an einer Tastatur), dazu die Anzahl der Leben. `M` schaltet den Ton an/aus.
-
-**Mac / PC:** Tastatur.
+**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*. CPU-Stärke und Gadgets stellt man danach in der Kämpferwahl ein (Tasten C, X oder antippen). Gespielt wird immer mit 3 Leben. `M` schaltet den Ton an/aus.
 
 | | P1 | P2 |
 |---|---|---|
@@ -40,15 +38,27 @@ Kleines Plattform-Prügelspiel im Browser. Einfach `buehnen-brawl/index.html` ö
 | Schlag | `F` | `K` (oder Numpad 1) |
 | Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
-**iPhone / iPad:** Das Spiel erkennt Touch-Geräte automatisch und zeigt Touch-Buttons (◀ ▶, Sprung, Schlag, Schild, Finisher). Dort gibt es nur den Einzelspieler-Modus, gespielt wird im Querformat. In Safari über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App (Manifest + Icons liegen im Ordner).
+**iPhone / iPad:** Touch-Buttons, nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
+
+**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
+
+**Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht; dann trägt er seinen Namen ein. In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
 
 | Kämpfer | Typ | Finisher |
 |---|---|---|
-| **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht – Zigarettenrauch, Gegner hustet |
-| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun – Stromschlag |
+| **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht |
+| **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun |
 | **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
-| **Crew Rigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
-| **Gerch** | Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille | 180 dB Überschallknall – Druckwelle in alle Richtungen |
-| **Caterin** | klein, pummelig, Hygienehaube, weiße Kochjacke mit Schürze | Jeder nur eins!!!!!!! – Käsebrötchen- und Teilchen-Hagel |
+| **Headrigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
+| **Gerch** | Tontechniker mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
+| **Projektleiterin** | Senior PL, Mitte 30, Handy am Ohr, Laptop | Angebot abgelehnt – Riesenstempel |
+| **Messebauer** | riesige Boombox, Akkuschrauber, Gummihammer | KURWA! – Gummihammer-Kombo |
+| **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – im ruhigsten Moment |
+
+Die Caterin ist im Code noch enthalten, aber gerade nicht auswählbar (`hidden: true` im Roster).
+
+Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera kurz heran.
+
+**Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Symbol am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **⏩ Tempo** (grün) = schneller, **🛡️ Schild** (blau) = weniger Schaden und Rückstoß, **⚡ Energy** (gelb) = stärkere Schläge und schnellere Finisher-Leiste.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
