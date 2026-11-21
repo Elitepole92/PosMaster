@@ -301,9 +301,10 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
   </header>
   <div class="menu" id="menu" role="menu" aria-hidden="true">
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
+    <button class="mi" role="menuitem" data-m="desa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg><span>DESA-Link einstellen<small id="desaSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.18 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.19 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -612,6 +613,7 @@ function todoToggle(id,silent){ var t=todoFind(id); if(!t) return; var ts=now();
   else if(!silent) snack("POS "+id+" wieder offen",function(){ todoToggle(id,true); }); }
 var snackFn=null, snackTm=null;
 function snack(msg,undo){ var el=document.getElementById("snack"); document.getElementById("snackT").textContent=msg; snackFn=undo;
+  document.getElementById("snackB").style.display=undo?"":"none";
   el.classList.add("show"); clearTimeout(snackTm); snackTm=setTimeout(function(){ el.classList.remove("show"); snackFn=null; },5000); }
 document.addEventListener("click",function(e){ if(e.target.id==="snackB"){ var f=snackFn; snackFn=null; document.getElementById("snack").classList.remove("show"); if(f) f(); } });
 function todoRemove(id){ var t=todoFind(id); if(!t) return; t.del=true; t.t=now(); todoSave(); rerenderList(); }
@@ -739,7 +741,23 @@ function menuOpen(on){ menu.classList.toggle("open",on); menu.setAttribute("aria
   if(on){ var nv=document.querySelector(".nav");
     if(getComputedStyle(nv).position==="fixed"){ menu.style.top="auto"; menu.style.bottom=(nv.offsetHeight+6)+"px"; }
     else { var r=document.getElementById("top").getBoundingClientRect(); menu.style.bottom="auto"; menu.style.top=(r.bottom+6)+"px"; }
-    uiLabel(); Sync.ui(); } }
+    uiLabel(); desaLabel(); Sync.ui(); } }
+/* DESA-App öffnen: Link-Vorlage mit {pos}, POS-Nummer zusätzlich in die Zwischenablage */
+var DESA_DEFAULT="desa://search?q={pos}";
+function desaTpl(){ return lsGet("desaTpl","")||DESA_DEFAULT; }
+function desaLabel(){ var el=document.getElementById("desaSt"); if(el) el.textContent=desaTpl(); }
+function desaEdit(){ var v=prompt("Link zur DESA-App. {pos} wird durch die POS-Nummer ersetzt.\nLeer lassen = Standard ("+DESA_DEFAULT+")",desaTpl()); if(v===null) return;
+  v=v.trim(); lsSet("desaTpl",v===DESA_DEFAULT?"":v); desaLabel(); }
+function desaOpen(id){
+  var url=desaTpl().split("{pos}").join(encodeURIComponent(id)), copied=false;
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(String(id)).then(function(){},function(){}); copied=true; } }catch(e){}
+  var left=false, onHide=function(){ if(document.hidden) left=true; };
+  document.addEventListener("visibilitychange",onHide);
+  setTimeout(function(){ document.removeEventListener("visibilitychange",onHide);
+    if(!left) snack("DESA hat sich nicht geöffnet. Ist die App installiert? Link im Menü unter „DESA-Link einstellen“ anpassen.",null);
+    else if(copied) snack("POS "+id+" ist kopiert – in DESA ins Suchfeld tippen und „Einsetzen“.",null); },1800);
+  location.href=url;
+}
 function uiLabel(){ var m=window.__uiMode, a=window.__uiAuto==="phone"?"iPhone":"iPad";
   $("#uiSt").textContent = m==="auto" ? "Automatisch · "+a+" erkannt" : (m==="phone"?"iPhone (fest eingestellt)":"iPad (fest eingestellt)"); }
 function setUiMode(m){ window.__uiMode=m; try{ localStorage.setItem("uiMode",m); }catch(e){}
@@ -751,6 +769,7 @@ document.addEventListener("click",function(e){ if(menu.classList.contains("open"
 menu.addEventListener("click",function(e){ var b=e.target.closest("[data-m]"); if(!b) return; menuOpen(false);
   if(b.dataset.m==="sync") openSync();
   if(b.dataset.m==="reload") location.reload();
+  if(b.dataset.m==="desa") desaEdit();
   if(b.dataset.m==="ui"){ var nx={auto:"phone",phone:"tablet",tablet:"auto"}[window.__uiMode]||"auto"; setUiMode(nx); setTimeout(function(){ menuOpen(true); },50); } });
 function openSync(){ syncM.classList.add("open"); syncM.setAttribute("aria-hidden","false"); $("#syncIn").value=""; Sync.ui(); Sync.run(); }
 function closeSync(){ syncM.classList.remove("open"); syncM.setAttribute("aria-hidden","true"); }
@@ -823,7 +842,7 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button><button class="btn" id="sPin"></button><button class="btn sec" id="sDesa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>'+(isPhone()?"DESA":"In DESA öffnen")+'</button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
@@ -832,6 +851,7 @@ function openPos(id,push){
   $("#sTodo").addEventListener("click",function(){ if(todoFind(id)) todoRemove(id); else todoAdd(id); });
   $("#sPin").addEventListener("click",function(){ pinToggle(id); });
   $("#sDone").addEventListener("click",function(){ todoToggle(id); });
+  $("#sDesa").addEventListener("click",function(){ desaOpen(id); });
   sheetTodoUi(id);
   openSheet(id,push);
 }
