@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.6', news: [] },
   { v: '4.3.5', news: [] },
   { v: '4.3.4', news: [] },
   { v: '4.3.3', news: [] },
@@ -3394,6 +3395,27 @@ function loop(now) {
 requestAnimationFrame(loop);
 cv.focus();
 hsLoad();   // Bestenliste für die Startseite laden
+// Selbst-Update: iOS lässt Home-Bildschirm-Apps tagelang im Hintergrund offen und lädt sie nie neu.
+// Darum beim Start, beim Zurückkehren und alle 10 Minuten die Version auf dem Server prüfen und – nur außerhalb des Kampfes – neu laden.
+let updPending = null;
+async function checkUpdate() {
+  if (location.protocol === 'file:') return;
+  try {
+    const r = await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' });
+    const m = (await r.text()).match(/CHANGELOG = \[\s*\{ v: '([\d.]+)'/);
+    if (m && verNum(m[1]) > verNum(GAME_VERSION)) updPending = m[1];
+  } catch (e) { /* offline – egal */ }
+}
+function applyUpdate() {
+  if (!updPending || !(scene === 'title' || scene === 'select' || scene === 'results') || isOnline() || HS.entry || fbOpen) return;
+  let tried = null; try { tried = sessionStorage.getItem('bb-upd'); } catch (e) { /* egal */ }
+  if (tried === updPending) return;   // schon versucht – keine Endlosschleife, falls der Server noch die alte Datei liefert
+  try { sessionStorage.setItem('bb-upd', updPending); } catch (e) { /* egal */ }
+  const u = new URL(location.href); u.searchParams.set('v', updPending); location.replace(u.toString());
+}
+checkUpdate(); setInterval(checkUpdate, 600000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+setInterval(applyUpdate, 2000);
 flushStats();   // noch nicht hochgeladene Spiele nachreichen
 if (pushPerm() === 'granted') pushSubscribe().catch(() => {});   // Anmeldung aktuell halten
 // Einladungslink aus dem QR-Code: ?join=1234 tritt direkt dem Raum bei
