@@ -914,7 +914,7 @@ function drawStamp(c, x, y, a) {
 /* ---------------- Roster ---------------- */
 const ROSTER = [
   {
-    id: 'hamster', name: 'MEDIEN HAMSTER', short: 'Hamster', w: 48, h: 74,
+    id: 'hamster', lobby: 'Juckt die Fresse?', name: 'MEDIEN HAMSTER', short: 'Hamster', w: 48, h: 74,
     speed: 5.2, airSpeed: 5, airAcc: 0.6, jump: 13.6, airJump: 12.2, airJumps: 2, grav: 0.64, maxFall: 11, fastFall: 17, weight: 1.0,
     color: '#a45cff', color2: '#dcc2ff', hitColor: '#d6a8ff', stats: [3, 4, 2], pt: [10, -44, 1.05],
     atk: { name: 'Pfoten-Hieb', s: 4, a: 5, r: 11, dmg: 7, kb: 5.4, scale: 0.12, ang: 40, meter: 20, lunge: 4, box: { x: 8, y: -62, w: 48, h: 52 } },
@@ -923,7 +923,7 @@ const ROSTER = [
     draw: (c, f, A) => drawHamster(c, f, A)
   },
   {
-    id: 'hm', name: 'HALLENMEISTER', short: 'Hallenmeister', w: 46, h: 110,
+    id: 'hm', lobby: 'Aufzug ist geschlossen!', name: 'HALLENMEISTER', short: 'Hallenmeister', w: 46, h: 110,
     speed: 5.8, airSpeed: 4.6, airAcc: 0.52, jump: 13.4, airJump: 11.8, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.9,
     color: '#3a78e0', color2: '#b4cfff', hitColor: '#7fd3ff', stats: [2, 3, 4], pt: [19, -97, 1.6],
     atk: { name: 'Klemmbrett-Klatsche', s: 6, a: 6, r: 11, dmg: 10, kb: 5.6, scale: 0.125, ang: 50, meter: 20, lunge: 3, box: { x: 8, y: -98, w: 72, h: 72 } },
@@ -950,7 +950,7 @@ const ROSTER = [
     style: S_RIGGER, draw: (c, f, A) => drawHuman(c, f, A, S_RIGGER)
   },
   {
-    id: 'gerch', name: 'GERCH', short: 'Gerch', w: 44, h: 108,
+    id: 'gerch', lobby: 'Espresso und Kippe, lecker Frühstück.', name: 'GERCH', short: 'Gerch', w: 44, h: 108,
     speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.94,
     color: '#ff7a1a', color2: '#ffd0a8', hitColor: '#ffb070', stats: [3, 3, 3], pt: [7, -95, 1.6],
     atk: { name: 'XLR-Peitsche', s: 6, a: 5, r: 12, dmg: 9, kb: 5.3, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
@@ -968,7 +968,7 @@ const ROSTER = [
     style: S_CATERER, draw: (c, f, A) => drawHuman(c, f, A, S_CATERER)
   },
   {
-    id: 'pm', name: 'PROJEKTLEITERIN', short: 'Projektleiterin', w: 38, h: 112,
+    id: 'pm', lobby: 'Überstunden kannste knicken.', name: 'PROJEKTLEITERIN', short: 'Projektleiterin', w: 38, h: 112,
     speed: 5.6, airSpeed: 4.8, airAcc: 0.55, jump: 13.4, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.9,
     color: '#4cc26a', color2: '#c4f0cc', hitColor: '#8fe0a0', stats: [3, 3, 3], pt: [4, -101, 1.6],
     atk: { name: 'Laptop-Klatsche', s: 5, a: 5, r: 12, dmg: 8, kb: 5.4, scale: 0.12, ang: 45, meter: 20, lunge: 2, box: { x: 8, y: -100, w: 66, h: 66 } },
@@ -977,7 +977,7 @@ const ROSTER = [
     style: S_PM, draw: (c, f, A) => drawHuman(c, f, A, S_PM)
   },
   {
-    id: 'mb', name: 'MESSEBAUER', short: 'Messebauer', w: 46, h: 108,
+    id: 'mb', lobby: 'Kurwa.', name: 'MESSEBAUER', short: 'Messebauer', w: 46, h: 108,
     speed: 5.1, airSpeed: 4.6, airAcc: 0.5, jump: 13, airJump: 11.6, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 1.0,
     color: '#b07a3a', color2: '#f0d2a8', hitColor: '#ffcf70', stats: [2, 4, 3], pt: [8, -97, 1.6],
     atk: { name: 'Schrauber-Stich', s: 5, a: 6, r: 12, dmg: 8, kb: 5, scale: 0.12, ang: 35, meter: 20, lunge: 3, box: { x: 10, y: -84, w: 64, h: 52 } },
@@ -986,7 +986,7 @@ const ROSTER = [
     style: S_MB, draw: (c, f, A) => drawHuman(c, f, A, S_MB)
   },
   {
-    id: 'op', name: 'OPERATOR', short: 'Operator', w: 32, h: 122,
+    id: 'op', lobby: 'Hmm, Lee 728 oder 504? Naja, erstmal Rechnung schreiben.', name: 'OPERATOR', short: 'Operator', w: 32, h: 122,
     speed: 6.0, airSpeed: 5.3, airAcc: 0.6, jump: 14.2, airJump: 12.6, airJumps: 2, grav: 0.64, maxFall: 12, fastFall: 18, weight: 1.1,
     color: '#47d6ff', color2: '#c4f2ff', hitColor: '#9be8ff', stats: [4, 1, 4], pt: [-1, -112, 1.6],
     atk: { name: 'Schal-Peitsche', s: 5, a: 5, r: 12, dmg: 7, kb: 5.2, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 6, y: -104, w: 72, h: 60 } },
@@ -996,7 +996,7 @@ const ROSTER = [
     style: S_OP, draw: (c, f, A) => drawHuman(c, f, A, S_OP)
   },
   {
-    id: 'it', name: 'IT-LER', short: 'ITler', w: 34, h: 124,
+    id: 'it', lobby: 'Mac ist was für Loser, ich arbeite seit 1992 auf Ubuntu.', name: 'IT-LER', short: 'ITler', w: 34, h: 124,
     speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.13,
     color: '#3dff7a', color2: '#d0ffdc', hitColor: '#8dffae', stats: [3, 2, 4], pt: [5, -112, 1.6],
     atk: { name: 'Tastatur-Klatsche', s: 5, a: 5, r: 13, dmg: 7, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 8, y: -102, w: 74, h: 64 } },
@@ -1045,6 +1045,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.1.2', news: [] },
   { v: '4.1.1', news: [] },
   { v: '4.1.0', news: [['🎨', 'Neues App-Icon und aufgeräumte Startseite']] },
   { v: '4.0.0', chars: ['it'], news: [
@@ -1716,7 +1717,7 @@ function stepWalkers() {
     const busy = walkers.map(w => w.d.id), free = PICK().map(i => ROSTER[i]).filter(d => !busy.includes(d.id));
     if (walkers.length < 3 && free.length) {
       const d = pick(free), dir = Math.random() < 0.5 ? 1 : -1;
-      let mode = pick(['walk', 'walk', 'run', 'hop', 'talk', 'talk', 'swing']);
+      let mode = pick(d.lobby ? ['walk', 'run', 'hop', 'talk', 'talk', 'talk', 'swing'] : ['walk', 'walk', 'run', 'hop', 'talk', 'talk', 'swing']);
       if (d.id === 'cemil' && Math.random() < 0.5) mode = 'drive';
       walkers.push({ d, dir, mode, x: dir > 0 ? -90 : W + 90, y: 0, vy: 0, t: rand(0, 50), st: 0, stopX: rand(320, 960), said: null });
     }
@@ -1729,7 +1730,7 @@ function stepWalkers() {
     if (atStop) w.st = 1;
     if (w.st > 0 && w.st < (w.mode === 'talk' ? 170 : 70)) {   // stehen bleiben: Spruch oder kurzer Luftschlag
       w.st++;
-      if (w.mode === 'talk' && w.st === 10) w.said = pick(w.d.quotes);
+      if (w.mode === 'talk' && w.st === 10) w.said = w.d.lobby || pick(w.d.quotes);   // Startseiten-Spruch
       if (w.st === 30 || w.st === 52) w.at = 1;
       continue;
     }
@@ -2812,7 +2813,7 @@ function drawTitle() {
   c.save(); c.shadowColor = 'rgba(91,200,255,' + (0.35 + fp * 0.35) + ')'; c.shadowBlur = 18;
   RR(c, 690, 452, 380, 60, 18, '#5bc8ff'); c.restore();
   c.textAlign = 'center'; c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', 880, 482);
-  c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#16324a'; c.fillText('Lob, Kritik, Ideen – wir lesen alles', 880, 501);
+  c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', 880, 501);
   ui.push({ id: 'feedback', x: 690, y: 452, w: 380, h: 60 });
   muteButton(1232, 44);
   c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
