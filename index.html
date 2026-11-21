@@ -23,7 +23,7 @@
 <style>
 :root{
   --bg:#f3f4f6; --panel:#ffffff; --ink:#15191e; --muted:#5d6670; --line:#e1e4e8;
-  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f; --pink:#e0218a; --done:#1f9d55; --done-bg:#e8f7ee; --done-line:#a6dcbb; --pink-bg:#ffeaf5; --pink-line:#f7a8d3;
+  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f; --pink:#e0218a; --done:#1f9d55; --done-bg:#e8f7ee; --done-line:#a6dcbb; --set:#2563eb; --pink-bg:#ffeaf5; --pink-line:#f7a8d3;
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
@@ -127,6 +127,14 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .todomode .spot{opacity:.18}
 /* Pink-Markierung */
 .spot.tdone{opacity:1!important;background:rgba(31,157,85,.3);box-shadow:inset 0 0 0 3px var(--done),0 0 0 7px rgba(31,157,85,.35),0 0 16px 10px rgba(31,157,85,.3)}
+.spot.set::after{content:"";position:absolute;right:-9px;top:-9px;width:20px;height:20px;border-radius:50%;background:var(--set) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat;box-shadow:0 0 0 2px #fff;pointer-events:none}
+.setb{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:50%;background:var(--set);color:#fff;margin-left:6px;vertical-align:-3px;flex-shrink:0}
+.setb svg{width:12px;height:12px}
+.item .no{display:inline-flex;align-items:center}
+.btn.set-off{flex:0 0 auto;padding:0 14px;background:var(--panel);color:var(--set);border-color:var(--set)}
+.btn.set-on{flex:0 0 auto;padding:0 14px;background:var(--set);border-color:var(--set);color:#fff}
+#sTitle .setb{width:22px;height:22px;vertical-align:-2px}
+#sTitle .setb svg{width:14px;height:14px}
 .spot.pin{opacity:1!important;background:rgba(224,33,138,.32);box-shadow:inset 0 0 0 3px var(--pink),0 0 0 7px rgba(224,33,138,.35),0 0 16px 10px rgba(224,33,138,.3)}
 .todomode .spot.pin.todo{box-shadow:inset 0 0 0 3px var(--pink),0 0 0 5px var(--todo)}
 .tbtn.pin{width:48px;color:#b9c0c8}
@@ -316,7 +324,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     <button class="mi" role="menuitem" data-m="desa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg><span>DESA-Link einstellen<small id="desaSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.20 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.21 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -474,7 +482,7 @@ function fitTodos(P){
 }
 function markTodos(){
   Object.keys(plans).forEach(function(k){ var Q=plans[k], open=0;
-    Q.stage.querySelectorAll(".spot").forEach(function(b){ var t=todoFind(b.dataset.id); b.classList.toggle("todo",!!t); b.classList.toggle("tdone",!!(t&&t.done)); b.classList.toggle("pin",pinOn(b.dataset.id)); });
+    Q.stage.querySelectorAll(".spot").forEach(function(b){ var t=todoFind(b.dataset.id); b.classList.toggle("todo",!!t); b.classList.toggle("tdone",!!(t&&t.done)); b.classList.toggle("pin",pinOn(b.dataset.id)); b.classList.toggle("set",setOn(b.dataset.id)); });
     todoSpots(Q).forEach(function(s){ if(!todoFind(s.id).done) open++; });
     Q.fab.querySelector('[data-a="todos"] .badge').textContent=open?String(open):""; });
 }
@@ -612,6 +620,12 @@ function todoSave(){ lsSet("todo",JSON.stringify(todoAll)); Sync.schedule(); }
 function cleanPins(o){ var r={}; if(o&&typeof o==="object"&&!Array.isArray(o)) Object.keys(o).forEach(function(k){ var v=o[k]; if(v&&byId[k]) r[k]={on:!!v.on,t:+v.t||0}; }); return r; }
 var pinsAll=(function(){ try{ return cleanPins(JSON.parse(lsGet("pins","{}"))); }catch(_){ return {}; } })();
 function pinOn(id){ return !!(pinsAll[id]&&pinsAll[id].on); }
+var setsAll=(function(){ try{ return cleanPins(JSON.parse(lsGet("sets","{}"))); }catch(_){ return {}; } })();
+function setOn(id){ return !!(setsAll[id]&&setsAll[id].on); }
+function setToggle(id,silent){ var on=!setOn(id); setsAll[id]={on:on,t:now()}; lsSet("sets",JSON.stringify(setsAll)); Sync.schedule(); rerenderList();
+  if(!silent) snack("POS "+id+(on?" ist Set ✓":" nicht mehr Set"),function(){ setToggle(id,true); }); }
+var ICON_SETB='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>', ICON_CIRC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"></circle></svg>';
+function setBadge(id){ return setOn(id)?'<i class="setb" title="Set">'+ICON_SETB+'</i>':''; }
 function pinToggle(id){ pinsAll[id]={on:!pinOn(id),t:now()}; lsSet("pins",JSON.stringify(pinsAll)); Sync.schedule(); rerenderList(); }
 var ICON_FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4.5L17 13H5"></path></svg>', ICON_FLAGF='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4" fill="none"></path><path d="M5 4h12l-2.5 4.5L17 13H5z"></path></svg>';
 function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; if(typeof sheetTodoUi==="function"&&openId) sheetTodoUi(openId); markTodos(); }
@@ -638,7 +652,7 @@ function removedHtml(){
   if(!gone.length) return "";
   return '<div class="group removed" id="removedGroup"><h2><span>Entfernte To-dos ('+gone.length+')</span></h2><div class="removed-note">Mit ↶ zurück auf die To-do-Liste holen. Einträge verschwinden hier nach 60 Tagen.</div>'+
     gone.map(function(t){ var e=byId[t.id], when=new Date(t.t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+new Date(t.t).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
-      return '<div class="row gone" data-id="'+esc(e.id)+'"><button class="tbtn" data-a="restore" aria-label="POS '+esc(e.id)+' zurückholen">'+ICON_UNDO+'</button><button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+
+      return '<div class="row gone" data-id="'+esc(e.id)+'"><button class="tbtn" data-a="restore" aria-label="POS '+esc(e.id)+' zurückholen">'+ICON_UNDO+'</button><button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+setBadge(e.id)+'</span><span class="t">'+esc(e.title||"")+
         '<small>'+(t.done?"erledigt · ":"")+'entfernt '+when+'</small></span><span class="chev">›</span></button></div>'; }).join("")+'</div>';
 }
 function todoHtml(){
@@ -712,26 +726,28 @@ var Sync=(function(){
     if(navigator.onLine===false){ set("offline"); return; }
     busy=true; set("sync"); var c=code;
     fetch(url(c),{cache:"no-store"}).then(function(r){
-      if(r.status===404) return {exists:false,items:[],devs:{},pins:{}};
+      if(r.status===404) return {exists:false,items:[],devs:{},pins:{},sets:{}};
       if(!r.ok) throw new Error("GET "+r.status);
-      return r.json().then(function(d){ var items=[], dv={}, pn={}; try{ var j=JSON.parse(d.fields.data.stringValue);
-          if(Array.isArray(j)) items=cleanTodos(j); else { items=cleanTodos(j.items); dv=cleanDevs(j.devices); pn=cleanPins(j.pins); } }catch(_){}
-        return {exists:true,updateTime:d.updateTime,items:items,devs:dv,pins:pn}; });
+      return r.json().then(function(d){ var items=[], dv={}, pn={}, sn={}; try{ var j=JSON.parse(d.fields.data.stringValue);
+          if(Array.isArray(j)) items=cleanTodos(j); else { items=cleanTodos(j.items); dv=cleanDevs(j.devices); pn=cleanPins(j.pins); sn=cleanPins(j.sets); } }catch(_){}
+        return {exists:true,updateTime:d.updateTime,items:items,devs:dv,pins:pn,sets:sn}; });
     }).then(function(rem){
       if(c!==code){ again=true; return; }
       var merged=merge(todoAll,rem.items);
       var mpins=mergePins(pinsAll,rem.pins), chg=false;
       if(pinCanon(mpins)!==pinCanon(pinsAll)){ pinsAll=mpins; lsSet("pins",JSON.stringify(pinsAll)); chg=true; }
+      var msets=mergePins(setsAll,rem.sets);
+      if(pinCanon(msets)!==pinCanon(setsAll)){ setsAll=msets; lsSet("sets",JSON.stringify(setsAll)); chg=true; }
       if(canon(merged)!==canon(todoAll)){ todoAll=merged; lsSet("todo",JSON.stringify(todoAll)); chg=true; }
       if(chg) rerenderList();
       var mine=rem.devs[me], t=now();
       var meEntry=(!mine||mine.n!==myName||t-mine.s>5*60000)?{n:myName,s:t}:mine;
       var o={}; o[me]=meEntry; var mdev=mergeDevs(rem.devs,o);
       devs=mdev; lsSet("syncDevs",JSON.stringify(devs));
-      if(rem.exists && canon(merged)===canon(rem.items) && devCanon(mdev)===devCanon(rem.devs) && pinCanon(mpins)===pinCanon(rem.pins)) return;
+      if(rem.exists && canon(merged)===canon(rem.items) && devCanon(mdev)===devCanon(rem.devs) && pinCanon(mpins)===pinCanon(rem.pins) && pinCanon(msets)===pinCanon(rem.sets)) return;
       var pre=rem.exists?"&currentDocument.updateTime="+encodeURIComponent(rem.updateTime):"&currentDocument.exists=false";
       return fetch(url(c)+pre,{method:"PATCH",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify({v:2,items:merged,devices:mdev,pins:mpins})},updated:{integerValue:String(now())}}})}).then(function(r){
+        body:JSON.stringify({fields:{data:{stringValue:JSON.stringify({v:2,items:merged,devices:mdev,pins:mpins,sets:msets})},updated:{integerValue:String(now())}}})}).then(function(r){
         if((r.status===400||r.status===409||r.status===412) && tries<3){ tries++; again=true; return; }
         if(!r.ok) throw new Error("PATCH "+r.status);
       });
@@ -799,7 +815,7 @@ function item(e,inTodo){
             : '<button class="tbtn add" data-a="add" aria-label="Zur To-do-Liste hinzufügen">'+ICON_PLUS+'</button>';
   var rm=inTodo ? '<button class="tbtn rm" data-a="remove" aria-label="Aus To-do-Liste entfernen">'+ICON_X+'</button>' : '';
   var pn=pinOn(e.id), pb='<button class="tbtn pin" data-a="pin" aria-pressed="'+(pn?"true":"false")+'" aria-label="'+(pn?"Markierung Vorverkabelt entfernen":"Als vorverkabelt markieren")+'">'+(pn?ICON_FLAGF:ICON_FLAG)+'</button>';
-  return '<div class="row'+(t?' todo':'')+(t&&t.done?' done':'')+(pn?' pinned':'')+'" data-id="'+esc(e.id)+'">'+ctl+'<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>'+pb+rm+'</div>';
+  return '<div class="row'+(t?' todo':'')+(t&&t.done?' done':'')+(pn?' pinned':'')+'" data-id="'+esc(e.id)+'">'+ctl+'<button class="item" data-id="'+esc(e.id)+'"><span class="no">'+esc(e.id)+setBadge(e.id)+'</span><span class="t">'+esc(e.title||"")+'<small>'+esc(e.area)+' · S. '+e.page+'</small></span><span class="chev">›</span></button>'+pb+rm+'</div>';
 }
 $("#list").addEventListener("click",function(e){
   var c=e.target.closest("[data-a]");
@@ -854,7 +870,7 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><div class="seg single" id="sSeg"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button></div><button class="btn" id="sPin"></button><button class="btn sec" id="sDesa" aria-label="POS-Nummer kopieren und DESA öffnen">POS<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"></path><path d="M13 6l6 6-6 6"></path></svg>DESA</button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><div class="seg single" id="sSeg"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button></div><button class="btn" id="sSet"></button><button class="btn" id="sPin"></button><button class="btn sec" id="sDesa" aria-label="POS-Nummer kopieren und DESA öffnen">POS<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"></path><path d="M13 6l6 6-6 6"></path></svg>DESA</button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
@@ -862,6 +878,7 @@ function openPos(id,push){
   $("#sBody").querySelectorAll("[data-doc]").forEach(function(b){ b.addEventListener("click",function(){ var pg=+b.dataset.doc; closeSheet(false); show("montage"); openDoc(pg); }); });
   $("#sTodo").addEventListener("click",function(){ if(todoFind(id)) todoRemove(id); else todoAdd(id); });
   $("#sPin").addEventListener("click",function(){ pinToggle(id); });
+  $("#sSet").addEventListener("click",function(){ setToggle(id); });
   $("#sDone").addEventListener("click",function(){ todoToggle(id); });
   $("#sDesa").addEventListener("click",function(){ desaOpen(id); });
   sheetTodoUi(id);
@@ -871,7 +888,9 @@ function docLinks(id){ var l=(D.docs||[]).filter(function(d){ return d.pos.index
   if(!l.length) return "";
   return '<div class="doclinks">'+l.map(function(d){ return '<button class="btn sec" data-doc="'+d.page+'">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>'+esc(d.title)+' · S. '+d.page+'</button>'; }).join("")+'</div>'; }
 function isPhone(){ return document.documentElement.classList.contains("phone"); }
-function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(isPhone()?"Vorverkabelt":(on?"Vorverkabelt ✓":"Vorverkabelt")); pb.setAttribute("aria-pressed",on?"true":"false"); }
+function sheetTodoUi(id){ var sb2=document.getElementById("sSet"); if(sb2){ var so=setOn(id); sb2.className="btn "+(so?"set-on":"set-off"); sb2.innerHTML=(so?ICON_SETB:ICON_CIRC)+"Set"; sb2.setAttribute("aria-pressed",so?"true":"false"); sb2.setAttribute("aria-label",so?"Set-Markierung entfernen":"Als Set markieren (Gerät eingerichtet)"); }
+  var ti=document.getElementById("sTitle"), te=byId[id]; if(ti&&te) ti.innerHTML=esc("POS "+id)+setBadge(id)+esc(te.title?" · "+te.title:"");
+  var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(isPhone()?"Vorverkabelt":(on?"Vorverkabelt ✓":"Vorverkabelt")); pb.setAttribute("aria-pressed",on?"true":"false"); }
   var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
   b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(isPhone()?"To-do":"Auf To-do-Liste"):ICON_PLUS+(isPhone()?"To-do":"Zu To-dos");
