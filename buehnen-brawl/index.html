@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.0', news: [['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt (Glocke auf der Startseite)']] },
   { v: '4.2.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🕹️', 'Joystick nur noch links/rechts – Springen über die Taste'],
@@ -1690,6 +1691,11 @@ function onUI(id) {
     case 'resume': paused = false; sfx.select(); break;
     case 'menu': if (isOnline()) { leaveOnline(); break; } paused = false; scene = 'title'; sfx.select(); hsLoad(); break;
     case 'feedback': sfx.confirm(); openFeedback(); break;
+    case 'bell':
+      if (pushPerm() === 'granted') { showToast('Push ist an ✓'); pushSubscribe().catch(() => {}); }
+      else if (pushPerm() === 'denied') showToast('Benachrichtigungen sind in den Einstellungen blockiert.');
+      else openPush();
+      sfx.select(); break;
     case 'hs': HS.show = true; HS.mark = null; hsLoad(); sfx.confirm(); break;
     case 'hsClose': HS.show = false; sfx.select(); break;
     case 'rematch':
@@ -1811,7 +1817,8 @@ function step() {
   if (isPortrait()) { pressed.clear(); return; }   // Hochformat: Spiel hält an
   if (!touchActive() && (touchHeld.size || pointers.size || JOY.id !== null)) releaseAll();
   if (pressed.has('KeyM')) onUI('mute');
-  if (HS.entry || fbOpen) { pressed.clear(); return; }   // Namens- bzw. Feedback-Eingabe offen
+  if (scene === 'title' && pushAsk && !a2hs && !news && !HS.show && !fbOpen && frame > 90) openPush();   // einmal fragen
+  if (HS.entry || fbOpen || pushOpen) { pressed.clear(); return; }   // Namens- bzw. Feedback-Eingabe offen
   if (HS.show && ['Escape', 'Enter', 'Space'].some(k => pressed.has(k))) { onUI('hsClose'); pressed.clear(); return; }
   if (scene === 'title') stepTitle();
   else if (scene === 'online') stepOnlineLobby();
@@ -2232,6 +2239,60 @@ fbBox.querySelector('.send').addEventListener('click', sendFeedback);
 fbBox.querySelector('.cancel').addEventListener('click', closeFeedback);
 fbText.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') closeFeedback(); });
 fbName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') sendFeedback(); if (e.key === 'Escape') closeFeedback(); });
+
+/* =========================================================================
+   PUSH-NACHRICHTEN – normales Web-Push (iPhone ab iOS 16.4 nur als Home-Bildschirm-App).
+   Anmeldungen landen in „brawlpushes1“; verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
+   ========================================================================= */
+const PUSH_KEY = 'BJlv1FU_VGh9h0LU7qafNUYJcX1agAdF8u71xrDi1h865gu8vYxDTBimpIX9kuskBjxDVX7mOvciDYMjigRalvA';
+const PUSH_OK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
+  (location.hostname.endsWith('github.io') || QS.has('push')) && (!IOS || STANDALONE);
+const pushPerm = () => PUSH_OK ? Notification.permission : 'unsupported';
+let pushAsk = PUSH_OK && pushPerm() === 'default' && (() => { try { return !localStorage.getItem('bb-push'); } catch (e) { return true; } })();
+let pushOpen = false;
+function b64key(k) { const p = '='.repeat((4 - k.length % 4) % 4), raw = atob((k + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...raw].map(ch => ch.charCodeAt(0))); }
+async function pushSubscribe() {
+  const reg = await navigator.serviceWorker.register('push-sw.js'); await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(PUSH_KEY) });
+  const j = sub.toJSON(); let saved = null; try { saved = localStorage.getItem('bb-pushsub'); } catch (e) { /* egal */ }
+  if (saved === j.endpoint) return true;
+  const ok = await fsUpdate('brawlpushes1', d => {
+    const list = (Array.isArray(d.s) ? d.s : []).filter(x => x.e !== j.endpoint);
+    list.push({ e: j.endpoint, k: j.keys, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() });
+    return { s: list.slice(-1000) };
+  });
+  if (ok) try { localStorage.setItem('bb-pushsub', j.endpoint); } catch (e) { /* egal */ }
+  return ok;
+}
+const pushBox = document.createElement('div');
+pushBox.style.cssText = fbBox.style.cssText;
+pushBox.innerHTML = '<div style="font-size:46px;line-height:1">🔔</div><div style="font:900 30px Impact,\'Arial Black\',sans-serif;color:#ffd23f;margin-top:6px">PUSH-NACHRICHTEN?</div>' +
+  '<div style="margin:8px 0 16px;color:#e8e8f4;font-weight:500">Sollen wir dir kurz Bescheid sagen, wenn’s ein Update oder was Neues gibt? Selten und ohne Werbung.</div>' +
+  '<div class="msg" style="min-height:20px;margin-bottom:8px;font-size:14px"></div>' +
+  '<button class="yes" style="font:900 22px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 30px;margin:0 6px">JA, GERN</button>' +
+  '<button class="no" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:12px 20px;margin:0 6px">Lieber nicht</button>';
+document.body.appendChild(pushBox);
+const pushMsg = pushBox.querySelector('.msg');
+function openPush() { pushOpen = true; pushAsk = false; pushMsg.textContent = ''; pushBox.style.display = 'block'; }
+function closePush(remember) { pushOpen = false; pushBox.style.display = 'none'; if (remember) try { localStorage.setItem('bb-push', remember); } catch (e) { /* egal */ } cv.focus(); }
+pushBox.querySelector('.yes').addEventListener('click', async () => {
+  const perm = Notification.requestPermission();   // direkt im Klick – sonst blockt Safari die Abfrage
+  pushMsg.style.color = '#cfcfe0'; pushMsg.textContent = 'Einen Moment …';
+  try {
+    if (await perm !== 'granted') { closePush('nein'); showToast('Okay, keine Benachrichtigungen.'); return; }
+    const ok = await pushSubscribe();
+    closePush('ja'); showToast(ok ? 'Push ist an – wir melden uns 🔔' : 'Push ist an, Anmeldung wird später nachgeholt.'); sfx.confirm();
+  } catch (e) { pushMsg.style.color = '#ff9a8a'; pushMsg.textContent = 'Hat nicht geklappt – später über die Glocke nochmal probieren.'; setTimeout(() => closePush('fehler'), 2500); }
+});
+pushBox.querySelector('.no').addEventListener('click', () => closePush('nein'));
+function bellButton(x, y) {   // Glocke neben dem Ton-Knopf: Push an/aus
+  const c = ctx, on = pushPerm() === 'granted';
+  Cc(c, x, y, 22, on ? 'rgba(122,209,90,0.25)' : 'rgba(20,16,36,0.9)'); c.strokeStyle = on ? '#7ad15a' : 'rgba(255,255,255,0.6)'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 22, 0, TAU); c.stroke();
+  c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '20px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText('🔔', x, y + 1); c.textBaseline = 'alphabetic';
+  if (!on) Ln(c, x - 12, y + 12, x + 12, y - 12, '#ff5a4a', 3);
+  ui.push({ id: 'bell', x: x - 26, y: y - 26, w: 52, h: 52 });
+}
 
 /* ---------------- Maus & Touch ---------------- */
 // Touch: links ein Joystick (laufen, nach oben schnippen = springen, nach unten = Schild/durchfallen),
@@ -2824,6 +2885,7 @@ function drawTitle() {
   c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', 880, 501);
   ui.push({ id: 'feedback', x: 690, y: 452, w: 380, h: 60 });
   muteButton(1232, 44);
+  if (PUSH_OK) bellButton(1176, 44);
   c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
@@ -3291,6 +3353,7 @@ requestAnimationFrame(loop);
 cv.focus();
 hsLoad();   // Bestenliste für die Startseite laden
 flushStats();   // noch nicht hochgeladene Spiele nachreichen
+if (pushPerm() === 'granted') pushSubscribe().catch(() => {});   // Anmeldung aktuell halten
 // Einladungslink aus dem QR-Code: ?join=1234 tritt direkt dem Raum bei
 if (/^\d{4}$/.test(QS.get('join') || '')) {
   const code = QS.get('join'); a2hs = false; scene = 'online'; NET.entry = code;
