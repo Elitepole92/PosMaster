@@ -68,7 +68,7 @@ addEventListener('keyup', e => held.delete(e.code));
 addEventListener('blur', () => held.clear());
 addEventListener('touchend', () => audioInit(), { passive: true });
 document.addEventListener('gesturestart', e => e.preventDefault());
-document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (!(e.target.closest && e.target.closest('.scrollbox'))) e.preventDefault(); }, { passive: false });   // Fenster dürfen scrollen
 document.addEventListener('dblclick', e => e.preventDefault());
 
 const CTRL = [
@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.4', news: [] },
   { v: '4.3.3', news: [] },
   { v: '4.3.2', news: [] },
   { v: '4.3.1', news: [] },
@@ -1674,7 +1675,7 @@ function onUI(id) {
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
-    case 'newsOk': news = false; try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
+    case 'newsOk': news = false; closeNews(); try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '2'); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
     case 'back': if (isOnline()) { leaveOnline(); break; } scene = 'title'; sfx.select(); break;
@@ -2210,7 +2211,7 @@ async function flushStats() {
 }
 // Feedback-Fenster (DOM, damit die Tastatur auf dem Handy aufgeht)
 const fbBox = document.createElement('div');
-fbBox.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:5;background:#17122a;border:3px solid #ffd23f;border-radius:22px;padding:20px 24px;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.7);width:min(560px,90vw);box-sizing:border-box;max-height:94vh;overflow-y:auto';
+fbBox.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;z-index:5;background:#17122a;border:3px solid #ffd23f;border-radius:22px;padding:20px 24px;color:#fff;font:600 16px system-ui,sans-serif;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.7);width:min(560px,90vw);box-sizing:border-box;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain';
 fbBox.innerHTML = '<div style="font:900 26px Impact,\'Arial Black\',sans-serif;color:#ffd23f">💬 FEEDBACK</div>' +
   '<div style="margin:4px 0 8px;color:#cfcfe0;font-weight:500">Was gefällt dir, was nervt, welche Figur fehlt? Wir lesen alles.</div>' +
   '<textarea maxlength="1000" rows="3" placeholder="Dein Feedback …" style="width:100%;box-sizing:border-box;font:500 17px system-ui,sans-serif;padding:10px 12px;border-radius:12px;border:2px solid #5a5470;background:#0e0b1c;color:#fff;resize:none"></textarea>' +
@@ -2218,7 +2219,7 @@ fbBox.innerHTML = '<div style="font:900 26px Impact,\'Arial Black\',sans-serif;c
   '<div class="msg" style="min-height:22px;margin:8px 0;font-size:14px"></div>' +
   '<button class="send" style="font:900 22px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 30px;margin:0 6px">ABSCHICKEN</button>' +
   '<button class="cancel" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:12px 20px;margin:0 6px">Abbrechen</button>';
-document.body.appendChild(fbBox);
+fbBox.className = 'scrollbox'; document.body.appendChild(fbBox);
 const fbText = fbBox.querySelector('textarea'), fbName = fbBox.querySelector('input'), fbMsg = fbBox.querySelector('.msg');
 let fbOpen = false;
 function openFeedback() {
@@ -2275,7 +2276,7 @@ pushBox.innerHTML = '<div style="font-size:46px;line-height:1">🔔</div><div st
   '<div class="msg" style="min-height:20px;margin-bottom:8px;font-size:14px"></div>' +
   '<button class="yes" style="font:900 22px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 30px;margin:0 6px">JA, GERN</button>' +
   '<button class="no" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:12px 20px;margin:0 6px">Lieber nicht</button>';
-document.body.appendChild(pushBox);
+pushBox.className = 'scrollbox'; document.body.appendChild(pushBox);
 const pushMsg = pushBox.querySelector('.msg');
 function openPush() { pushOpen = true; pushAsk = false; pushMsg.textContent = ''; pushBox.style.display = 'block'; }
 function closePush(remember) { pushOpen = false; pushBox.style.display = 'none'; if (remember) try { localStorage.setItem('bb-push', remember); } catch (e) { /* egal */ } cv.focus(); }
@@ -2312,7 +2313,7 @@ reBox.innerHTML = '<div style="font:900 24px Impact,\'Arial Black\',sans-serif;c
   '<div class="msg" style="min-height:18px;margin-bottom:4px;font-size:13px;color:#7ad15a"></div>' +
   '<button class="copy" style="font:900 20px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 16px;margin:3px">LINK KOPIEREN</button>' +
   '<button class="later" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 16px;margin:3px">Später</button>';
-document.body.appendChild(reBox);
+reBox.className = 'scrollbox'; document.body.appendChild(reBox);
 function closeRe() { reOpen = false; reBox.style.display = 'none'; try { localStorage.setItem('bb-reinstall', '1'); } catch (e) { /* egal */ } cv.focus(); }
 reBox.querySelector('.copy').addEventListener('click', async () => {
   const m = reBox.querySelector('.msg');
@@ -3214,43 +3215,27 @@ function drawA2HS() {
   });
   btn('a2hsOk', W / 2 - 150, y + h - 92, 300, 62, 'VERSTANDEN', '#ffd23f', 30);
 }
-function drawNews() {
-  const c = ctx, main = NEWS[0], more = NEWS.slice(1), chars = main.chars || [];
-  const h = 160 + (chars.length ? 118 : 0) + main.news.length * 42 + more.reduce((a, e) => a + 40 + e.news.length * 34, 0) + 84;
-  const x = W / 2 - 420, w = 840, y = Math.max(8, (H - h) / 2);
-  c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(0, 0, W, H);
-  RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
-  const short = v => v.replace(/\.0$/, ''), title = 'UPDATE ' + short(main.v);
-  c.textAlign = 'center'; c.font = '900 52px Impact,"Arial Black",sans-serif'; c.lineWidth = 7; c.strokeStyle = '#2a0d3d';
-  c.strokeText(title, W / 2, y + 66); c.fillStyle = '#ffd23f'; c.fillText(title, W / 2, y + 66);
-  c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Das ist neu:', W / 2, y + 96);
-  let yy = y + 116;
-  if (chars.length) {
-    chars.forEach((id, k) => {
-      const d = ROSTER.find(r => r.id === id), px = W / 2 + (k - (chars.length - 1) / 2) * 150;
-      drawPortrait(c, d, px, yy + 40, 40);
-      c.textAlign = 'center'; c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = d.color; c.fillText(d.short, px, yy + 100);
-    });
-    yy += 118;
-  }
-  c.textAlign = 'left';
-  main.news.forEach(([ic, t]) => {
-    yy += 42;
-    c.font = '22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, yy - 16);
-    c.font = 'bold 19px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText(t, x + 112, yy - 16);
-  });
-  for (const e of more) {   // kleinere Updates darunter
-    yy += 40;
-    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 70, yy - 30); c.lineTo(x + w - 70, yy - 30); c.stroke();
-    c.font = 'bold 15px system-ui,sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('Außerdem neu in ' + short(e.v) + ':', x + 70, yy - 6);
-    e.news.forEach(([ic, t]) => {
-      yy += 34;
-      c.font = '17px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, yy - 12);
-      c.font = '16px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText(t, x + 106, yy - 12);
-    });
-  }
-  btn('newsOk', W / 2 - 150, y + h - 78, 300, 58, "LOS GEHT'S!", '#ffd23f', 30);
+// Update-Fenster als scrollbares HTML-Fenster (passt so auch aufs iPhone im Querformat)
+let newsBox = null;
+function openNews() {
+  if (newsBox) return;
+  const short = v => v.replace(/\.0$/, ''), esc = t => String(t).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  const main = NEWS[0], more = NEWS.slice(1);
+  const pic = id => { const d = ROSTER.find(r => r.id === id), cc = document.createElement('canvas'); cc.width = cc.height = 120;
+    drawPortrait(cc.getContext('2d'), d, 60, 60, 54); return `<div style="display:inline-block;margin:0 10px;text-align:center"><img src="${cc.toDataURL()}" style="width:72px;height:72px"><div style="color:${d.color};font:700 13px system-ui,sans-serif">${esc(d.short)}</div></div>`; };
+  const row = ([ic, t], big) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${big ? 10 : 6}px 0;text-align:left"><span style="font-size:${big ? 21 : 17}px;width:28px;flex:none">${ic}</span><span style="font:${big ? 700 : 500} ${big ? 17 : 15}px/1.35 system-ui,sans-serif;color:${big ? '#e8e8f4' : '#cfcfe0'}">${esc(t)}</span></div>`;
+  newsBox = document.createElement('div');
+  newsBox.style.cssText = fbBox.style.cssText + ';width:min(760px,94vw);padding:16px 22px 0;display:block';
+  newsBox.innerHTML = `<div style="font:900 40px Impact,'Arial Black',sans-serif;color:#ffd23f">UPDATE ${short(main.v)}</div>` +
+    `<div style="color:#cfcfe0;font:700 15px system-ui,sans-serif;margin-bottom:8px">Das ist neu:</div>` +
+    ((main.chars || []).length ? `<div style="margin:4px 0 6px">${main.chars.map(pic).join('')}</div>` : '') +
+    main.news.map(n => row(n, true)).join('') +
+    more.map(e => `<div style="border-top:1px solid rgba(255,255,255,.12);margin-top:12px;padding-top:10px;text-align:left;color:#ffd23f;font:700 14px system-ui,sans-serif">Außerdem neu in ${short(e.v)}:</div>` + e.news.map(n => row(n, false)).join('')).join('') +
+    `<div style="position:sticky;bottom:0;background:#17122a;padding:12px 0 16px;margin-top:8px"><button style="font:900 24px Impact,'Arial Black',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:12px 40px">LOS GEHT'S!</button></div>`;
+  newsBox.querySelector('button').addEventListener('click', () => onUI('newsOk'));
+  newsBox.className = 'scrollbox'; document.body.appendChild(newsBox);
 }
+function closeNews() { if (newsBox) { newsBox.remove(); newsBox = null; } cv.focus(); }
 function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
   RR(c, x, y, w, h, 18, 'rgba(20,16,36,0.88)'); c.strokeStyle = 'rgba(255,210,63,0.45)'; c.lineWidth = 2; strokeRR(c, x, y, w, h, 18);
@@ -3314,7 +3299,7 @@ function render() {
   ui = [];
   if (isPortrait()) { drawRotate(); return; }
   drawBackground(frame, scene === 'title' || scene === 'select' || scene === 'online');   // LED-Wand nur im Kampf
-  if (scene === 'title') { drawTitle(); if (a2hs) { ui = []; drawA2HS(); } else if (news) { ui = []; drawNews(); } else if (HS.show) { ui = []; drawBoard(); } drawToast(); return; }
+  if (scene === 'title') { drawTitle(); if (a2hs) { ui = []; drawA2HS(); } else if (news) { ui = []; ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, W, H); if (!reOpen) openNews(); } else if (HS.show) { ui = []; drawBoard(); } drawToast(); return; }
   if (scene === 'online') { drawOnline(); drawToast(); return; }
   if (scene === 'select') { drawSelect(); drawToast(); return; }
   c.save();
