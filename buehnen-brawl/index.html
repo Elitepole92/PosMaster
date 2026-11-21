@@ -1047,22 +1047,13 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.7', news: [] },
-  { v: '4.3.6', news: [] },
-  { v: '4.3.5', news: [] },
-  { v: '4.3.4', news: [] },
-  { v: '4.3.3', news: [] },
-  { v: '4.3.2', news: [] },
-  { v: '4.3.1', news: [] },
-  { v: '4.3.0', news: [['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt (Glocke auf der Startseite)']] },
-  { v: '4.2.0', news: [
+  { v: '4.3.8', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
-    ['🕹️', 'Joystick nur noch links/rechts – Springen über die Taste'],
-    ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker']
+    ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
+    ['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt'],
+    ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
   ] },
-  { v: '4.1.2', news: [] },
-  { v: '4.1.1', news: [] },
-  { v: '4.1.0', news: [['🎨', 'Neues App-Icon und aufgeräumte Startseite']] },
   { v: '4.0.0', chars: ['it'], news: [
     ['💻', 'Neuer Kämpfer: der ITler – Finisher „Trojaner im Netzwerk“'],
     ['🎠', 'Neue Kämpferwahl als Karussell – zu zweit zwei übereinander'],
@@ -1070,7 +1061,6 @@ const CHANGELOG = [
     ['🎵', 'Musik im Menü und Leben auf der Startseite'],
     ['💬', 'Neu: „Feedback geben“ auf der Startseite']
   ] },
-  { v: '3.4.1', news: [] },
   { v: '3.4.0', news: [['🏆', 'Bestenliste: schnellster Online-Sieg, immer 3 Leben']] }
 ];
 // Das Fenster zeigt alles, was seit der zuletzt gesehenen Version dazukam – aber nur innerhalb der aktuellen
