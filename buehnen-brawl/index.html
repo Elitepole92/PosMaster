@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.3', news: [] },
   { v: '4.3.2', news: [] },
   { v: '4.3.1', news: [] },
   { v: '4.3.0', news: [['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt (Glocke auf der Startseite)']] },
@@ -2310,11 +2311,9 @@ reBox.innerHTML = '<div style="font:900 24px Impact,\'Arial Black\',sans-serif;c
   '<div style="font:600 13px ui-monospace,Menlo,monospace;background:#0e0b1c;border:2px solid #5a5470;border-radius:10px;padding:6px;margin-bottom:6px;word-break:break-all;user-select:all;-webkit-user-select:all">' + GAME_URL + '</div>' +
   '<div class="msg" style="min-height:18px;margin-bottom:4px;font-size:13px;color:#7ad15a"></div>' +
   '<button class="copy" style="font:900 20px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 16px;margin:3px">LINK KOPIEREN</button>' +
-  '<button class="open" style="font:700 16px system-ui,sans-serif;background:#5bc8ff;color:#0d1a2a;border:0;border-radius:14px;padding:10px 16px;margin:3px">Im Browser öffnen</button>' +
   '<button class="later" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 16px;margin:3px">Später</button>';
 document.body.appendChild(reBox);
 function closeRe() { reOpen = false; reBox.style.display = 'none'; try { localStorage.setItem('bb-reinstall', '1'); } catch (e) { /* egal */ } cv.focus(); }
-reBox.querySelector('.open').addEventListener('click', () => { window.open(GAME_URL + '?von=app', '_blank'); });
 reBox.querySelector('.copy').addEventListener('click', async () => {
   const m = reBox.querySelector('.msg');
   const legacy = () => { const t = document.createElement('textarea'); t.value = GAME_URL; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0';
