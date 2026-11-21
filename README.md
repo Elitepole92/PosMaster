@@ -29,7 +29,7 @@ Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt wer
 ## Bonus: Backstage Brawl (`buehnen-brawl/`)
 Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. Einfach `buehnen-brawl/index.html` öffnen (der Ordnername bleibt, damit bestehende Links und Home-Bildschirm-Apps weiter funktionieren).
 
-**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*. CPU-Stärke und Gadgets stellt man danach in der Kämpferwahl ein (Tasten C, X oder antippen). Gespielt wird immer mit 3 Leben. `M` schaltet den Ton an/aus.
+**Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*, dazu *Feedback geben*. Die Kämpferwahl ist ein Karussell (zu zweit bzw. online zwei übereinander); CPU-Stärke und Gadgets stellt man dort ein (Tasten C, X oder antippen). Im Menü läuft Musik, unten laufen ab und zu Kämpfer durchs Bild. Gespielt wird immer mit 3 Leben. `M` schaltet den Ton an/aus.
 
 | | P1 | P2 |
 |---|---|---|
@@ -38,7 +38,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 | Schlag | `F` | `K` (oder Numpad 1) |
 | Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
-**iPhone / iPad:** Touch-Buttons, nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
+**iPhone / iPad:** links ein Joystick (ziehen = laufen, nach oben = springen, nach unten = Schild), rechts Sprung, Schlag, Schild und Finisher (blinkt, wenn er bereit ist). Nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
 
 **Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code + QR-Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
@@ -54,11 +54,16 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 | **Projektleiterin** | Senior PL, Mitte 30, Handy am Ohr, Laptop | Angebot abgelehnt – Riesenstempel |
 | **Messebauer** | riesige Boombox, Akkuschrauber, Gummihammer | KURWA! – Gummihammer-Kombo |
 | **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – im ruhigsten Moment |
+| **ITler** | groß, dürr, unrasiert, zerzauste Haare, Hoodie, Energydrink | Trojaner im Netzwerk – Matrix-Code-Regen |
 
 Die Caterin ist im Code noch enthalten, aber gerade nicht auswählbar (`hidden: true` im Roster).
 
 Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera kurz heran.
 
 **Gadgets** (in der Kämpferwahl abschaltbar): Ab und zu schwebt ein Symbol am Fallschirm herunter. Wer es einsammelt, bekommt für ca. 9 Sekunden einen Boost: **⏩ Tempo** (grün) = schneller, **🛡️ Schild** (blau) = weniger Schaden und Rückstoß, **⚡ Energy** (gelb) = stärkere Schläge und schnellere Finisher-Leiste.
+
+**Auswertung & Feedback:** Jedes fertige Spiel (online jedes Duell einmal) wird anonym hochgeladen – Kämpfer, Sieger, Kampfzeit, Schaden, Treffer, Finisher, Modus, Version. Feedback von der Startseite landet ebenfalls in Firestore (Dokumente `sync/brawlstats1-JJJJwWW` pro Woche und `sync/brawlfeedback1`). Ansehen unter **`buehnen-brawl/admin.html`** (https://elitepole92.github.io/PosMaster/buehnen-brawl/admin.html): Siegquoten pro Kämpfer, Duell-Tabelle, Kampfzeiten und alle Feedbacks. Die Seite ist nicht verlinkt, aber auch nicht passwortgeschützt.
+
+**Versionen:** `MAJOR.MINOR.PATCH` (Major = großes Update wie neue Kämpfer, Minor = neue Funktionen, Patch = Bugfix). Gepflegt in `CHANGELOG` oben im Spielcode; die oberste Zeile ist die aktuelle Version (unten rechts auf der Startseite). Das Update-Fenster zeigt nur die Neuerungen der neuesten Version – reine Bugfix-Versionen bleiben stumm.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
