@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.7', news: [] },
   { v: '4.3.6', news: [] },
   { v: '4.3.5', news: [] },
   { v: '4.3.4', news: [] },
@@ -1641,15 +1642,18 @@ function stepCamera() {
     return;
   }
   const alive = F.filter(f => !f.dead);
+  // Touch: kleiner Bildschirm – weniger Rand, näher ran, damit man die Figuren gut erkennt
+  const mx = TOUCH ? 150 : 220, my = TOUCH ? 100 : 140;
   let minX = 400, maxX = 880, minY = 330, maxY = 620;
   if (alive.length) {
-    minX = Math.min(...alive.map(f => f.x)) - 220; maxX = Math.max(...alive.map(f => f.x)) + 220;
-    minY = Math.min(...alive.map(f => f.y - f.def.h)) - 140; maxY = Math.max(...alive.map(f => f.y)) + 110;
+    minX = Math.min(...alive.map(f => f.x)) - mx; maxX = Math.max(...alive.map(f => f.x)) + mx;
+    minY = Math.min(...alive.map(f => f.y - f.def.h)) - my; maxY = Math.max(...alive.map(f => f.y)) + (TOUCH ? 120 : 110);
   }
-  minX = Math.min(minX, 380); maxX = Math.max(maxX, 900); maxY = Math.max(maxY, 650); minY = Math.min(minY, 260);
+  if (TOUCH) { const cx = (minX + maxX) / 2; minX = Math.min(minX, cx - 230); maxX = Math.max(maxX, cx + 230); maxY = Math.max(maxY, 640); minY = Math.min(minY, 330); }
+  else { minX = Math.min(minX, 380); maxX = Math.max(maxX, 900); maxY = Math.max(maxY, 650); minY = Math.min(minY, 260); }
   minX = Math.max(minX, BLAST.x1 + 40); maxX = Math.min(maxX, BLAST.x2 - 40);
   minY = Math.max(minY, BLAST.y1 + 40); maxY = Math.min(maxY, BLAST.y2 - 20);
-  const z = clamp(Math.min(W / (maxX - minX), (H - 120) / (maxY - minY)), 0.62, 1.2);
+  const z = clamp(Math.min(W / (maxX - minX), (H - 120) / (maxY - minY)), TOUCH ? 0.72 : 0.62, TOUCH ? 1.55 : 1.2);
   cam.z = lerp(cam.z, z, 0.06);
   cam.x = lerp(cam.x, (minX + maxX) / 2, 0.08);
   cam.y = lerp(cam.y, (minY + maxY) / 2 + 40 / cam.z, 0.08);
@@ -2893,34 +2897,37 @@ function muteButton(x, y) {
 function drawTitle() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(0, 0, W, H);
-  bigText('BACKSTAGE BRAWL', 128 + Math.sin(frame * 0.05) * 3, 84, '#ffd23f', 1, '#2a0d3d');
-  c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
-  c.fillText('Die Prügelei hinter der Bühne', W / 2, 166);
+  const T = TOUCH;   // Handy/Tablet: alles größer, weil das Bild kleiner skaliert wird
+  bigText('BACKSTAGE BRAWL', (T ? 116 : 128) + Math.sin(frame * 0.05) * 3, T ? 100 : 84, '#ffd23f', 1, '#2a0d3d');
+  c.font = `bold ${T ? 24 : 18}px system-ui,sans-serif`; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
+  c.fillText('Die Prügelei hinter der Bühne', W / 2, T ? 158 : 166);
   drawWalkers();
   // Menü links, Bestenliste rechts – gleich hoch, zusammen mittig
-  const rows = menuRows(), mx = 210, mw = 420, bh = 64, gap = 15, LBL = { mode1: ['1 SPIELER', 'gegen den Computer'], mode2: ['2 SPIELER', 'zu zweit an einer Tastatur'], online: ['ONLINE-DUELL', 'zwei Geräte, übers Internet'] };
-  let y = 214 + (3 - rows.length) * (bh + gap) / 2;
+  const rows = menuRows(), mx = T ? 110 : 210, mw = T ? 520 : 420, bh = T ? 100 : 64, gap = T ? 22 : 15, LBL = { mode1: ['1 SPIELER', 'gegen den Computer'], mode2: ['2 SPIELER', 'zu zweit an einer Tastatur'], online: ['ONLINE-DUELL', 'zwei Geräte, übers Internet'] };
+  let y = T ? 196 : 214 + (3 - rows.length) * (bh + gap) / 2;
   rows.forEach((r, k) => {
     const on = k === menuRow;
     RR(c, mx, y, mw, bh, 18, on ? '#ffd23f' : 'rgba(20,16,36,0.88)');
     if (!on) { c.strokeStyle = 'rgba(255,255,255,0.16)'; c.lineWidth = 2; strokeRR(c, mx, y, mw, bh, 18); }
-    c.textAlign = 'center'; c.font = '900 28px Impact,"Arial Black",sans-serif'; c.fillStyle = on ? '#1a1024' : '#fff';
-    c.fillText(LBL[r][0], mx + mw / 2, y + 32);
-    c.font = '13px system-ui,sans-serif'; c.fillStyle = on ? '#4a3a12' : '#9a9ab0'; c.fillText(LBL[r][1], mx + mw / 2, y + 52);
+    c.textAlign = 'center'; c.font = `900 ${T ? 44 : 28}px Impact,"Arial Black",sans-serif`; c.fillStyle = on ? '#1a1024' : '#fff';
+    c.fillText(LBL[r][0], mx + mw / 2, y + (T ? 52 : 32));
+    c.font = `${T ? 'bold 20' : '13'}px system-ui,sans-serif`; c.fillStyle = on ? '#4a3a12' : '#9a9ab0'; c.fillText(LBL[r][1], mx + mw / 2, y + (T ? 82 : 52));
     ui.push({ id: r, x: mx, y, w: mw, h: bh }); y += bh + gap;
   });
-  drawTopList(690, 214);
+  if (T) { c.save(); c.translate(670, 196); c.scale(1.3, 1.3); drawTopList(0, 0); c.restore(); ui[ui.length - 1] = { id: 'hs', x: 670, y: 196, w: 494, h: 289 }; }
+  else drawTopList(690, 214);
   // Feedback: großer, gut sichtbarer Knopf unter der Bestenliste
   const fp = 0.5 + 0.5 * Math.sin(frame * 0.06);
   c.save(); c.shadowColor = 'rgba(91,200,255,' + (0.35 + fp * 0.35) + ')'; c.shadowBlur = 18;
-  RR(c, 690, 452, 380, 60, 18, '#5bc8ff'); c.restore();
-  c.textAlign = 'center'; c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', 880, 482);
-  c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', 880, 501);
-  ui.push({ id: 'feedback', x: 690, y: 452, w: 380, h: 60 });
+  const fx = T ? 670 : 690, fy = T ? 504 : 452, fw = T ? 494 : 380, fh = T ? 82 : 60;
+  RR(c, fx, fy, fw, fh, 18, '#5bc8ff'); c.restore();
+  c.textAlign = 'center'; c.font = `900 ${T ? 36 : 26}px Impact,"Arial Black",sans-serif`; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', fx + fw / 2, fy + (T ? 42 : 30));
+  c.font = `bold ${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', fx + fw / 2, fy + (T ? 68 : 49));
+  ui.push({ id: 'feedback', x: fx, y: fy, w: fw, h: fh });
   muteButton(1232, 44);
   if (PUSH_OK) bellButton(1176, 44);
-  c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
-  if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
+  c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
+  if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
 function drawOnline() {
   const c = ctx;
