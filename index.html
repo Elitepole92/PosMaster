@@ -245,6 +245,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .sheet .body{overflow:auto;-webkit-overflow-scrolling:touch;padding:12px 12px calc(16px + var(--safe-b))}
 .sheet .body img{width:100%;height:auto;display:block;border-radius:6px;background:#fff}
 .sheet .actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.sheet .actions .btn{white-space:nowrap;flex:1 1 auto;padding:0 14px}
 .btn{flex:1;height:44px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .btn.sec{background:var(--panel);color:var(--accent)}
 .btn.todo-add{background:var(--panel);color:var(--todo);border-color:var(--todo)}
@@ -252,6 +253,17 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .btn.done-off{background:var(--panel);color:var(--done);border-color:var(--done)}
 .btn.done-on{background:var(--done);border-color:var(--done);color:#fff}
 .btn.hide{display:none}
+.btn .arr{width:20px;height:20px}
+/* To-do + Abhaken als ein geteilter Button */
+.seg{display:flex;flex:1 1 auto;min-width:0;border-radius:10px;overflow:hidden}
+.seg .btn{flex:1 1 auto;min-width:0;border-radius:0}
+.seg.single .btn{border-radius:10px}
+.seg:not(.single){box-shadow:0 0 0 1.5px var(--todo);}
+.seg:not(.single) .btn{border:0;height:44px}
+.seg:not(.single) #sTodo{flex:0 0 auto}
+.seg:not(.single) #sDone{border-left:1.5px solid var(--todo)}
+.seg:not(.single) #sDone.done-off{background:#fff}
+.seg:not(.single) #sDone.done-on{box-shadow:inset 0 0 0 0 transparent}
 .row.todo .item,.row.todo .tbtn{background:var(--todo-bg);border-color:var(--todo-line)}
 .row.todo .item .no{color:var(--todo)}
 .row.todo .tbtn{color:var(--todo)}
@@ -304,7 +316,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     <button class="mi" role="menuitem" data-m="desa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg><span>DESA-Link einstellen<small id="desaSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.19 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.20 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -842,7 +854,7 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button><button class="btn" id="sPin"></button><button class="btn sec" id="sDesa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>'+(isPhone()?"DESA":"In DESA öffnen")+'</button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><div class="seg single" id="sSeg"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button></div><button class="btn" id="sPin"></button><button class="btn sec" id="sDesa" aria-label="POS-Nummer kopieren und DESA öffnen">POS<svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"></path><path d="M13 6l6 6-6 6"></path></svg>DESA</button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
@@ -862,10 +874,11 @@ function isPhone(){ return document.documentElement.classList.contains("phone");
 function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(isPhone()?"Vorverkabelt":(on?"Vorverkabelt ✓":"Vorverkabelt")); pb.setAttribute("aria-pressed",on?"true":"false"); }
   var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
-  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(isPhone()?"To-do":(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen")):ICON_PLUS+(isPhone()?"To-do":"Zu To-dos");
+  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(isPhone()?"To-do":"Auf To-do-Liste"):ICON_PLUS+(isPhone()?"To-do":"Zu To-dos");
   b.setAttribute("aria-label",t?"Von der To-do-Liste entfernen":"Zur To-do-Liste hinzufügen");
   var d=document.getElementById("sDone"); if(d){
     d.className="btn "+(!t?"hide":(t.done?"done-on":"done-off"));
+    var sg=document.getElementById("sSeg"); if(sg) sg.classList.toggle("single",!t);
     d.innerHTML=t?(t.done?ICON_CHECK+"Erledigt":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"></rect></svg>'+"Abhaken"):"";
     d.setAttribute("aria-label",t&&t.done?"Wieder als offen markieren":"Als erledigt abhaken"); } }
 function openSheet(id,push){
