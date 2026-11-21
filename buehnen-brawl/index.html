@@ -1047,7 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.8', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.9', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -2891,7 +2891,6 @@ function drawTitle() {
   bigText('BACKSTAGE BRAWL', (T ? 116 : 128) + Math.sin(frame * 0.05) * 3, T ? 100 : 84, '#ffd23f', 1, '#2a0d3d');
   c.font = `bold ${T ? 24 : 18}px system-ui,sans-serif`; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
   c.fillText('Die Prügelei hinter der Bühne', W / 2, T ? 158 : 166);
-  drawWalkers();
   // Menü links, Bestenliste rechts – gleich hoch, zusammen mittig
   const rows = menuRows(), mx = T ? 110 : 210, mw = T ? 520 : 420, bh = T ? 100 : 64, gap = T ? 22 : 15, LBL = { mode1: ['1 SPIELER', 'gegen den Computer'], mode2: ['2 SPIELER', 'zu zweit an einer Tastatur'], online: ['ONLINE-DUELL', 'zwei Geräte, übers Internet'] };
   let y = T ? 196 : 214 + (3 - rows.length) * (bh + gap) / 2;
@@ -2909,14 +2908,15 @@ function drawTitle() {
   // Feedback: großer, gut sichtbarer Knopf unter der Bestenliste
   const fp = 0.5 + 0.5 * Math.sin(frame * 0.06);
   c.save(); c.shadowColor = 'rgba(91,200,255,' + (0.35 + fp * 0.35) + ')'; c.shadowBlur = 18;
-  const fx = T ? 670 : 690, fy = T ? 504 : 452, fw = T ? 494 : 380, fh = T ? 82 : 60;
+  const fx = T ? 670 : 690, fy = T ? 502 : 452, fw = T ? 494 : 380, fh = T ? 58 : 46;
   RR(c, fx, fy, fw, fh, 18, '#5bc8ff'); c.restore();
-  c.textAlign = 'center'; c.font = `900 ${T ? 36 : 26}px Impact,"Arial Black",sans-serif`; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', fx + fw / 2, fy + (T ? 42 : 30));
-  c.font = `bold ${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', fx + fw / 2, fy + (T ? 68 : 49));
+  c.textAlign = 'center'; c.font = `900 ${T ? 24 : 18}px Impact,"Arial Black",sans-serif`; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', fx + fw / 2, fy + (T ? 29 : 23));
+  c.font = `bold ${T ? 13 : 10}px system-ui,sans-serif`; c.fillStyle = '#16324a'; c.fillText('Juckt keinen, aber kannste trotzdem schicken', fx + fw / 2, fy + (T ? 48 : 38));
   ui.push({ id: 'feedback', x: fx, y: fy, w: fw, h: fh });
   muteButton(1232, 44);
   if (PUSH_OK) bellButton(1176, 44);
   c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
+  drawWalkers();   // Figuren samt Sprechblasen vor allem anderen
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
 function drawOnline() {
