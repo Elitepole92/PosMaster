@@ -23,7 +23,7 @@
 <style>
 :root{
   --bg:#f3f4f6; --panel:#ffffff; --ink:#15191e; --muted:#5d6670; --line:#e1e4e8;
-  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f; --pink:#e0218a; --pink-bg:#ffeaf5; --pink-line:#f7a8d3;
+  --bar:#14181d; --bar-ink:#f4f6f8; --accent:#0a8fa3; --accent-ink:#ffffff; --hot:#ff7a1a; --todo:#e46a10; --todo-bg:#fff4e8; --todo-line:#ffcf9f; --pink:#e0218a; --done:#1f9d55; --done-bg:#e8f7ee; --done-line:#a6dcbb; --pink-bg:#ffeaf5; --pink-line:#f7a8d3;
   --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
 }
 *{box-sizing:border-box}
@@ -126,7 +126,8 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 /* To-do-Route */
 .todomode .spot{opacity:.18}
 /* Pink-Markierung */
-.spot.pin{opacity:1!important;background:rgba(224,33,138,.32);box-shadow:inset 0 0 0 3px var(--pink),0 0 0 4px rgba(224,33,138,.25)}
+.spot.tdone{opacity:1!important;background:rgba(31,157,85,.3);box-shadow:inset 0 0 0 3px var(--done),0 0 0 7px rgba(31,157,85,.35),0 0 16px 10px rgba(31,157,85,.3)}
+.spot.pin{opacity:1!important;background:rgba(224,33,138,.32);box-shadow:inset 0 0 0 3px var(--pink),0 0 0 7px rgba(224,33,138,.35),0 0 16px 10px rgba(224,33,138,.3)}
 .todomode .spot.pin.todo{box-shadow:inset 0 0 0 3px var(--pink),0 0 0 5px var(--todo)}
 .tbtn.pin{width:48px;color:#b9c0c8}
 .row .tbtn.pin[aria-pressed="true"]{background:var(--pink);border-color:var(--pink);color:#fff}
@@ -137,7 +138,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .btn.pin-off{flex:0 0 auto;padding:0 14px;background:var(--panel);color:var(--pink);border-color:var(--pink)}
 .btn.pin-on{flex:0 0 auto;padding:0 14px;background:var(--pink);border-color:var(--pink);color:#fff}
 .todomode .spot.todo{opacity:1;background:rgba(228,106,16,.38);box-shadow:inset 0 0 0 3px var(--todo),0 0 0 7px rgba(228,106,16,.35),0 0 18px 8px rgba(228,106,16,.35)}
-.todomode .spot.todo.tdone{background:rgba(120,130,140,.18);box-shadow:inset 0 0 0 2px rgba(120,130,140,.8);opacity:.75}
+.todomode .spot.todo.tdone{background:rgba(31,157,85,.34);box-shadow:inset 0 0 0 3px var(--done),0 0 0 5px rgba(31,157,85,.25);opacity:1}
 .fab button[data-a="todos"]{position:relative;color:var(--todo)}
 .fab button[data-a="todos"][aria-pressed="true"]{background:var(--todo);border-color:var(--todo);color:#fff}
 .fab .badge{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:10px;background:var(--todo);color:#fff;font-size:11.5px;font-weight:700;line-height:20px;padding:0 5px;box-shadow:0 0 0 2px var(--panel)}
@@ -248,8 +249,16 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .row.todo .item .no{color:var(--todo)}
 .row.todo .tbtn{color:var(--todo)}
 .row.todo .tbtn .box{border-color:var(--todo)}
-.row.todo.done .tbtn .box{background:var(--todo)}
-.row.todo.done .item .no{color:var(--muted)}
+.row.todo.done .item,.row.todo.done .tbtn{background:var(--done-bg);border-color:var(--done-line)}
+.row.todo.done .tbtn{color:var(--done)}
+.row.todo.done .tbtn .box{background:var(--done);border-color:var(--done)}
+.row.todo.done .item .no{color:var(--done);text-decoration:none}
+.row.todo.done .item .t{color:var(--ink);text-decoration:none}
+.row.todo.done .item .t small{color:var(--done)}
+.snack{position:fixed;left:50%;bottom:calc(var(--nh,0px) + 16px);transform:translate(-50%,20px);z-index:24;background:#1b2027;color:#fff;border-radius:12px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:12px;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100vw - 24px)}
+.snack.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.snack span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snack button{border:0;background:rgba(255,255,255,.12);color:#7fe0a6;font-weight:700;border-radius:8px;padding:9px 12px;cursor:pointer;flex-shrink:0}
 .group.todo h2{color:var(--todo)!important}
 .group.todo .linkbtn{color:var(--todo)}
 .btn svg{width:18px;height:18px}
@@ -287,7 +296,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.14 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.15 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -573,7 +582,7 @@ function renderList(q){
 }
 /* ---------- To-do ---------- */
 var keepScroll=false, now=function(){return Date.now();};
-function cleanTodos(a){ return (Array.isArray(a)?a:[]).filter(function(t){return t&&t.id;}).map(function(t,i){ return {id:String(t.id),done:!!t.done,del:!!t.del,a:+t.a||i+1,t:+t.t||0}; }); }
+function cleanTodos(a){ return (Array.isArray(a)?a:[]).filter(function(t){return t&&t.id;}).map(function(t,i){ return {id:String(t.id),done:!!t.done,del:!!t.del,pw:!!t.pw,a:+t.a||i+1,t:+t.t||0}; }); }
 var todoAll=(function(){ try{ return cleanTodos(JSON.parse(lsGet("todo","[]"))); }catch(_){ return []; } })();
 function todoList(){ return todoAll.filter(function(t){return !t.del && byId[t.id];}).sort(function(x,y){return x.a-y.a;}); }
 function todoRaw(id){ for(var i=0;i<todoAll.length;i++) if(todoAll[i].id===id) return todoAll[i]; return null; }
@@ -587,6 +596,17 @@ function pinToggle(id){ pinsAll[id]={on:!pinOn(id),t:now()}; lsSet("pins",JSON.s
 var ICON_FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"></path><path d="M5 4h12l-2.5 4.5L17 13H5"></path></svg>', ICON_FLAGF='<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4" fill="none"></path><path d="M5 4h12l-2.5 4.5L17 13H5z"></path></svg>';
 function rerenderList(){ keepScroll=true; renderList(qEl.value); keepScroll=false; if(typeof sheetTodoUi==="function"&&openId) sheetTodoUi(openId); markTodos(); }
 function todoAdd(id){ var ts=now(), r=todoRaw(id); if(r&&!r.del) return; if(r){ r.del=false; r.done=false; r.a=ts; r.t=ts; } else todoAll.push({id:id,done:false,del:false,a:ts,t:ts}); todoSave(); rerenderList(); }
+/* Abhaken: grün, Pink wird entfernt (und gemerkt). Haken raus: wieder offen, Pink kommt zurück. */
+function todoToggle(id,silent){ var t=todoFind(id); if(!t) return; var ts=now();
+  if(!t.done){ t.done=true; t.pw=pinOn(id); if(t.pw){ pinsAll[id]={on:false,t:ts}; lsSet("pins",JSON.stringify(pinsAll)); } }
+  else { t.done=false; if(t.pw){ pinsAll[id]={on:true,t:ts}; lsSet("pins",JSON.stringify(pinsAll)); } t.pw=false; }
+  t.t=ts; todoSave(); rerenderList();
+  if(!silent && t.done) snack("POS "+id+" erledigt"+(t.pw?" · Pink entfernt":""),function(){ todoToggle(id,true); });
+  else if(!silent) snack("POS "+id+" wieder offen",function(){ todoToggle(id,true); }); }
+var snackFn=null, snackTm=null;
+function snack(msg,undo){ var el=document.getElementById("snack"); document.getElementById("snackT").textContent=msg; snackFn=undo;
+  el.classList.add("show"); clearTimeout(snackTm); snackTm=setTimeout(function(){ el.classList.remove("show"); snackFn=null; },5000); }
+document.addEventListener("click",function(e){ if(e.target.id==="snackB"){ var f=snackFn; snackFn=null; document.getElementById("snack").classList.remove("show"); if(f) f(); } });
 function todoRemove(id){ var t=todoFind(id); if(!t) return; t.del=true; t.t=now(); todoSave(); rerenderList(); }
 var ICON_PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>';
 var ICON_CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>';
@@ -648,7 +668,7 @@ var Sync=(function(){
   function rename(){ var n=prompt("Name für dieses Gerät:",myName); if(n===null) return; n=n.trim().slice(0,40);
     if(n){ myName=n; lsSet("deviceName",n); } else { lsSet("deviceName",""); myName=autoName(); } devUi(); run(); }
   function url(c){ return "https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/sync/"+c+"?key="+FB.key; }
-  function canon(arr){ return JSON.stringify(arr.slice().sort(function(a,b){return a.id<b.id?-1:a.id>b.id?1:0;}).map(function(t){return [t.id,t.done?1:0,t.del?1:0,t.a,t.t];})); }
+  function canon(arr){ return JSON.stringify(arr.slice().sort(function(a,b){return a.id<b.id?-1:a.id>b.id?1:0;}).map(function(t){return [t.id,t.done?1:0,t.del?1:0,t.pw?1:0,t.a,t.t];})); }
   function merge(A,B){ var m={}; A.concat(B).forEach(function(t){ var o=m[t.id]; if(!o||t.t>o.t) m[t.id]=t; });
     var cut=now()-60*864e5; return Object.keys(m).map(function(k){return m[k];}).filter(function(t){return !(t.del&&t.t<cut);}); }
   function fmt(c){ return c.slice(0,4)+"-"+c.slice(4,8)+"-"+c.slice(8); }
@@ -747,7 +767,7 @@ $("#list").addEventListener("click",function(e){
     if(a==="sync"){ openSync(); return; }
     if(a==="add"){ todoAdd(id); return; }
     if(a==="remove"){ todoRemove(id); return; }
-    if(a==="toggle" && t){ t.done=!t.done; t.t=ts; }
+    if(a==="toggle" && t){ todoToggle(id); return; }
     if(a==="pin"){ pinToggle(id); return; }
     if(a==="restore"){ var g=todoRaw(id); if(g&&g.del){ g.del=false; g.t=ts; } }
     if(a==="clear-done") todoAll.forEach(function(x){ if(x.done&&!x.del){ x.del=true; x.t=ts; } });
@@ -877,5 +897,6 @@ show("halle");
 var m0=location.hash.match(/^#pos=(.+)$/); if(m0) openPos(decodeURIComponent(m0[1]),false);
 })();
 </script>
+<div class="snack" id="snack" role="status"><span id="snackT"></span><button id="snackB">Rückgängig</button></div>
 </body>
 </html>
