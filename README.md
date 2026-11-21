@@ -36,11 +36,11 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 | | P1 | P2 |
 |---|---|---|
 | Laufen / Springen | `A` `D` / `W` | `←` `→` / `↑` |
-| Schild (in der Luft: Fastfall) | `S` | `↓` |
+| Konter-Schild antippen (in der Luft: Fastfall) | `S` | `↓` |
 | Schlag | `F` | `K` (oder Numpad 1) |
 | Finisher (Leiste voll) | `G` | `L` (oder Numpad 2) |
 
-**iPhone / iPad:** links ein Joystick (ziehen = laufen, nach oben = springen, nach unten = Schild), rechts Sprung, Schlag, Schild und Finisher (blinkt, wenn er bereit ist). Nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
+**iPhone / iPad:** links ein Joystick (nur links/rechts zum Laufen), rechts Sprung, Schlag, Schild und Finisher (blinkt, wenn er bereit ist). Nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
 
 **Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
 
@@ -50,9 +50,9 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 |---|---|---|
 | **Medien Hamster** | lila Warnweste, schwarzer Helm | Rauch ins Gesicht |
 | **Hallenmeister** | lange graue Haare, gebückt, blauer Pulli, Blaumann | 400V Phase Braun |
-| **Cemil** | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
+| **Logistiker** (früher Cemil) | sehr klein, Dreitagebart, weißer Helm, gelbe Weste | Gabelstapler-Ramme |
 | **Headrigger** | sehr dürr, riesige Gürteltaschen, kurze Strickmütze | D8+ Kettenschlag |
-| **Gerch** | Tontechniker mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
+| **Tontechniker** (früher Gerch) | mit Espressotasse, Cargoshorts, oranger Helm | 180 dB Überschallknall |
 | **Projektleiterin** | Senior PL, Mitte 30, Handy am Ohr, Laptop | Angebot abgelehnt – Riesenstempel |
 | **Messebauer** | riesige Boombox, Akkuschrauber, Gummihammer | KURWA! – Gummihammer-Kombo |
 | **Operator** | dürr, etwas arrogant, Designerschal, Stoffhose | Deplatzierter Strobo – im ruhigsten Moment |
@@ -67,5 +67,7 @@ Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera ku
 **Auswertung & Feedback:** Jedes fertige Spiel (online jedes Duell einmal) wird anonym hochgeladen – Kämpfer, Sieger, Kampfzeit, Schaden, Treffer, Finisher, Modus, Version. Feedback von der Startseite landet ebenfalls in Firestore (Dokumente `sync/brawlJJJJwWW` pro Woche und `sync/brawlfeedbk1` – die Firestore-Regeln erlauben nur Namen mit genau 12 Zeichen aus a–z/0–9). Ansehen unter **`buehnen-brawl/admin.html`** (https://elitepole92.github.io/PosMaster/buehnen-brawl/admin.html): Siegquoten pro Kämpfer, Duell-Tabelle, Kampfzeiten und alle Feedbacks. Die Seite ist nicht verlinkt, aber auch nicht passwortgeschützt.
 
 **Versionen:** `MAJOR.MINOR.PATCH` (Major = großes Update wie neue Kämpfer, Minor = neue Funktionen, Patch = Bugfix). Gepflegt in `CHANGELOG` oben im Spielcode; die oberste Zeile ist die aktuelle Version (unten rechts auf der Startseite). Das Update-Fenster zeigt alles, was seit dem letzten Öffnen innerhalb der aktuellen Major-Version neu ist: oben groß die Major-Neuerungen (z. B. 4.0), darunter kleiner die späteren Minor-Updates (z. B. 4.1). Reine Bugfix-Versionen bleiben stumm.
+
+**Konter-Schild:** antippen statt halten – der Schild ist 0,6 s aktiv, danach 1 s Pause. Wer in den ersten 0,2 s getroffen würde, kontert: „KONTER!“, der Angreifer taumelt kurz und man bekommt Finisher-Energie.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
