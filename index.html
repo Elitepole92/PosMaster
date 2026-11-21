@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14181d">
+<script>
+/* Geräte-Erkennung: iPhone/Handy -> Klasse "phone" (Ansicht im Menü überschreibbar) */
+(function(){ var m="auto"; try{ m=localStorage.getItem("uiMode")||"auto"; }catch(e){}
+  var ua=navigator.userAgent||"", small=Math.min(screen.width,screen.height)<600;
+  var auto=(/iPhone|iPod/.test(ua)||(/Android/.test(ua)&&/Mobile/.test(ua))||small)?"phone":"tablet";
+  window.__uiAuto=auto; window.__uiMode=m;
+  if((m==="auto"?auto:m)==="phone") document.documentElement.classList.add("phone"); })();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="PosMaster">
@@ -35,6 +43,58 @@ header{background:var(--bar);color:var(--bar-ink);padding:calc(6px + var(--safe-
 .tabs{display:flex;gap:4px;flex-shrink:0}
 .tabs button{min-width:84px;height:36px;padding:0 12px;border-radius:9px;border:1px solid #2c333b;background:transparent;color:#c9d0d6;font-weight:600;font-size:14px}
 @media(max-width:700px){header{flex-wrap:wrap;gap:6px}.top{max-width:none;flex:1 1 100%;flex-direction:row;align-items:baseline;gap:8px}.nav{flex:1 1 100%}.tabs{flex:1}.tabs button{flex:1;min-width:0}}
+.tabs .ti,.menubtn .ml{display:none}
+/* ===== iPhone-Ansicht (html.phone) ===== */
+html.phone header{flex-wrap:nowrap;gap:6px;padding-top:6px;padding-bottom:6px}
+html.phone .top{display:none}
+html.phone .search{min-width:0;flex:1}
+html.phone .row{gap:6px;margin-bottom:6px}
+html.phone .tbtn{width:44px;border-radius:10px}
+html.phone .tbtn svg{width:21px;height:21px}
+html.phone .tbtn .box{width:24px;height:24px}
+html.phone .tbtn.pin{width:40px}
+html.phone .tbtn.rm{width:36px}
+html.phone .item{gap:8px;padding:8px 10px;min-height:52px;border-radius:10px}
+html.phone .item .no{min-width:46px;font-size:15px}
+html.phone .item .t{font-size:14.5px;line-height:1.3;min-width:0}
+html.phone .item .t small{font-size:12px}
+html.phone .item .chev{display:none}
+html.phone .list{padding:4px 8px 16px}
+html.phone .group h2{margin:14px 4px 7px}
+html.phone .fab{right:10px;bottom:10px;gap:6px}
+html.phone .fab button{width:42px;height:42px;border-radius:11px}
+html.phone .hint{left:10px;bottom:10px;right:64px;font-size:12.5px}
+html.phone .sheet .head{padding:8px 8px 8px 12px}
+html.phone .sheet .head .ttl b{font-size:16px}
+html.phone .iconbtn{width:40px;height:40px}
+html.phone .sheet .actions .btn{height:42px;font-size:14px;padding:0 10px;flex:1 1 auto;min-width:0}
+html.phone .sheet .body{padding:10px 10px calc(16px + var(--safe-b))}
+html.phone .docs{padding:4px 8px 16px}
+html.phone .dgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+/* Hochformat: Tab-Leiste unten */
+@media (orientation:portrait){
+  html.phone .nav{position:fixed;left:0;right:0;bottom:0;z-index:16;background:var(--bar);border-top:1px solid #2c333b;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));gap:0}
+  html.phone .tabs{flex:1;gap:0}
+  html.phone .tabs button,html.phone .menubtn{flex:1;min-width:0;width:auto;height:54px;border:0;border-radius:10px;background:transparent;color:#aeb6bf;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;font-weight:600;padding:0}
+  html.phone .tabs button[aria-selected="true"]{background:rgba(10,143,163,.2);color:#6fd6e6;border:0}
+  html.phone .tabs .ti,html.phone .menubtn svg{display:block;width:23px;height:23px}
+  html.phone .menubtn{flex:0 0 66px}
+  html.phone .menubtn .ml{display:block}
+  html.phone .menubtn[aria-expanded="true"]{background:#2c333b}
+  html.phone .menubtn .dot{top:7px;right:19px}
+  html.phone .app{padding-bottom:var(--nh,63px)}
+  html.phone .sheet .card{top:0;max-height:none;border-radius:0}
+  html.phone .sheet .head{padding-top:calc(8px + var(--safe-t))}
+}
+/* Querformat: eine schlanke Zeile */
+@media (orientation:landscape){
+  html.phone header{padding-top:5px;padding-bottom:5px}
+  html.phone .search input{height:34px}
+  html.phone .search svg{top:7px}
+  html.phone .tabs button{min-width:0;padding:0 11px;height:34px;font-size:13.5px}
+  html.phone .menubtn{width:40px;height:34px}
+  html.phone .item{min-height:46px;padding:6px 10px}
+}
 .tabs button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .nav{display:flex;gap:4px;flex-shrink:0;align-items:center}
 .menubtn{position:relative;width:44px;height:36px;border-radius:9px;border:1px solid #2c333b;background:transparent;color:#c9d0d6;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
@@ -198,9 +258,9 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .tip{font-size:12.5px;color:var(--muted);margin:-4px 2px 10px}
 .lb{position:fixed;inset:0;z-index:30;background:#0d1014;display:none}
 .lb.open{display:block}
-.lb .scroll{position:absolute;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:calc(64px + var(--safe-t)) 0 calc(20px + var(--safe-b))}
-.lb img{display:block;width:900px;max-width:none;height:auto;margin:0 auto;background:#fff}
-@media(min-width:960px){.lb img{width:min(1150px,96vw)}}
+.lb .scroll{position:absolute;inset:0;overflow:hidden}
+.lb .stage{background:#0d1014}
+.lb .canvas img{background:#fff}
 .lb .close{position:fixed;top:calc(10px + var(--safe-t));right:10px;z-index:2;background:#fff;border:0}
 </style>
 </head>
@@ -215,18 +275,19 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     </div>
     <nav class="nav">
     <div class="tabs" role="tablist">
-      <button role="tab" data-view="halle" aria-selected="true">Halle</button>
-      <button role="tab" data-view="vertical" aria-selected="false">Vertical</button>
-      <button role="tab" data-view="list" aria-selected="false">Liste</button>
-      <button role="tab" data-view="montage" aria-selected="false">Montage</button>
+      <button role="tab" data-view="halle" aria-selected="true"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"></path><path d="M9 3v15M15 6v15"></path></svg><span>Halle</span></button>
+      <button role="tab" data-view="vertical" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"></path><path d="M3 13l9 5 9-5"></path></svg><span>Vertical</span></button>
+      <button role="tab" data-view="list" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12"></path><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="3"></path></svg><span>Liste</span></button>
+      <button role="tab" data-view="montage" aria-selected="false"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"></path></svg><span>Montage</span></button>
     </div>
-    <button class="menubtn" id="menuBtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg><span class="dot" id="syncDotM"></span></button>
+    <button class="menubtn" id="menuBtn" aria-label="Menü" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"></path></svg><span class="ml">Menü</span><span class="dot" id="syncDotM"></span></button>
     </nav>
   </header>
   <div class="menu" id="menu" role="menu" aria-hidden="true">
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
+    <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.13 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.14 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -285,7 +346,9 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 /* Kopfzeile ist fest oben angepinnt (Safari 26 färbt dann die Statusleiste
    einfarbig statt weichzuzeichnen); Inhalt rückt um ihre Höhe nach unten. */
 (function(){ var h=document.getElementById("top");
-  function setHH(){ document.documentElement.style.setProperty("--hh",h.offsetHeight+"px"); }
+  function setHH(){ var de=document.documentElement, nv=h.querySelector(".nav"), fx=nv&&getComputedStyle(nv).position==="fixed";
+    de.style.setProperty("--hh",h.offsetHeight+"px"); de.style.setProperty("--nh",(fx?nv.offsetHeight:0)+"px"); }
+  window.__setHH=setHH;
   setHH(); window.addEventListener("resize",setHH);
   if(window.ResizeObserver) new ResizeObserver(setHH).observe(h); })();
 var D = window.DATA;
@@ -643,12 +706,22 @@ var Sync=(function(){
 var syncM=document.getElementById("syncM"), menu=document.getElementById("menu"), menuBtn=document.getElementById("menuBtn");
 $("#menuStand").textContent=D.stand;
 function menuOpen(on){ menu.classList.toggle("open",on); menu.setAttribute("aria-hidden",on?"false":"true"); menuBtn.setAttribute("aria-expanded",on?"true":"false");
-  if(on){ var r=document.getElementById("top").getBoundingClientRect(); menu.style.top=(r.bottom+6)+"px"; Sync.ui(); } }
+  if(on){ var nv=document.querySelector(".nav");
+    if(getComputedStyle(nv).position==="fixed"){ menu.style.top="auto"; menu.style.bottom=(nv.offsetHeight+6)+"px"; }
+    else { var r=document.getElementById("top").getBoundingClientRect(); menu.style.bottom="auto"; menu.style.top=(r.bottom+6)+"px"; }
+    uiLabel(); Sync.ui(); } }
+function uiLabel(){ var m=window.__uiMode, a=window.__uiAuto==="phone"?"iPhone":"iPad";
+  $("#uiSt").textContent = m==="auto" ? "Automatisch · "+a+" erkannt" : (m==="phone"?"iPhone (fest eingestellt)":"iPad (fest eingestellt)"); }
+function setUiMode(m){ window.__uiMode=m; try{ localStorage.setItem("uiMode",m); }catch(e){}
+  document.documentElement.classList.toggle("phone",(m==="auto"?window.__uiAuto:m)==="phone");
+  if(window.__setHH) window.__setHH(); window.dispatchEvent(new Event("resize"));
+  Object.keys(plans).forEach(function(k){ if(plans[k].fitted) fit(plans[k],false); }); if(openId) sheetTodoUi(openId); }
 menuBtn.addEventListener("click",function(e){ e.stopPropagation(); menuOpen(!menu.classList.contains("open")); });
 document.addEventListener("click",function(e){ if(menu.classList.contains("open") && !e.target.closest("#menu")) menuOpen(false); });
 menu.addEventListener("click",function(e){ var b=e.target.closest("[data-m]"); if(!b) return; menuOpen(false);
   if(b.dataset.m==="sync") openSync();
-  if(b.dataset.m==="reload") location.reload(); });
+  if(b.dataset.m==="reload") location.reload();
+  if(b.dataset.m==="ui"){ var nx={auto:"phone",phone:"tablet",tablet:"auto"}[window.__uiMode]||"auto"; setUiMode(nx); setTimeout(function(){ menuOpen(true); },50); } });
 function openSync(){ syncM.classList.add("open"); syncM.setAttribute("aria-hidden","false"); $("#syncIn").value=""; Sync.ui(); Sync.run(); }
 function closeSync(){ syncM.classList.remove("open"); syncM.setAttribute("aria-hidden","true"); }
 syncM.addEventListener("click",function(e){ if(e.target.closest("[data-close]")) closeSync(); if(e.target.closest("[data-ren]")) Sync.rename(); });
@@ -719,7 +792,7 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>Auf Plan zeigen</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
@@ -733,10 +806,11 @@ function openPos(id,push){
 function docLinks(id){ var l=(D.docs||[]).filter(function(d){ return d.pos.indexOf(id)>-1; });
   if(!l.length) return "";
   return '<div class="doclinks">'+l.map(function(d){ return '<button class="btn sec" data-doc="'+d.page+'">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5M9 13h6M9 17h4"></path></svg>'+esc(d.title)+' · S. '+d.page+'</button>'; }).join("")+'</div>'; }
-function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(on?"Pink markiert":"Pink markieren"); pb.setAttribute("aria-pressed",on?"true":"false"); }
+function isPhone(){ return document.documentElement.classList.contains("phone"); }
+function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on=pinOn(id); pb.className="btn "+(on?"pin-on":"pin-off"); pb.innerHTML=(on?ICON_FLAGF:ICON_FLAG)+(isPhone()?"Pink":(on?"Pink markiert":"Pink markieren")); pb.setAttribute("aria-pressed",on?"true":"false"); }
   var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
-  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen"):ICON_PLUS+"Zu To-dos";
+  b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(isPhone()?"To-do":(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen")):ICON_PLUS+(isPhone()?"To-do":"Zu To-dos");
   b.setAttribute("aria-label",t?"Von der To-do-Liste entfernen":"Zur To-do-Liste hinzufügen"); }
 function openSheet(id,push){
   openId=id; sheet.classList.add("open"); sheet.setAttribute("aria-hidden","false");
@@ -760,7 +834,17 @@ function showOnPlan(id){
 }
 var lb=$("#lb");
 $("#sBody").addEventListener("click",function(e){ var im=e.target.closest("img.zoomable"); if(!im) return;
-  $("#lbScroll").innerHTML='<img src="'+im.getAttribute("src")+'" alt="'+esc(im.alt)+'">'; lb.classList.add("open"); lb.setAttribute("aria-hidden","false"); $("#lbScroll").scrollTop=0; $("#lbScroll").scrollLeft=0; });
+  var P=lbViewer(), w=+im.getAttribute("width")||im.naturalWidth, h=+im.getAttribute("height")||im.naturalHeight;
+  P.m={w:w,h:h}; P.canvas.style.width=w+"px"; P.canvas.style.height=h+"px"; P.img.width=w; P.img.height=h; P.img.alt=im.alt; P.img.src=im.getAttribute("src");
+  lb.classList.add("open"); lb.setAttribute("aria-hidden","false");
+  requestAnimationFrame(function(){ var r=P.stage.getBoundingClientRect(), fw=r.width/w;
+    P.minS=Math.min(fw, r.height/h)*0.9; P.s=Math.min(1,Math.max(fw*0.96,0.75));   // direkt lesbar starten
+    P.x=w*P.s>r.width?8:(r.width-w*P.s)/2; P.y=56; clampPos(P); apply(P,false); P.fitted=true; }); });
+/* Zoom-Betrachter für Detailbilder (wie bei den Plänen) */
+var LB=null;
+function lbViewer(){ if(LB) return LB; var host=$("#lbScroll"), stage=document.createElement("div"), canvas=document.createElement("div"), img=new Image();
+  host.innerHTML=""; stage.className="stage"; canvas.className="canvas"; img.draggable=false; canvas.appendChild(img); stage.appendChild(canvas); host.appendChild(stage);
+  LB={key:"lb",m:{w:1,h:1},stage:stage,canvas:canvas,img:img,s:1,x:0,y:0,minS:.1,maxS:3,fitted:false,hint:null}; bindGestures(LB); return LB; }
 $("#lbClose").addEventListener("click",function(){ lb.classList.remove("open"); lb.setAttribute("aria-hidden","true"); });
 $("#sClose").addEventListener("click",function(){closeSheet(false);});
 $("#sheetBack").addEventListener("click",function(){closeSheet(false);});
