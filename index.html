@@ -249,6 +249,9 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .btn.sec{background:var(--panel);color:var(--accent)}
 .btn.todo-add{background:var(--panel);color:var(--todo);border-color:var(--todo)}
 .btn.todo-in{background:var(--todo);border-color:var(--todo);color:#fff}
+.btn.done-off{background:var(--panel);color:var(--done);border-color:var(--done)}
+.btn.done-on{background:var(--done);border-color:var(--done);color:#fff}
+.btn.hide{display:none}
 .row.todo .item,.row.todo .tbtn{background:var(--todo-bg);border-color:var(--todo-line)}
 .row.todo .item .no{color:var(--todo)}
 .row.todo .tbtn{color:var(--todo)}
@@ -261,7 +264,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
 .row.todo.done .item .t small{color:var(--done)}
 .snack{position:fixed;left:50%;bottom:calc(var(--nh,0px) + 16px);transform:translate(-50%,20px);z-index:24;background:#1b2027;color:#fff;border-radius:12px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:12px;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100vw - 24px)}
 .snack.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.snack span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.snack span{line-height:1.3}
 .snack button{border:0;background:rgba(255,255,255,.12);color:#7fe0a6;font-weight:700;border-radius:8px;padding:9px 12px;cursor:pointer;flex-shrink:0}
 .group.todo h2{color:var(--todo)!important}
 .group.todo .linkbtn{color:var(--todo)}
@@ -300,7 +303,7 @@ main{flex:1;position:relative;overflow:hidden;background:var(--bg)}
     <button class="mi" role="menuitem" data-m="sync"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4v-4h-4"></path></svg><span>Geräte synchronisieren<small id="menuSyncSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.17 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.18 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
@@ -820,7 +823,7 @@ function openPos(id,push){
   var i=order.indexOf(id);
   $("#sTitle").textContent="POS "+e.id+(e.title?" · "+e.title:"");
   $("#sSub").textContent=e.area+" · Booklet S. "+e.page;
-  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
+  var acts='<div class="actions"><button class="btn" id="sTodo"></button><button class="btn hide" id="sDone"></button><button class="btn" id="sPin"></button>'+(spotsById[id]?'<button class="btn sec" id="sShow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.5"></circle></svg>'+(isPhone()?'Plan':'Auf Plan zeigen')+'</button>':'')+'</div>'+docLinks(id)+'<div class="tip">Tipp: Auf die Details tippen zum Vergrößern.</div>';
   $("#sBody").innerHTML=acts+e.imgs.map(function(im){ return '<img class="zoomable" src="'+im.src+'" width="'+im.w+'" height="'+im.h+'" alt="Details POS '+esc(e.id)+'" loading="lazy">'; }).join('<div style="height:8px"></div>');
   $("#sBody").scrollTop=0;
   $("#sPrev").disabled=i<=0; $("#sNext").disabled=i>=order.length-1;
@@ -828,6 +831,7 @@ function openPos(id,push){
   $("#sBody").querySelectorAll("[data-doc]").forEach(function(b){ b.addEventListener("click",function(){ var pg=+b.dataset.doc; closeSheet(false); show("montage"); openDoc(pg); }); });
   $("#sTodo").addEventListener("click",function(){ if(todoFind(id)) todoRemove(id); else todoAdd(id); });
   $("#sPin").addEventListener("click",function(){ pinToggle(id); });
+  $("#sDone").addEventListener("click",function(){ todoToggle(id); });
   sheetTodoUi(id);
   openSheet(id,push);
 }
@@ -839,7 +843,11 @@ function sheetTodoUi(id){ var pb=document.getElementById("sPin"); if(pb){ var on
   var b=document.getElementById("sTodo"); if(!b) return; var t=todoFind(id);
   b.className="btn "+(t?"todo-in":"todo-add");
   b.innerHTML=t?ICON_CHECK.replace('stroke-width="3"','stroke-width="2.6"')+(isPhone()?"To-do":(t.done?"Erledigt · entfernen":"Auf To-do-Liste · entfernen")):ICON_PLUS+(isPhone()?"To-do":"Zu To-dos");
-  b.setAttribute("aria-label",t?"Von der To-do-Liste entfernen":"Zur To-do-Liste hinzufügen"); }
+  b.setAttribute("aria-label",t?"Von der To-do-Liste entfernen":"Zur To-do-Liste hinzufügen");
+  var d=document.getElementById("sDone"); if(d){
+    d.className="btn "+(!t?"hide":(t.done?"done-on":"done-off"));
+    d.innerHTML=t?(t.done?ICON_CHECK+"Erledigt":'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="4"></rect></svg>'+"Abhaken"):"";
+    d.setAttribute("aria-label",t&&t.done?"Wieder als offen markieren":"Als erledigt abhaken"); } }
 function openSheet(id,push){
   openId=id; sheet.classList.add("open"); sheet.setAttribute("aria-hidden","false");
   if(push){ var h="#pos="+encodeURIComponent(id); if(location.hash!==h){ if(location.hash.indexOf("#pos=")===0) history.replaceState(null,"",h); else { history.pushState(null,"",h); pushed=true; } } }
