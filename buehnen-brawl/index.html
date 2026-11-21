@@ -1045,6 +1045,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.1.1', news: [] },
   { v: '4.1.0', news: [['🎨', 'Neues App-Icon und aufgeräumte Startseite']] },
   { v: '4.0.0', chars: ['it'], news: [
     ['💻', 'Neuer Kämpfer: der ITler – Finisher „Trojaner im Netzwerk“'],
@@ -1056,8 +1057,16 @@ const CHANGELOG = [
   { v: '3.4.1', news: [] },
   { v: '3.4.0', news: [['🏆', 'Bestenliste: schnellster Online-Sieg, immer 3 Leben']] }
 ];
-const GAME_VERSION = CHANGELOG[0].v, NEWS = CHANGELOG.find(e => e.news.length);
-let news = (() => { try { return localStorage.getItem('bb-version') !== NEWS.v; } catch (e) { return false; } })();
+// Das Fenster zeigt alles, was seit der zuletzt gesehenen Version dazukam – aber nur innerhalb der aktuellen
+// Major-Version: Wer 4.0 noch nicht kennt, sieht oben groß die 4.0-Neuerungen und darunter die kleineren Updates.
+const GAME_VERSION = CHANGELOG[0].v;
+const verNum = v => String(v || '0').split('.').map(Number).reduce((a, n, i) => a + (n || 0) * [1e6, 1e3, 1][i], 0);
+const NEWS = (() => {
+  let seen = null; try { seen = localStorage.getItem('bb-version'); } catch (e) { /* egal */ }
+  const major = +GAME_VERSION.split('.')[0], from = Math.max(seen ? verNum(seen) : 0, major * 1e6 - 1);
+  return CHANGELOG.filter(e => e.news.length && verNum(e.v) > from).reverse();   // älteste (Major) zuerst
+})();
+let news = NEWS.length > 0;
 let a2hs = TOUCH && !STANDALONE && (() => { try { return !localStorage.getItem('bb-a2hs'); } catch (e) { return true; } })();
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
 const DIFFS = [
@@ -1650,7 +1659,7 @@ function onUI(id) {
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
-    case 'newsOk': news = false; try { localStorage.setItem('bb-version', NEWS.v); } catch (e) { /* egal */ } sfx.confirm(); break;
+    case 'newsOk': news = false; try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'a2hsOk': a2hs = false; try { localStorage.setItem('bb-a2hs', '1'); } catch (e) { /* egal */ } sfx.confirm(); break;
     case 'mute': settings.mute = !settings.mute; applyMute(); saveSettings(); sfx.move(); break;
     case 'back': if (isOnline()) { leaveOnline(); break; } scene = 'title'; sfx.select(); break;
@@ -2798,10 +2807,13 @@ function drawTitle() {
     ui.push({ id: r, x: mx, y, w: mw, h: bh }); y += bh + gap;
   });
   drawTopList(690, 214);
-  // kleine Leiste oben: Feedback links, Ton rechts
-  RR(c, 16, 22, 150, 44, 22, 'rgba(20,16,36,0.88)'); c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2; strokeRR(c, 16, 22, 150, 44, 22);
-  c.textAlign = 'center'; c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText('💬 Feedback', 91, 50);
-  ui.push({ id: 'feedback', x: 16, y: 22, w: 150, h: 44 });
+  // Feedback: großer, gut sichtbarer Knopf unter der Bestenliste
+  const fp = 0.5 + 0.5 * Math.sin(frame * 0.06);
+  c.save(); c.shadowColor = 'rgba(91,200,255,' + (0.35 + fp * 0.35) + ')'; c.shadowBlur = 18;
+  RR(c, 690, 452, 380, 60, 18, '#5bc8ff'); c.restore();
+  c.textAlign = 'center'; c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#0d1a2a'; c.fillText('💬 FEEDBACK GEBEN', 880, 482);
+  c.font = 'bold 12px system-ui,sans-serif'; c.fillStyle = '#16324a'; c.fillText('Lob, Kritik, Ideen – wir lesen alles', 880, 501);
+  ui.push({ id: 'feedback', x: 690, y: 452, w: 380, h: 60 });
   muteButton(1232, 44);
   c.textAlign = 'right'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '13px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
@@ -3101,30 +3113,41 @@ function drawA2HS() {
   btn('a2hsOk', W / 2 - 150, y + h - 92, 300, 62, 'VERSTANDEN', '#ffd23f', 30);
 }
 function drawNews() {
-  const c = ctx, items = NEWS.news, chars = NEWS.chars || [], h = 170 + (chars.length ? 120 : 0) + items.length * 46 + 80;
-  const x = W / 2 - 420, w = 840, y = (H - h) / 2;
+  const c = ctx, main = NEWS[0], more = NEWS.slice(1), chars = main.chars || [];
+  const h = 160 + (chars.length ? 118 : 0) + main.news.length * 42 + more.reduce((a, e) => a + 40 + e.news.length * 34, 0) + 84;
+  const x = W / 2 - 420, w = 840, y = Math.max(8, (H - h) / 2);
   c.fillStyle = 'rgba(0,0,0,0.72)'; c.fillRect(0, 0, W, H);
   RR(c, x, y, w, h, 26, '#17122a'); c.strokeStyle = '#ffd23f'; c.lineWidth = 3; strokeRR(c, x, y, w, h, 26);
-  const title = 'UPDATE ' + NEWS.v.replace(/\.0$/, '');
-  c.textAlign = 'center'; c.font = '900 54px Impact,"Arial Black",sans-serif'; c.lineWidth = 7; c.strokeStyle = '#2a0d3d';
-  c.strokeText(title, W / 2, y + 70); c.fillStyle = '#ffd23f'; c.fillText(title, W / 2, y + 70);
-  c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Das ist neu:', W / 2, y + 102);
-  let yy = y + 130;
+  const short = v => v.replace(/\.0$/, ''), title = 'UPDATE ' + short(main.v);
+  c.textAlign = 'center'; c.font = '900 52px Impact,"Arial Black",sans-serif'; c.lineWidth = 7; c.strokeStyle = '#2a0d3d';
+  c.strokeText(title, W / 2, y + 66); c.fillStyle = '#ffd23f'; c.fillText(title, W / 2, y + 66);
+  c.font = 'bold 17px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Das ist neu:', W / 2, y + 96);
+  let yy = y + 116;
   if (chars.length) {
     chars.forEach((id, k) => {
       const d = ROSTER.find(r => r.id === id), px = W / 2 + (k - (chars.length - 1) / 2) * 150;
       drawPortrait(c, d, px, yy + 40, 40);
       c.textAlign = 'center'; c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = d.color; c.fillText(d.short, px, yy + 100);
     });
-    yy += 120;
+    yy += 118;
   }
   c.textAlign = 'left';
-  items.forEach(([ic, t], i) => {
-    const ty = yy + 24 + i * 46;
-    c.font = '22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, ty);
-    c.font = 'bold 19px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText(t, x + 112, ty);
+  main.news.forEach(([ic, t]) => {
+    yy += 42;
+    c.font = '22px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, yy - 16);
+    c.font = 'bold 19px system-ui,sans-serif'; c.fillStyle = '#e8e8f4'; c.fillText(t, x + 112, yy - 16);
   });
-  btn('newsOk', W / 2 - 150, y + h - 82, 300, 60, "LOS GEHT'S!", '#ffd23f', 30);
+  for (const e of more) {   // kleinere Updates darunter
+    yy += 40;
+    c.strokeStyle = 'rgba(255,255,255,0.12)'; c.lineWidth = 1; c.beginPath(); c.moveTo(x + 70, yy - 30); c.lineTo(x + w - 70, yy - 30); c.stroke();
+    c.font = 'bold 15px system-ui,sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('Außerdem neu in ' + short(e.v) + ':', x + 70, yy - 6);
+    e.news.forEach(([ic, t]) => {
+      yy += 34;
+      c.font = '17px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText(ic, x + 70, yy - 12);
+      c.font = '16px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText(t, x + 106, yy - 12);
+    });
+  }
+  btn('newsOk', W / 2 - 150, y + h - 78, 300, 58, "LOS GEHT'S!", '#ffd23f', 30);
 }
 function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
