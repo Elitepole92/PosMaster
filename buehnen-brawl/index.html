@@ -24,7 +24,7 @@ canvas{display:block;outline:none}
 'use strict';
 /* =========================================================================
    BACKSTAGE BRAWL – Prügelspiel (Plattform-Fighter) hinter der Bühne
-   Kämpfer: Medien Hamster, Hallenmeister, Cemil, Crew Rigger
+   Kämpfer: siehe ROSTER
    Steuerung pro Spieler: Laufen, Springen, Schild, Schlag, Finisher
    ========================================================================= */
 const W = 1280, H = 720;
@@ -153,6 +153,7 @@ const sfx = {
   key() { tone(rand(1600, 2600), 0.03, 'square', 0.025); noise(0.02, 0.06, 5000, 'highpass'); },
   enter() { tone(600, 0.08, 'square', 0.05); tone(900, 0.12, 'square', 0.05, 0, 0.07); noise(0.35, 0.12, 2500, 'bandpass', 0.06); },
   hack() { for (let i = 0; i < 8; i++) tone(rand(200, 1800), 0.05, 'square', 0.04, 0, i * 0.04); noise(0.4, 0.2, 1200, 'bandpass'); },
+  parry() { tone(1320, 0.12, 'square', 0.07); tone(1760, 0.3, 'triangle', 0.07, 0, 0.05); noise(0.12, 0.18, 4000, 'highpass'); },
   calm() { [262, 330, 392].forEach((f, i) => tone(f, 1.2, 'sine', 0.035, 0, i * 0.18)); }
 };
 
@@ -424,7 +425,7 @@ const S_HM = {
     }
   }
 };
-/* ---- Cemil: sehr klein, Dreitagebart, weißer Helm, gelbe Weste ---- */
+/* ---- Logistiker (früher Cemil): sehr klein, Dreitagebart, weißer Helm, gelbe Weste ---- */
 const S_CEMIL = {
   hip: -34, sh: -58, hunch: 0, thigh: 18, shin: 17, upper: 16, fore: 15, legW: 10, armW: 8, handR: 4.2,
   pants: '#4a4f57', pantsD: '#3d4148', sleeve: '#2b2f35', sleeveD: '#24272c', shirt: '#2b2f35', hand: '#d49a72', boot: '#3a2a1a', bootL: 16,
@@ -524,7 +525,7 @@ const S_RIGGER = {
   }
 };
 
-/* ---- Gerch: Tontechniker, gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille ---- */
+/* ---- Tontechniker (früher Gerch): gelbe Weste, beige Cargoshorts, Lederstiefel, oranger Helm, grauer Dreitagebart, Brille ---- */
 const S_GERCH = {
   hip: -50, sh: -84, hunch: 3, thigh: 26, shin: 25, upper: 23, fore: 22, legW: 13, armW: 9, handR: 4.8,
   pants: '#cdb791', pantsD: '#ad9870', pocket: '#b9a37b', shinCol: '#e2b48e', shinColD: '#c99c78',
@@ -932,11 +933,11 @@ const ROSTER = [
     style: S_HM, draw: (c, f, A) => drawHuman(c, f, A, S_HM)
   },
   {
-    id: 'cemil', name: 'CEMIL', short: 'Cemil', w: 38, h: 82,
+    id: 'cemil', name: 'LOGISTIKER', short: 'Logistiker', w: 38, h: 82,
     speed: 6.2, airSpeed: 5.8, airAcc: 0.75, jump: 14.6, airJump: 13, airJumps: 2, grav: 0.66, maxFall: 11.5, fastFall: 17, weight: 1.1,
     color: '#ffd400', color2: '#fff3a0', hitColor: '#ffe14a', stats: [5, 1, 2], pt: [3, -70, 1.75],
     atk: { name: 'Helm-Kopfnuss', s: 4, a: 6, r: 10, dmg: 7, kb: 5, scale: 0.115, ang: 38, meter: 20, lunge: 5, box: { x: 4, y: -82, w: 46, h: 54 } },
-    fin: 'forklift', finName: 'GABELSTAPLER-RAMME', finQuote: 'Piep, piep, piep – Cemil kommt durch!', finRange: 600,
+    fin: 'forklift', finName: 'GABELSTAPLER-RAMME', finQuote: 'Piep, piep, piep – Logistik kommt durch!', finRange: 600,
     quotes: ['Klein, aber Stapler!', 'Abfahrt, Bruder!', 'Palette läuft!', 'Helm auf, Kopf runter!', 'Wo soll das hin? Weg!'],
     style: S_CEMIL, draw: (c, f, A) => drawHuman(c, f, A, S_CEMIL)
   },
@@ -950,7 +951,7 @@ const ROSTER = [
     style: S_RIGGER, draw: (c, f, A) => drawHuman(c, f, A, S_RIGGER)
   },
   {
-    id: 'gerch', lobby: 'Espresso und Kippe, lecker Frühstück.', name: 'GERCH', short: 'Gerch', w: 44, h: 108,
+    id: 'gerch', lobby: 'Espresso und Kippe, lecker Frühstück.', name: 'TONTECHNIKER', short: 'Tontechniker', w: 44, h: 108,
     speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.94,
     color: '#ff7a1a', color2: '#ffd0a8', hitColor: '#ffb070', stats: [3, 3, 3], pt: [7, -95, 1.6],
     atk: { name: 'XLR-Peitsche', s: 6, a: 5, r: 12, dmg: 9, kb: 5.3, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
@@ -1028,6 +1029,7 @@ const GADGETS = {
   energy: { name: 'ENERGY', col: '#ffd23f' }    // Blitz: stärkere Schläge
 };
 const BOOST_T = 540;
+const SHIELD_T = 36, SHIELD_PARRY = 12, SHIELD_CD = 60;   // Schild 0,6 s an, Konter in den ersten 0,2 s, danach 1 s Pause
 let itemT = 600;
 const FOOD_SMALL = { dmg: 3, kb: 1.6, scale: 0.01, ang: 10, meter: 0 }, FOOD_G = 0.5;
 const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
@@ -1045,6 +1047,11 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.2.0', news: [
+    ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
+    ['🕹️', 'Joystick nur noch links/rechts – Springen über die Taste'],
+    ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker']
+  ] },
   { v: '4.1.2', news: [] },
   { v: '4.1.1', news: [] },
   { v: '4.1.0', news: [['🎨', 'Neues App-Icon und aufgeräumte Startseite']] },
@@ -1085,7 +1092,7 @@ function makeFighter(def, idx, x) {
   return {
     def, idx, x, y: STAGE.top, vx: 0, vy: 0, facing: idx === 0 ? 1 : -1, onGround: true, ground: STAGE, jumps: def.airJumps,
     damage: 0, stocks: settings.stocks, maxStocks: settings.stocks, meter: 0, atk: null, atkT: 0, hitDone: false, hitstun: 0, tumble: 0, rot: 0,
-    invuln: 0, shield: 100, shielding: false, broken: 0, fast: false, drop: 0, buf: null, fin: null, armor: false, lag: 0,
+    invuln: 0, shield: 100, shielding: false, shieldT: 0, shieldAge: 0, shieldCD: 0, broken: 0, fast: false, drop: 0, buf: null, fin: null, armor: false, lag: 0,
     dead: false, respawnT: 0, plat: 0, squash: 0, cough: 0, zapped: 0, t: 0, flash: 0, dmgShake: 0, quote: null,
     stats: { dealt: 0, kos: 0, fins: 0, hits: 0 }, ai: { t: 0, shieldT: 0 }
   };
@@ -1144,10 +1151,16 @@ function applyHit(att, o, m, dirX, hx, hy) {
   if (att.boost && att.boost.kind === 'energy') { dmg = Math.round(dmg * 1.5); kbm *= 1.2; mm = 1.5; }
   if (o.boost && o.boost.kind === 'gaffa') { dmg = Math.max(1, Math.round(dmg * 0.6)); kbm *= 0.6; }
   if (o.shielding) {
-    o.shield -= dmg * 1.8; o.vx = dirX * (2 + m.kb * 0.45);
+    if (o.shieldAge <= SHIELD_PARRY) {   // im richtigen Moment geblockt: KONTER – Angreifer taumelt, Verteidiger bekommt Energie
+      freeze = 10; o.vx = 0; sfx.parry(); sparks(hx, hy, '#ffd23f', 16);
+      popText(o.x, o.y - o.def.h - 24, 'KONTER!', '#ffd23f', 36, 45);
+      addMeter(o, 25); o.shieldT = 0; o.shielding = false; o.shieldCD = 20;
+      if (att !== o && !att.dead) { att.broken = 50; att.atk = null; att.fin = null; att.armor = false; att.buf = null; att.vx = -dirX * 3; }
+      return;
+    }
+    o.vx = dirX * (2 + m.kb * 0.45);
     freeze = 4; sfx.block(); sparks(hx, hy, '#7fd3ff', 6);
     addMeter(att, (m.meter || 0) * 0.35);
-    if (o.shield <= 0) breakShield(o);
     return;
   }
   o.damage = Math.min(999, o.damage + dmg); o.dmgShake = 14; o.flash = 8;
@@ -1158,7 +1171,7 @@ function applyHit(att, o, m, dirX, hx, hy) {
   const kb = (m.kb + o.damage * m.scale) * o.def.weight * kbm, a = m.ang * PI / 180;
   o.vx = Math.cos(a) * kb * dirX; o.vy = -Math.sin(a) * kb;
   o.onGround = false; o.ground = null; o.y -= 1; o.fast = false;
-  o.hitstun = Math.floor(kb * 2.3) + 8; o.atk = null; o.lag = 0; o.shielding = false; o.buf = null;
+  o.hitstun = Math.floor(kb * 2.3) + 8; o.atk = null; o.lag = 0; o.shielding = false; o.shieldT = 0; o.buf = null;
   if (o.fin) { o.fin = null; o.armor = false; }
   o.jumps = Math.max(o.jumps, 1);
   o.tumble = kb > 13 ? 0.28 * dirX : 0; o.rot = 0;
@@ -1169,13 +1182,9 @@ function applyHit(att, o, m, dirX, hx, hy) {
   if (kb > 19) { flashScreen = 6; flashCol = '255,255,255'; if (m.meter) popText(o.x, o.y - o.def.h - 30, 'SMASH!', '#fff', 46, 40); }
   sfx.hit(kb);
 }
-function breakShield(o) {
-  o.shield = 0; o.shielding = false; o.broken = 150; o.vy = -9; o.onGround = false; o.ground = null;
-  popText(o.x, o.y - o.def.h - 20, 'SCHILD KAPUTT!', '#7fd3ff', 28, 60); sfx.shieldBreak(); sparks(o.x, o.y - o.def.h / 2, '#7fd3ff', 20);
-}
 
 function startFinisher(f, o) {
-  f.meter = 0; f.stats.fins++; f.atk = null; f.shielding = false; f.buf = null;
+  f.meter = 0; f.stats.fins++; f.atk = null; f.shielding = false; f.shieldT = 0; f.buf = null;
   if (!o.dead) f.facing = Math.sign(o.x - f.x) || f.facing;
   cutin = { f, t: 0, dur: 110 }; sfx.fin();
   f.fin = { type: f.def.fin, t: 0, dir: f.facing, hit: false, spin: 0, fork: 0 };
@@ -1385,7 +1394,7 @@ function stepEnts() {
         }
       } else if (e.ph === 1) {   // im System: Gegner hängt fest, ein paar kleine Treffer, dann GEHACKT
         if (o.dead) { e.dead = true; continue; }
-        o.x = e.tx; o.y = e.ty; o.vx = 0; o.vy = 0; o.atk = null; o.fin = null; o.shielding = false; o.hitstun = Math.max(o.hitstun, 3);
+        o.x = e.tx; o.y = e.ty; o.vx = 0; o.vy = 0; o.atk = null; o.fin = null; o.shielding = false; o.shieldT = 0; o.hitstun = Math.max(o.hitstun, 3);
         if (e.t % 11 === 5 && e.t < 50 && hittable(o)) { applyHit(owner, o, MATRIX_SMALL, Math.sign(o.x - owner.x) || owner.facing, o.x, o.y - o.def.h * 0.7); o.x = e.tx; o.y = e.ty; o.vx = 0; o.vy = 0; popText(o.x + rand(-30, 30), o.y - o.def.h - 10, pick(['01001', 'ERROR', '404', 'sudo', '0xDEAD']), '#39ff6a', 18, 26); }
         if (e.t === 56) {
           e.ph = 2; e.t = 0; flashScreen = 8; flashCol = '57,255,106'; sfx.zap();
@@ -1475,10 +1484,10 @@ function control(f, inp, o) {
   const d = f.def, dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   const onMain = f.onGround && f.ground === STAGE;
   if (inp.downP && f.onGround && f.ground !== STAGE) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
-  const wasShield = f.shielding;
-  f.shielding = inp.down && onMain && f.shield > 5;
-  if (f.shielding && !wasShield) sfx.shield();
-  if (f.shielding) { f.vx *= 0.7; f.shield -= 0.3; if (f.shield <= 0) breakShield(f); }
+  // Konter-Schild: antippen (nicht halten) – kurz aktiv, danach Abklingzeit
+  if (inp.downP && onMain && f.shieldT <= 0 && f.shieldCD <= 0) { f.shieldT = SHIELD_T; f.shieldAge = 0; sfx.shield(); }
+  f.shielding = f.shieldT > 0;
+  if (f.shielding) f.vx *= 0.7;
   else {
     const bm = f.boost && f.boost.kind === 'coffee' ? 1.35 : 1;
     if (f.onGround) { f.vx += (dir * d.speed * bm - f.vx) * 0.3; if (dir) f.facing = dir; }
@@ -1498,12 +1507,12 @@ function control(f, inp, o) {
   }
   if (f.buf) {
     if (f.buf.k === 'fin') { if (f.meter >= 100) startFinisher(f, o); }
-    else { f.buf = null; f.shielding = false; f.atk = d.atk; f.atkT = 0; f.hitDone = false; }
+    else { f.buf = null; f.shielding = false; f.shieldT = 0; f.atk = d.atk; f.atkT = 0; f.hitDone = false; }
   }
 }
 function ko(f, o) {
   f.dead = true; f.stocks--; f.respawnT = 100; f.fin = null; f.atk = null; f.hitstun = 0; f.rot = 0; f.tumble = 0;
-  f.shielding = false; f.armor = false; f.broken = 0; f.buf = null; f.squash = 0; f.cough = 0; f.zapped = 0; f.boost = null;
+  f.shielding = false; f.shieldT = 0; f.shieldCD = 0; f.armor = false; f.broken = 0; f.buf = null; f.squash = 0; f.cough = 0; f.zapped = 0; f.boost = null;
   const x = clamp(f.x, BLAST.x1 + 30, BLAST.x2 - 30), y = clamp(f.y - 30, BLAST.y1 + 30, BLAST.y2 - 30);
   koFx.push({ x, y, t: 0, ang: Math.atan2(400 - y, 640 - x), col: f.def.color });
   shake = 28; flashScreen = 8; flashCol = '255,255,255'; sfx.ko();
@@ -1515,7 +1524,7 @@ function respawn(f) {
   const o = F[1 - f.idx];
   f.dead = false; f.x = (o && !o.dead && Math.abs(o.x - 640) < 80) ? (o.x < 640 ? 760 : 520) : 640;
   f.y = 180; f.vx = 0; f.vy = 0; f.damage = 0; f.plat = 160; f.invuln = 160; f.jumps = f.def.airJumps; f.onGround = false; f.ground = null;
-  f.shield = 100; f.lag = 0; sfx.respawn();
+  f.shieldT = 0; f.shieldCD = 0; f.lag = 0; sfx.respawn();
 }
 function stepFighter(f, inp, o) {
   f.t++;
@@ -1543,7 +1552,8 @@ function stepFighter(f, inp, o) {
     else return;
   }
   const prevY = f.y;
-  if (!f.shielding && f.shield < 100) f.shield = Math.min(100, f.shield + 0.22);
+  if (f.shieldT > 0) { f.shieldT--; f.shieldAge++; if (f.shieldT === 0) { f.shielding = false; f.shieldCD = SHIELD_CD; } }
+  else if (f.shieldCD > 0) f.shieldCD--;
 
   if (f.hitstun > 0) {
     f.hitstun--; f.vx *= 0.975; f.vy *= 0.99;
@@ -1602,8 +1612,8 @@ function cpuInput(f, o) {
   }
   const dx = o.x - f.x, adx = Math.abs(dx), reach = f.def.atk.box.x + f.def.atk.box.w;
   ai.t--;
-  if (ai.shieldT > 0) { ai.shieldT--; inp.down = true; return inp; }
-  if (o.atk && adx < 120 && f.onGround && f.ground === STAGE && Math.random() < D.shield) { ai.shieldT = 18; inp.down = true; return inp; }
+  if (o.atk && o.atkT < o.atk.s && adx < 130 && f.onGround && f.ground === STAGE && f.shieldCD <= 0 && !f.shielding && Math.random() < D.shield * 0.6) { inp.downP = true; return inp; }
+  if (f.shielding) return inp;
   if (o.dead) { inp[640 > f.x ? 'right' : 'left'] = Math.abs(640 - f.x) > 60; return inp; }
   if (adx > reach - 8) inp[dx > 0 ? 'right' : 'left'] = true;
   else if (Math.sign(dx) !== f.facing) inp[dx > 0 ? 'right' : 'left'] = true;
@@ -1960,7 +1970,7 @@ function snapshot() {
     t: 'st', sc: scene, mt: matchT, cd: countdown, go: goT, gt: gameOverT, fz: freeze, sh: r1(shake), fl: flashScreen, fc: flashCol,
     cu: cutin ? [cutin.f.idx, cutin.t, cutin.dur] : 0, w: winner ? winner.idx : -1,
     f: F.map(f => [r1(f.x), r1(f.y), r2(f.vx), r2(f.vy), f.facing, f.damage, f.stocks, Math.round(f.meter), f.atk ? f.atkT : -1, f.hitstun, r2(f.rot),
-      f.fin ? [f.fin.type, f.fin.t, f.fin.dir, r2(f.fin.spin), r2(f.fin.fork), r1(f.fin.tx || 0), r1(f.fin.ty || 0), f.fin.lt === undefined ? -1 : f.fin.lt] : 0, f.shielding ? 1 : 0, Math.round(f.shield), f.invuln, f.plat, f.dead ? 1 : 0,
+      f.fin ? [f.fin.type, f.fin.t, f.fin.dir, r2(f.fin.spin), r2(f.fin.fork), r1(f.fin.tx || 0), r1(f.fin.ty || 0), f.fin.lt === undefined ? -1 : f.fin.lt] : 0, f.shielding ? 1 : 0, f.shieldCD, f.invuln, f.plat, f.dead ? 1 : 0,
       f.flash, f.squash, f.cough, f.zapped, f.broken, f.onGround ? 1 : 0, f.dmgShake, f.quote ? [f.quote.text, f.quote.t] : 0, f.t,
       [f.stats.dealt, f.stats.kos, f.stats.fins, f.stats.hits], f.boost ? [f.boost.kind, f.boost.t] : 0]),
     e: ents.map(e => { const o = Object.assign({}, e); o.owner = e.owner ? e.owner.idx : -1; return o; }),
@@ -1981,7 +1991,7 @@ function applySnap(m) {
     [f.x, f.y, f.vx, f.vy, f.facing, f.damage, f.stocks, f.meter] = a;
     f.atk = a[8] >= 0 ? f.def.atk : null; f.atkT = Math.max(0, a[8]); f.hitstun = a[9]; f.rot = a[10];
     const fn = a[11]; f.fin = fn ? { type: fn[0], t: fn[1], dir: fn[2], spin: fn[3], fork: fn[4], tx: fn[5], ty: fn[6], lt: fn[7] >= 0 ? fn[7] : undefined, hit: false } : null;
-    f.shielding = !!a[12]; f.shield = a[13]; f.invuln = a[14]; f.plat = a[15]; f.dead = !!a[16]; f.flash = a[17]; f.squash = a[18];
+    f.shielding = !!a[12]; f.shieldCD = a[13]; f.invuln = a[14]; f.plat = a[15]; f.dead = !!a[16]; f.flash = a[17]; f.squash = a[18];
     f.cough = a[19]; f.zapped = a[20]; f.broken = a[21]; f.onGround = !!a[22]; f.dmgShake = a[23];
     f.quote = a[24] ? { text: a[24][0], t: a[24][1] } : null; f.t = a[25];
     if (a[24] && a[24][1] >= 124 && !(focusCam && focusCam.f === f && focusCam.t > 0)) focusCam = { f, t: 105 };
@@ -2260,10 +2270,8 @@ function syncTouches(list) {
   if (JOY.id !== null) {
     let dx = JOY.x - JOY.ox, dy = JOY.y - JOY.oy; const d = Math.hypot(dx, dy);
     if (d > JOY.R) { JOY.ox = JOY.x - dx / d * JOY.R; JOY.oy = JOY.y - dy / d * JOY.R; dx = JOY.x - JOY.ox; dy = JOY.y - JOY.oy; }   // Basis wandert mit
-    const nx = dx / JOY.R, ny = dy / JOY.R;
-    if (nx < -0.3) now.add('KeyA'); if (nx > 0.3) now.add('KeyD');
-    if (ny < -0.6) now.add('KeyW');
-    if (ny > 0.65 && Math.abs(nx) < 0.7) now.add('KeyS');
+    const nx = dx / JOY.R;
+    if (nx < -0.3) now.add('KeyA'); if (nx > 0.3) now.add('KeyD');   // nur links/rechts – Springen und Schild über die Tasten
   }
   for (const k of now) if (!touchHeld.has(k)) pressed.add(k);
   touchHeld.clear(); for (const k of now) touchHeld.add(k);
@@ -2378,8 +2386,8 @@ function drawFighter(f) {
     if (f.boost.kind === 'energy' && frame % 3 === 0) parts.push({ x: f.x + rand(-d.w, d.w) * 0.7, y: f.y - rand(0, d.h), vx: rand(-1, 1), vy: -2, life: 16, max: 16, col: '#ffd23f', size: 3, g: 0, kind: 'spark' });
   }
   if (f.shielding) {
-    const r = 18 + d.h * 0.45 * (0.4 + 0.6 * f.shield / 100);
-    c.save(); c.globalAlpha = 0.45; c.fillStyle = f.idx === 0 ? '#ff8a5b' : '#5bc8ff';
+    const perfect = f.shieldAge <= SHIELD_PARRY, r = 18 + d.h * 0.45 * (perfect ? 1.05 : 0.9);
+    c.save(); c.globalAlpha = perfect ? 0.6 : 0.4; c.fillStyle = perfect ? '#ffe680' : (f.idx === 0 ? '#ff8a5b' : '#5bc8ff');
     c.beginPath(); c.arc(0, -d.h / 2, r, 0, TAU); c.fill();
     c.globalAlpha = 0.9; c.strokeStyle = '#fff'; c.lineWidth = 2; c.stroke(); c.restore();
   }
@@ -3060,12 +3068,12 @@ function drawTouch() {
   c.save(); c.globalAlpha = act ? 0.75 : 0.4;
   Cc(c, bx, by, JOY.R + 14, 'rgba(30,26,48,0.85)'); c.strokeStyle = 'rgba(255,255,255,0.7)'; c.lineWidth = 3; c.beginPath(); c.arc(bx, by, JOY.R + 14, 0, TAU); c.stroke();
   c.fillStyle = 'rgba(255,255,255,0.6)';
-  for (const [ax, ay, rot] of [[-1, 0, 0], [1, 0, PI], [0, -1, PI / 2]]) {
+  for (const [ax, ay, rot] of [[-1, 0, 0], [1, 0, PI]]) {
     c.save(); c.translate(bx + ax * (JOY.R - 4), by + ay * (JOY.R - 4)); c.rotate(rot);
     c.beginPath(); c.moveTo(-8, 0); c.lineTo(4, -8); c.lineTo(4, 8); c.closePath(); c.fill(); c.restore();
   }
   Cc(c, kx, ky, 34, act ? '#ffffff' : 'rgba(255,255,255,0.75)'); c.restore();
-  if (!act) { c.save(); c.globalAlpha = 0.5; c.textAlign = 'center'; c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText('ziehen = laufen · hoch = springen', bx, by + JOY.R + 34); c.restore(); }
+  if (!act) { c.save(); c.globalAlpha = 0.5; c.textAlign = 'center'; c.font = 'bold 13px system-ui,sans-serif'; c.fillStyle = '#fff'; c.fillText('nach links / rechts ziehen = laufen', bx, by + JOY.R + 34); c.restore(); }
   for (const b of TBTN) {
     const on = touchHeld.has(b.code), fin = b.code === 'KeyG', ready = fin && f && f.meter >= 100 && !f.fin;
     let r = b.r;
@@ -3074,9 +3082,10 @@ function drawTouch() {
       r *= 1.12 + 0.07 * Math.sin(frame * 0.3);
       c.shadowColor = f.def.color; c.shadowBlur = 30;
       c.globalAlpha = 0.95; c.fillStyle = (frame >> 3) % 2 ? f.def.color : '#ffffff';
-    } else { c.globalAlpha = fin ? 0.45 : (on ? 0.92 : 0.55); c.fillStyle = on ? '#ffffff' : 'rgba(30,26,48,0.95)'; }
+    } else { c.globalAlpha = fin || (b.code === 'KeyS' && f && f.shieldCD > 0) ? 0.4 : (on ? 0.92 : 0.55); c.fillStyle = on ? '#ffffff' : 'rgba(30,26,48,0.95)'; }
     c.beginPath(); c.arc(b.x, b.y, r, 0, TAU); c.fill(); c.shadowBlur = 0;
     c.strokeStyle = 'rgba(255,255,255,0.8)'; c.lineWidth = 3; c.stroke();
+    if (b.code === 'KeyS' && f && f.shieldCD > 0) { c.globalAlpha = 0.9; c.strokeStyle = '#7fd3ff'; c.lineWidth = 5; c.beginPath(); c.arc(b.x, b.y, r + 5, -PI / 2, -PI / 2 + TAU * (1 - f.shieldCD / SHIELD_CD)); c.stroke(); }
     if (fin && f && !ready) { c.globalAlpha = 0.9; c.strokeStyle = f.def.color; c.lineWidth = 6; c.beginPath(); c.arc(b.x, b.y, r + 6, -PI / 2, -PI / 2 + TAU * f.meter / 100); c.stroke(); }
     c.fillStyle = on || ready ? '#1a1024' : '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle';
     c.font = fin ? `900 ${ready ? 19 : 15}px Impact,"Arial Black",sans-serif` : 'bold 14px system-ui,sans-serif';
