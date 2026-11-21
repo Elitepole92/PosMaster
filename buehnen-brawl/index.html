@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.3.2', news: [] },
   { v: '4.3.1', news: [] },
   { v: '4.3.0', news: [['🔔', 'Push-Nachrichten: wir sagen Bescheid, wenn’s was Neues gibt (Glocke auf der Startseite)']] },
   { v: '4.2.0', news: [
@@ -2303,20 +2304,22 @@ reBox.style.cssText = fbBox.style.cssText + ';width:min(760px,94vw);padding:12px
 reBox.innerHTML = '<div style="font:900 24px Impact,\'Arial Black\',sans-serif;color:#ffd23f">📲 BITTE NEU HINZUFÜGEN</div>' +
   '<div style="margin:4px 0 6px;color:#e8e8f4;font-weight:500">Für neues Icon, Push-Nachrichten und alle Updates das Spiel einmal neu auf den Home-Bildschirm legen:</div>' +
   '<ol style="text-align:left;margin:0 0 8px;padding-left:22px;color:#fff;font-weight:600;line-height:1.45">' +
+  '<li>Erst unten auf <b>„Link kopieren“</b> tippen</li>' +
   '<li>Diese App vom Home-Bildschirm löschen (Icon lange drücken → „App entfernen“)</li>' +
-  '<li>Den Link unten in Safari bzw. im Browser öffnen</li>' +
-  (IOS ? '<li>Teilen <span style="color:#3fa9ff">⬆︎</span> → „Zum Home-Bildschirm“ → „Hinzufügen“</li>' : '<li>Browser-Menü ⋮ → „App installieren“ bzw. „Zum Startbildschirm“</li>') + '</ol>' +
+  '<li>' + (IOS ? 'Safari' : 'Browser') + ' öffnen, Link einfügen und ' + (IOS ? 'Teilen <span style="color:#3fa9ff">⬆︎</span> → „Zum Home-Bildschirm“' : 'Menü ⋮ → „App installieren“') + '</li></ol>' +
   '<div style="font:600 13px ui-monospace,Menlo,monospace;background:#0e0b1c;border:2px solid #5a5470;border-radius:10px;padding:6px;margin-bottom:6px;word-break:break-all;user-select:all;-webkit-user-select:all">' + GAME_URL + '</div>' +
   '<div class="msg" style="min-height:18px;margin-bottom:4px;font-size:13px;color:#7ad15a"></div>' +
-  '<button class="open" style="font:900 20px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 16px;margin:3px">IM BROWSER ÖFFNEN</button>' +
-  '<button class="copy" style="font:700 16px system-ui,sans-serif;background:#5bc8ff;color:#0d1a2a;border:0;border-radius:14px;padding:10px 16px;margin:3px">Link kopieren</button>' +
+  '<button class="copy" style="font:900 20px Impact,\'Arial Black\',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 16px;margin:3px">LINK KOPIEREN</button>' +
+  '<button class="open" style="font:700 16px system-ui,sans-serif;background:#5bc8ff;color:#0d1a2a;border:0;border-radius:14px;padding:10px 16px;margin:3px">Im Browser öffnen</button>' +
   '<button class="later" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 16px;margin:3px">Später</button>';
 document.body.appendChild(reBox);
 function closeRe() { reOpen = false; reBox.style.display = 'none'; try { localStorage.setItem('bb-reinstall', '1'); } catch (e) { /* egal */ } cv.focus(); }
 reBox.querySelector('.open').addEventListener('click', () => { window.open(GAME_URL + '?von=app', '_blank'); });
 reBox.querySelector('.copy').addEventListener('click', async () => {
   const m = reBox.querySelector('.msg');
-  try { await navigator.clipboard.writeText(GAME_URL); m.textContent = '✓ Link kopiert – jetzt in Safari einfügen'; }
+  const legacy = () => { const t = document.createElement('textarea'); t.value = GAME_URL; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(t); t.select(); t.setSelectionRange(0, 999); const ok = document.execCommand('copy'); t.remove(); if (!ok) throw new Error('copy'); };
+  try { try { await navigator.clipboard.writeText(GAME_URL); } catch (e) { legacy(); } m.textContent = '✓ Link kopiert – jetzt App löschen und den Link in ' + (IOS ? 'Safari' : 'den Browser') + ' einfügen'; }
   catch (e) { m.textContent = 'Kopieren ging nicht – Link oben gedrückt halten und kopieren'; }
 });
 reBox.querySelector('.later').addEventListener('click', closeRe);
