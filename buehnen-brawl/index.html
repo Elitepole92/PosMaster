@@ -1047,7 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.9', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.10', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -1883,7 +1883,12 @@ function loadScript(src) {
 }
 async function ensurePeerLib() { if (!window.Peer) await loadScript('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'); }
 function peerOpts() {
-  const o = { debug: 0, config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] } };
+  // STUN für die direkte Verbindung + die TURN-Relays von PeerJS: ohne Relay klappt es nicht bei Firmen-WLAN mit
+  // abgeschotteten Geräten oder über Mobilfunk – dann hing der Ladebildschirm.
+  const o = { debug: 0, config: { iceServers: [
+    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
+  ], sdpSemantics: 'unified-plan' } };
   if (QS.get('peerhost')) Object.assign(o, { host: QS.get('peerhost'), port: +(QS.get('peerport') || 9000), path: QS.get('peerpath') || '/', secure: QS.get('peersecure') !== '0' });
   return o;
 }
@@ -1892,7 +1897,7 @@ function netReset() {
   clearTimeout(NET.timer);
   try { if (NET.conn) NET.conn.close(); } catch (e) { /* egal */ }
   try { if (NET.peer) NET.peer.destroy(); } catch (e) { /* egal */ }
-  Object.assign(NET, { role: null, peer: null, conn: null, open: false, code: '', remote: { held: 0, edges: 0 }, lastHeld: -1, leaveAsk: false });
+  Object.assign(NET, { role: null, peer: null, conn: null, open: false, code: '', remote: { held: 0, edges: 0 }, lastHeld: -1, leaveAsk: false, joining: false });
   netEv = []; paused = false;
 }
 function netFail(msg) { netReset(); scene = 'online'; NET.state = 'menu'; NET.err = msg; sfx.shieldBreak(); }
@@ -1912,7 +1917,9 @@ async function hostGame() {
   if (NET.role !== 'host' || NET.peer) return;
   const code = String(1000 + Math.floor(Math.random() * 9000));
   const peer = new Peer(PEER_PREFIX + code, peerOpts()); NET.peer = peer;
-  peer.on('open', () => { if (NET.peer !== peer) return; NET.code = code; NET.state = 'hosting'; });
+  NET.timer = setTimeout(() => { if (NET.peer === peer && NET.state === 'connecting') netFail('Der Vermittlungsserver antwortet gerade nicht – bitte nochmal „Raum erstellen“.'); }, 15000);
+  peer.on('open', () => { if (NET.peer !== peer) return; clearTimeout(NET.timer); NET.code = code; NET.state = 'hosting'; });
+  peer.on('disconnected', () => { if (NET.peer === peer && !NET.open) try { peer.reconnect(); } catch (e) { /* egal */ } });   // Raum offen halten
   peer.on('connection', conn => { if (NET.peer !== peer || NET.conn) { conn.close(); return; } attachConn(conn); });
   peer.on('error', err => { if (NET.peer !== peer) return; if (err.type === 'unavailable-id') hostGame(); else if (!NET.open) netFail(peerErrorText(err)); });
 }
@@ -1923,21 +1930,29 @@ async function joinGame(code) {
   const peer = new Peer(peerOpts()); NET.peer = peer;
   peer.on('open', () => { if (NET.peer === peer) attachConn(peer.connect(PEER_PREFIX + code, { serialization: 'json', reliable: true })); });
   peer.on('error', err => { if (NET.peer === peer && !NET.open) netFail(peerErrorText(err)); });
-  NET.timer = setTimeout(() => { if (NET.peer === peer && !NET.open) netFail('Keine Verbindung zustande gekommen. Tipp: Beide Geräte ins selbe WLAN.'); }, 20000);
+  NET.timer = setTimeout(() => { if (NET.peer === peer && !NET.open) netFail('Keine Verbindung zustande gekommen. Stimmt der Code? Sonst nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 30000);
+  setTimeout(() => { if (NET.peer === peer && !NET.open && NET.state === 'connecting') NET.msg = 'Raum gefunden? Verbindung wird aufgebaut'; }, 8000);
 }
 function attachConn(conn) {
   NET.conn = conn;
+  // Host: Ein Versuch, der nicht durchkommt, darf den Raum nicht blockieren – verwerfen und weiter warten
+  const dropPending = () => {
+    if (NET.conn !== conn || NET.open) return false;
+    try { conn.close(); } catch (e) { /* egal */ }
+    NET.conn = null; NET.joining = false; return true;
+  };
+  if (NET.role === 'host') { NET.joining = true; setTimeout(() => { if (dropPending()) showToast('Mitspieler kam nicht durch – bitte nochmal beitreten.'); }, 30000); }
   const onOpen = () => {
     if (NET.open || NET.conn !== conn) return;
-    NET.open = true; clearTimeout(NET.timer); NET.lastRx = performance.now(); NET.state = 'ok'; NET.err = '';
+    NET.joining = false; NET.open = true; clearTimeout(NET.timer); NET.lastRx = performance.now(); NET.state = 'ok'; NET.err = '';
     sfx.confirm(); scene = 'select'; sel[0].i = 0; sel[1].i = 1; sel[0].ok = sel[1].ok = false;
     if (NET.role === 'host') NET.stocks = settings.stocks;
     netSend({ t: 'hi', stocks: settings.stocks, items: settings.items });
   };
   if (conn.open) onOpen(); else conn.on('open', onOpen);
   conn.on('data', m => { if (NET.conn === conn) onNet(m); });
-  conn.on('close', () => { if (NET.conn === conn) netLost(); });
-  conn.on('error', () => { if (NET.conn === conn && NET.open) netLost(); });
+  conn.on('close', () => { if (NET.conn !== conn) return; if (!NET.open && NET.role === 'host') { dropPending(); return; } netLost(); });
+  conn.on('error', () => { if (NET.conn !== conn) return; if (!NET.open && NET.role === 'host') { dropPending(); return; } if (NET.open) netLost(); });
 }
 function onNet(m) {
   NET.lastRx = performance.now();
@@ -2950,7 +2965,7 @@ function drawOnline() {
     c.font = '17px system-ui,sans-serif'; c.fillStyle = '#e8e8f4';
     c.fillText('Auf dem anderen Gerät:', cx, 340);
     c.font = 'bold 17px system-ui,sans-serif'; c.fillText('Online-Duell → Beitreten → Code eingeben', cx, 366);
-    c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#7ad15a'; c.fillText('Warte auf Mitspieler' + dots, W / 2, 500);
+    c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#7ad15a'; c.fillText((NET.joining ? 'Mitspieler verbindet sich' : 'Warte auf Mitspieler') + dots, W / 2, 500);
   } else if (NET.state === 'entry') {
     c.font = 'bold 20px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Raum-Code vom anderen Gerät eingeben', W / 2, 128);
     for (let i = 0; i < 4; i++) {
