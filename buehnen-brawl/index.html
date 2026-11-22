@@ -1000,7 +1000,7 @@ const ROSTER = [
     id: 'it', lobby: 'Mac ist was für Loser, ich arbeite seit 1992 auf Ubuntu.', name: 'IT-LER', short: 'ITler', w: 34, h: 124,
     speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.13,
     color: '#3dff7a', color2: '#d0ffdc', hitColor: '#8dffae', stats: [3, 2, 4], pt: [5, -112, 1.6],
-    atk: { name: 'Tastatur-Klatsche', s: 5, a: 5, r: 13, dmg: 7, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 8, y: -102, w: 74, h: 64 } },
+    atk: { name: 'Tastatur-Klatsche', s: 5, a: 5, r: 13, dmg: 7, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 8, y: -102, w: 72, h: 64 } },
     fin: 'matrix', finName: 'TROJANER IM NETZWERK', finQuote: 'Hast du den Anhang geöffnet? … Zu spät.', finRange: 640,
     quotes: ['Schon mal neu gestartet?', 'Bei mir geht’s.', 'Das ist kein Bug, das ist ein Feature.', 'Ticket ist angelegt.', 'Wer hat das WLAN-Passwort geändert?'],
     style: S_IT, draw: (c, f, A) => drawHuman(c, f, A, S_IT)
@@ -1047,7 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.10', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.11', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -1383,9 +1383,15 @@ function stepEnts() {
       const owner = e.owner, o = F[1 - owner.idx];
       if (e.ph === 0) {   // fliegt zum Gegner
         if (o.dead || e.t > 100) { e.dead = true; sparks(e.x, e.y, '#39ff6a', 10); continue; }
-        const dx = o.x - e.x, dy = o.y - o.def.h * 0.55 - e.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(9, 3 + e.t * 0.2);
-        e.vx = lerp(e.vx, dx / d * sp, 0.14); e.vy = lerp(e.vy, dy / d * sp, 0.14); e.x += e.vx; e.y += e.vy;
+        const dx = o.x - e.x, dy = o.y - o.def.h * 0.55 - e.y, d = Math.hypot(dx, dy) || 1, sp = Math.min(8.5, 3 + e.t * 0.2);
+        e.vx = lerp(e.vx, dx / d * sp, 0.1); e.vy = lerp(e.vy, dy / d * sp, 0.1);   // lenkt träge – man kann ausweichen e.x += e.vx; e.y += e.vy;
         e.tr.push([r1(e.x), r1(e.y)]); if (e.tr.length > 10) e.tr.shift();
+        if (hittable(o) && overlap({ x: e.x - 18, y: e.y - 18, w: 36, h: 36 }, hurtbox(o)) && o.shielding) {   // Schild = Firewall
+          e.dead = true; sparks(e.x, e.y, '#39ff6a', 14);
+          if (o.shieldAge <= SHIELD_PARRY) { popText(o.x, o.y - o.def.h - 24, 'KONTER!', '#ffd23f', 36, 45); sfx.parry(); addMeter(o, 25); if (!owner.dead) { owner.broken = 50; owner.fin = null; owner.armor = false; } }
+          else { popText(o.x, o.y - o.def.h - 24, 'FIREWALL!', '#7fd3ff', 32, 40); sfx.block(); }
+          continue;
+        }
         if (hittable(o) && overlap({ x: e.x - 18, y: e.y - 18, w: 36, h: 36 }, hurtbox(o))) {
           e.ph = 1; e.t = 0; e.tx = o.x; e.ty = o.y; e.tr = [];
           popText(o.x, o.y - o.def.h - 30, 'INFIZIERT!', '#39ff6a', 36, 50); sfx.hack(); shake = Math.max(shake, 8);
