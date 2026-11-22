@@ -1047,7 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.11', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.12', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -1863,7 +1863,6 @@ function step() {
    Der Host rechnet das Spiel. Der Gast schickt nur seine Tasten und zeigt den
    Spielstand an, den der Host 60× pro Sekunde schickt.
    ========================================================================= */
-const PEER_PREFIX = 'buehnen-brawl-';
 const NET = { role: null, peer: null, conn: null, open: false, code: '', state: 'menu', err: '', msg: '', entry: '', menuSel: 0,
   remote: { held: 0, edges: 0 }, lastRx: 0, lastHeld: -1, leaveAsk: false, timer: 0, stocks: 3 };
 let netEv = [], toast = null;
@@ -1887,22 +1886,11 @@ for (const k of Object.keys(sfx)) {
 function loadScript(src) {
   return new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
 }
-async function ensurePeerLib() { if (!window.Peer) await loadScript('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'); }
-function peerOpts() {
-  // STUN für die direkte Verbindung + die TURN-Relays von PeerJS: ohne Relay klappt es nicht bei Firmen-WLAN mit
-  // abgeschotteten Geräten oder über Mobilfunk – dann hing der Ladebildschirm.
-  const o = { debug: 0, config: { iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
-  ], sdpSemantics: 'unified-plan' } };
-  if (QS.get('peerhost')) Object.assign(o, { host: QS.get('peerhost'), port: +(QS.get('peerport') || 9000), path: QS.get('peerpath') || '/', secure: QS.get('peersecure') !== '0' });
-  return o;
-}
 function netSend(m) { if (NET.conn && NET.open) { try { NET.conn.send(m); } catch (e) { /* Verbindung weg – netLost kümmert sich */ } } }
 function netReset() {
-  clearTimeout(NET.timer);
+  clearTimeout(NET.timer); NET.sess = null;
+  if (NET.role === 'host' && NET.code && typeof fsWrite === 'function') fsWrite(ROOM(NET.code), { s: 'closed', t: Date.now() }, 'any').catch(() => {});   // Raum freigeben
   try { if (NET.conn) NET.conn.close(); } catch (e) { /* egal */ }
-  try { if (NET.peer) NET.peer.destroy(); } catch (e) { /* egal */ }
   Object.assign(NET, { role: null, peer: null, conn: null, open: false, code: '', remote: { held: 0, edges: 0 }, lastHeld: -1, leaveAsk: false, joining: false });
   netEv = []; paused = false;
 }
@@ -1917,27 +1905,109 @@ function peerErrorText(err) {
     return 'Vermittlungsserver nicht erreichbar. Ist Internet da? (Im Claude-Link geht Online nicht – GitHub-Pages-Adresse nutzen.)';
   return 'Verbindung fehlgeschlagen (' + (t || 'unbekannt') + ').';
 }
+// ---- Verbindungsaufbau: Vermittlung über Firestore (statt PeerJS-Server), Verbindung direkt per WebRTC ----
+// Raum = Dokument „brawlrm1“ + 4-stelliger Code (Firestore-Regel: genau 12 Zeichen a–z/0–9).
+// Ablauf: Host legt den Raum an (s: wait) → Gast schreibt sein Angebot (s: offer) → Host antwortet (s: answer) → Datenkanal offen.
+const ICE_CFG = { iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }   // Relay für Firmen-WLAN/Mobilfunk
+] };
+const ROOM = code => 'brawlrm1' + code;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function fsWrite(id, data, ut) {   // ut: nur schreiben, wenn seitdem niemand geschrieben hat; null = Dokument darf noch nicht existieren; 'any' = immer
+  const pre = ut === 'any' ? '' : ut ? '&currentDocument.updateTime=' + encodeURIComponent(ut) : '&currentDocument.exists=false';
+  const r = await fetch(FS_BASE + id + '?' + FS_KEY + pre, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify(data) } } }) });
+  return r.ok;
+}
+function iceDone(pc, ms) {   // alle Verbindungswege sammeln (max. ms), dann in einem Rutsch übertragen
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const t = setTimeout(res, ms);
+    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } });
+  });
+}
+function makeConn(pc, dc) {   // kleine Hülle mit derselben Schnittstelle wie vorher (on/send/close/open)
+  const h = {}, emit = (ev, x) => (h[ev] || []).forEach(cb => cb(x));
+  const conn = { open: false, closed: false, dc: null, pc,
+    on(ev, cb) { (h[ev] = h[ev] || []).push(cb); },
+    send(m) { if (conn.dc && conn.dc.readyState === 'open') conn.dc.send(JSON.stringify(m)); },
+    close() { conn.closed = true; conn.open = false; try { if (conn.dc) conn.dc.close(); } catch (e) { /* egal */ } try { pc.close(); } catch (e) { /* egal */ } } };
+  const gone = () => { if (conn.closed) return; conn.closed = true; conn.open = false; emit('close'); };
+  conn.bind = ch => {
+    conn.dc = ch;
+    ch.onopen = () => { if (!conn.open && !conn.closed) { conn.open = true; emit('open'); } };
+    ch.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } emit('data', m); };
+    ch.onclose = gone; ch.onerror = () => emit('error');
+    if (ch.readyState === 'open') ch.onopen();
+  };
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') gone(); };
+  if (dc) conn.bind(dc); else pc.ondatachannel = ev => conn.bind(ev.channel);
+  return conn;
+}
 async function hostGame() {
   netReset(); NET.role = 'host'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Raum wird erstellt …';
-  try { await ensurePeerLib(); } catch (e) { netFail('Online-Baustein konnte nicht geladen werden – ist Internet da?'); return; }
-  if (NET.role !== 'host' || NET.peer) return;
-  const code = String(1000 + Math.floor(Math.random() * 9000));
-  const peer = new Peer(PEER_PREFIX + code, peerOpts()); NET.peer = peer;
-  NET.timer = setTimeout(() => { if (NET.peer === peer && NET.state === 'connecting') netFail('Der Vermittlungsserver antwortet gerade nicht – bitte nochmal „Raum erstellen“.'); }, 15000);
-  peer.on('open', () => { if (NET.peer !== peer) return; clearTimeout(NET.timer); NET.code = code; NET.state = 'hosting'; });
-  peer.on('disconnected', () => { if (NET.peer === peer && !NET.open) try { peer.reconnect(); } catch (e) { /* egal */ } });   // Raum offen halten
-  peer.on('connection', conn => { if (NET.peer !== peer || NET.conn) { conn.close(); return; } attachConn(conn); });
-  peer.on('error', err => { if (NET.peer !== peer) return; if (err.type === 'unavailable-id') hostGame(); else if (!NET.open) netFail(peerErrorText(err)); });
+  const sess = NET.sess = {};
+  let code = null;
+  for (let i = 0; i < 6 && !code; i++) {
+    const c = String(1000 + Math.floor(Math.random() * 9000));
+    try {
+      const { data, ut } = await fsLoad(ROOM(c));
+      if (data.s && data.s !== 'closed' && Date.now() - (data.t || 0) < 2 * 3600000) continue;   // Code gerade belegt
+      if (await fsWrite(ROOM(c), { s: 'wait', t: Date.now() }, ut)) code = c;
+    } catch (e) { await sleep(800); }
+  }
+  if (NET.sess !== sess) return;
+  if (!code) { netFail('Raum konnte nicht erstellt werden – ist Internet da?'); return; }
+  NET.code = code; NET.state = 'hosting';
+  let lastG = null;
+  while (NET.sess === sess && !NET.open) {   // auf ein Angebot warten (1× pro Sekunde nachsehen)
+    await sleep(1000);
+    if (NET.sess !== sess || NET.open) return;
+    let r; try { r = await fsLoad(ROOM(code)); } catch (e) { continue; }
+    const d = r.data;
+    if (!NET.conn && d.s === 'answer' && Date.now() - (d.t || 0) > 35000) { fsWrite(ROOM(code), { s: 'wait', t: Date.now() }, r.ut).catch(() => {}); continue; }   // Versuch hängengeblieben → Raum wieder frei
+    if (d.s !== 'offer' || d.g === lastG || NET.conn) continue;
+    lastG = d.g;
+    try {
+      const pc = new RTCPeerConnection(ICE_CFG), conn = makeConn(pc, null);
+      attachConn(conn);
+      await pc.setRemoteDescription({ type: 'offer', sdp: d.o });
+      await pc.setLocalDescription(await pc.createAnswer());
+      await iceDone(pc, 3000);
+      if (NET.sess !== sess || NET.conn !== conn) return;
+      await fsWrite(ROOM(code), { s: 'answer', g: d.g, a: pc.localDescription.sdp, t: Date.now() }, r.ut);
+    } catch (e) { if (NET.conn && !NET.open) { try { NET.conn.close(); } catch (x) { /* egal */ } NET.conn = null; NET.joining = false; } }
+  }
 }
 async function joinGame(code) {
-  netReset(); NET.role = 'guest'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Verbinde mit Raum ' + code + ' …'; NET.code = code;
-  try { await ensurePeerLib(); } catch (e) { netFail('Online-Baustein konnte nicht geladen werden – ist Internet da?'); return; }
-  if (NET.role !== 'guest' || NET.peer) return;
-  const peer = new Peer(peerOpts()); NET.peer = peer;
-  peer.on('open', () => { if (NET.peer === peer) attachConn(peer.connect(PEER_PREFIX + code, { serialization: 'json', reliable: true })); });
-  peer.on('error', err => { if (NET.peer === peer && !NET.open) netFail(peerErrorText(err)); });
-  NET.timer = setTimeout(() => { if (NET.peer === peer && !NET.open) netFail('Keine Verbindung zustande gekommen. Stimmt der Code? Sonst nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 30000);
-  setTimeout(() => { if (NET.peer === peer && !NET.open && NET.state === 'connecting') NET.msg = 'Raum gefunden? Verbindung wird aufgebaut'; }, 8000);
+  netReset(); NET.role = 'guest'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Suche Raum ' + code + ' …'; NET.code = code;
+  const sess = NET.sess = {};
+  NET.timer = setTimeout(() => { if (NET.sess === sess && !NET.open) netFail('Keine Verbindung zustande gekommen. Nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 35000);
+  let r; try { r = await fsLoad(ROOM(code)); } catch (e) { if (NET.sess === sess) netFail('Kein Internet? Der Raum konnte nicht gesucht werden.'); return; }
+  if (NET.sess !== sess) return;
+  const d = r.data, age = Date.now() - (d.t || 0);
+  if (!d.s || d.s === 'closed' || age > 2 * 3600000) { netFail('Raum nicht gefunden – stimmt der Code?'); return; }
+  if (d.s !== 'wait' && age < 35000) { netFail('Da verbindet sich gerade schon jemand – kurz warten und nochmal.'); return; }
+  NET.msg = 'Verbinde mit Raum ' + code + ' …';
+  const pc = new RTCPeerConnection(ICE_CFG), conn = makeConn(pc, pc.createDataChannel('brawl', { ordered: true }));
+  attachConn(conn);
+  const g = Math.random().toString(36).slice(2, 10);
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    await iceDone(pc, 3000);
+    if (NET.sess !== sess) return;
+    if (!(await fsWrite(ROOM(code), { s: 'offer', g, o: pc.localDescription.sdp, t: Date.now() }, r.ut))) { if (NET.sess === sess) netFail('Da war gerade jemand schneller – nochmal versuchen.'); return; }
+  } catch (e) { if (NET.sess === sess) netFail('Verbindung fehlgeschlagen – nochmal versuchen.'); return; }
+  for (let i = 0; i < 30 && NET.sess === sess && !NET.open; i++) {   // auf die Antwort des Hosts warten
+    await sleep(1000);
+    let x; try { x = await fsLoad(ROOM(code)); } catch (e) { continue; }
+    if (x.data.s === 'answer' && x.data.g === g) {
+      try { await pc.setRemoteDescription({ type: 'answer', sdp: x.data.a }); } catch (e) { /* egal */ }
+      if (NET.sess === sess && !NET.open) NET.msg = 'Raum gefunden – Verbindung wird aufgebaut';
+      return;
+    }
+  }
 }
 function attachConn(conn) {
   NET.conn = conn;
