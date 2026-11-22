@@ -42,7 +42,7 @@ Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. E
 
 **iPhone / iPad:** links ein Joystick (nur links/rechts zum Laufen), rechts Sprung, Schlag, Schild und Finisher (blinkt, wenn er bereit ist). Nur Einzelspieler und Online, Querformat. Über *Teilen → Zum Home-Bildschirm* läuft es als Vollbild-App.
 
-**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code), das andere tritt bei. Technik: WebRTC über PeerJS. Nur über die GitHub-Pages-Adresse.
+**Online-Duell:** Ein Gerät erstellt einen Raum (4-stelliger Code), das andere tritt bei. Technik: direkte WebRTC-Verbindung; vermittelt wird über Firestore (Raum-Dokument `sync/brawlrm1` + Code), nicht mehr über den öffentlichen PeerJS-Server. Für Firmen-WLAN/Mobilfunk sind TURN-Relays eingetragen.
 
 **Bestenliste (global, 5 Plätze, direkt auf der Startseite):** Gewertet wird der schnellste Sieg im **Online-Duell** – die Kampfzeit vom „LOS!“ bis zum letzten K.O. Gespielt wird immer mit 3 Leben (nicht einstellbar). Der Gewinner sieht auf seinem Gerät sofort seine Siegzeit und ob sie für die Top 5 reicht; dann trägt er seinen Namen ein. In der Liste steht, mit welcher Figur gegen welche gewonnen wurde. Gespeichert in Firestore (gleiches Projekt und gleiche Ablageform wie der Sync der POS-App, Dokument `sync/brawlonline1`).
 
