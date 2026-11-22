@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Brawl Auswertung</title>
+<style>
+:root{--bg:#0f0c1d;--panel:#1a1530;--line:#2e2848;--text:#ecebf5;--muted:#9a97b3;--accent:#ffd23f;--good:#7ad15a;--bad:#ff7a6a}
+:root[data-theme="light"]{--bg:#f6f5fb;--panel:#fff;--line:#e2e0ee;--text:#1b1830;--muted:#6b6886;--accent:#b8860b;--good:#2e8b3a;--bad:#c4402f}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f5fb;--panel:#fff;--line:#e2e0ee;--text:#1b1830;--muted:#6b6886;--accent:#b8860b;--good:#2e8b3a;--bad:#c4402f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:26px;margin:0 0 4px}
+h2{font-size:18px;margin:28px 0 10px}
+.sub{color:var(--muted);margin:0 0 16px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+select,button{font:inherit;padding:7px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text)}
+button{cursor:pointer}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.tile b{display:block;font-size:24px}
+.tile span{color:var(--muted);font-size:13px}
+.wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--muted);font-weight:600;font-size:13px;position:sticky;top:0;background:var(--panel)}
+tr:last-child td{border-bottom:0}
+.good{color:var(--good);font-weight:700}.bad{color:var(--bad);font-weight:700}.mut{color:var(--muted)}
+.fb{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.fb p{margin:0 0 6px;white-space:pre-wrap;word-break:break-word}
+.fb small{color:var(--muted)}
+#status{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Backstage Brawl – Auswertung</h1>
+  <p class="sub">Alle fertig gespielten Runden (ohne Demo; online zählt jedes Duell einmal) und das eingeschickte Feedback.</p>
+  <div class="bar">
+    <label>Zeitraum <select id="weeks"><option value="1">diese Woche</option><option value="4" selected>4 Wochen</option><option value="12">12 Wochen</option><option value="52">1 Jahr</option></select></label>
+    <label>Modus <select id="mode"><option value="">alle</option><option value="cpu">gegen CPU</option><option value="2p">2 Spieler</option><option value="on">Online</option></select></label>
+    <label>Version <select id="ver"><option value="">alle</option></select></label>
+    <button id="reload">Neu laden</button>
+    <span id="status">Lade …</span>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <h2>Kämpfer</h2>
+  <div class="wrap"><table id="chars"></table></div>
+  <h2>Duelle – Siegquote der Zeile gegen die Spalte</h2>
+  <p class="sub">Nur Paarungen mit mindestens einer Runde; in Klammern die Anzahl.</p>
+  <div class="wrap"><table id="mu"></table></div>
+  <h2>Feedback</h2>
+  <div id="fb"></div>
+</main>
+<script>
+'use strict';
+const BASE = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/';
+const KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+const NAMES = { hamster: 'Medien Hamster', hm: 'Hallenmeister', cemil: 'Logistiker', rigger: 'Headrigger', gerch: 'Tontechniker', caterer: 'Caterin', pm: 'Projektleiterin', mb: 'Messebauer', op: 'Operator', it: 'ITler' };
+const nm = id => NAMES[id] || id;
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };
+function weekId(ms) {
+  const d = new Date(ms); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
+  return 'brawl' + y + 'w' + String(w).padStart(2, '0');   // Firestore-Regel: genau 12 Zeichen, a–z/0–9
+}
+async function load(id) {
+  const r = await fetch(BASE + id + '?' + KEY, { cache: 'no-store' });
+  if (r.status === 404) return {};
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json(); try { return JSON.parse(d.fields.data.stringValue); } catch (e) { return {}; }
+}
+let ALL = [], FB = [];
+async function reload() {
+  $('status').textContent = 'Lade …';
+  try {
+    const n = +$('weeks').value, ids = new Set();
+    for (let i = 0; i < n; i++) ids.add(weekId(Date.now() - i * 7 * 864e5));
+    const docs = await Promise.all([...ids].map(load));
+    ALL = docs.flatMap(d => Array.isArray(d.r) ? d.r : []);
+    FB = ((await load('brawlfeedbk1')).f || []).slice().reverse();
+    const vers = [...new Set(ALL.map(r => r.v))].sort().reverse(), cur = $('ver').value;
+    $('ver').innerHTML = '<option value="">alle</option>' + vers.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
+    $('status').textContent = 'Stand: ' + new Date().toLocaleString('de-DE');
+    render();
+  } catch (e) { $('status').textContent = 'Fehler beim Laden: ' + e.message; }
+}
+function render() {
+  const mode = $('mode').value, ver = $('ver').value;
+  const R = ALL.filter(r => (!mode || r.m === mode) && (!ver || r.v === ver));
+  const avgT = R.length ? R.reduce((a, r) => a + r.t, 0) / R.length : 0;
+  const cnt = m => R.filter(r => r.m === m).length;
+  $('tiles').innerHTML = [
+    [R.length, 'Runden'], [cnt('cpu'), 'gegen CPU'], [cnt('2p'), '2 Spieler'], [cnt('on'), 'Online'],
+    [R.length ? fmtT(avgT) : '–', 'Ø Kampfzeit'], [R.filter(r => r.tc).length, 'auf Touch-Geräten'], [FB.length, 'Feedbacks']
+  ].map(([v, l]) => `<div class="tile"><b>${v}</b><span>${l}</span></div>`).join('');
+  // pro Kämpfer
+  const S = {};
+  for (const r of R) r.c.forEach((id, i) => {
+    const s = S[id] || (S[id] = { n: 0, w: 0, t: 0, f: 0, d: 0, h: 0, k: 0 });
+    s.n++; if (r.w === i) s.w++; s.t += r.t; s.f += r.f[i]; s.d += r.d[i]; s.h += r.h[i]; s.k += r.k[i];
+  });
+  const rows = Object.entries(S).sort((a, b) => b[1].w / b[1].n - a[1].w / a[1].n);
+  const q = s => Math.round(100 * s.w / s.n);
+  $('chars').innerHTML = '<tr><th>Kämpfer</th><th>Runden</th><th>Gewählt</th><th>Siege</th><th>Siegquote</th><th>Ø Schaden</th><th>Ø Treffer</th><th>Ø Finisher</th><th>Ø Kampfzeit</th></tr>' +
+    (rows.length ? rows.map(([id, s]) => `<tr><td>${esc(nm(id))}</td><td>${s.n}</td><td>${Math.round(100 * s.n / (2 * R.length))}%</td><td>${s.w}</td>` +
+      `<td class="${s.n >= 10 && q(s) >= 60 ? 'bad' : s.n >= 10 && q(s) <= 40 ? 'good' : ''}">${q(s)}%</td><td>${Math.round(s.d / s.n)}%</td><td>${(s.h / s.n).toFixed(1)}</td><td>${(s.f / s.n).toFixed(2)}</td><td>${fmtT(s.t / s.n)}</td></tr>`).join('')
+      : '<tr><td colspan="9" class="mut">Noch keine Runden in diesem Zeitraum.</td></tr>');
+  // Duelle
+  const ids = rows.map(r => r[0]), M = {};
+  for (const r of R) { const [a, b] = r.c; if (a === b) continue; for (const [x, y, i] of [[a, b, 0], [b, a, 1]]) { const k = x + '|' + y, m = M[k] || (M[k] = { n: 0, w: 0 }); m.n++; if (r.w === i) m.w++; } }
+  $('mu').innerHTML = '<tr><th></th>' + ids.map(id => `<th>${esc(nm(id))}</th>`).join('') + '</tr>' +
+    ids.map(a => `<tr><td>${esc(nm(a))}</td>` + ids.map(b => { const m = M[a + '|' + b]; if (!m) return '<td class="mut">–</td>'; const p = Math.round(100 * m.w / m.n);
+      return `<td class="${m.n >= 5 && p >= 65 ? 'bad' : m.n >= 5 && p <= 35 ? 'good' : ''}">${p}% <span class="mut">(${m.n})</span></td>`; }).join('') + '</tr>').join('');
+  $('fb').innerHTML = FB.length ? FB.map(f => `<div class="fb"><p>${esc(f.t)}</p><small>${esc(f.n || 'anonym')} · ${new Date(f.d).toLocaleString('de-DE')} · ${esc(f.dev || '')} · v${esc(f.v || '?')}</small></div>`).join('')
+    : '<p class="mut">Noch kein Feedback.</p>';
+}
+$('reload').onclick = reload; $('weeks').onchange = reload; $('mode').onchange = render; $('ver').onchange = render;
+reload();
+</script>
+</body>
+</html>
