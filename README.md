@@ -27,6 +27,8 @@ Bei einer neuen Booklet-Version müssen `data.js` und die Bilder neu erzeugt wer
 **Nach jeder Änderung an App-Dateien `python3 tools/build-sw.py` ausführen**, damit die Geräte die neuen Dateien bekommen.
 
 ## Bonus: Backstage Brawl (`buehnen-brawl/`)
+
+**Beta-Version zum Testen:** `buehnen-brawl-beta/` (https://elitepole92.github.io/PosMaster/buehnen-brawl-beta/) – dieselbe Spieldatei, erkennt sich am Ordnernamen als Beta: großes BETA-Schild, eigene Bestenliste (`sync/brawlbetahs1`), eigene Online-Räume (`brawlrb1…`, Beta und Live verbinden sich nie), Statistik als `-beta` markiert (Auswertung blendet sie standardmäßig aus), keine Push-Abfrage, eigenes Icon und Name „Brawl Beta“ für den Home-Bildschirm. **Ablauf:** Neues kommt zuerst nur nach `buehnen-brawl-beta/index.html`; nach Freigabe wird die Datei 1:1 nach `buehnen-brawl/index.html` kopiert (live), dann ggf. Push an alle.
 Kleines Plattform-Prügelspiel im Browser – die Prügelei hinter der Bühne. Einfach `buehnen-brawl/index.html` öffnen (der Ordnername bleibt, damit bestehende Links und Home-Bildschirm-Apps weiter funktionieren).
 
 **Startmenü:** *1 Spieler* (gegen die CPU), *2 Spieler* (zu zweit an einer Tastatur), *Online-Duell* (zwei Geräte mit Raum-Code) und die *Highscores*, dazu *Feedback geben*. Die Kämpferwahl ist ein Karussell (zu zweit bzw. online zwei übereinander); CPU-Stärke und Gadgets stellt man dort ein (Tasten C, X oder antippen). Im Menü läuft Musik, unten laufen ab und zu Kämpfer durchs Bild. Gespielt wird immer mit 3 Leben. `M` schaltet den Ton an/aus.

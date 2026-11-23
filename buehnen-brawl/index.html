@@ -53,6 +53,10 @@ const QS = new URLSearchParams(location.search);
 const TOUCH = QS.has('touch') || (matchMedia('(hover: none) and (pointer: coarse)').matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const STANDALONE = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+// Beta-Version: gleiche Datei im Ordner „buehnen-brawl-beta“ – eigene Bestenliste, eigene Online-Räume,
+// Statistik als Beta markiert, keine Push-Abfrage, deutliches BETA-Schild.
+const BETA = /-beta\//.test(location.pathname) || QS.has('beta');
+if (BETA) { document.title = 'Brawl Beta'; const m = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (m) m.content = 'Brawl Beta'; }
 const isPortrait = () => TOUCH && innerHeight > innerWidth;
 
 /* ---------------- Eingabe ---------------- */
@@ -1047,7 +1051,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.4.1', news: [] },
+  { v: '4.4.2', news: [] },
   { v: '4.4.0', news: [
     ['🌐', 'Online-Duell läuft wieder – mit neuer, stabilerer Verbindung'],
     ['🤖', 'Die CPU kommt jetzt auch wieder von der Traverse runter'],
@@ -1922,7 +1926,7 @@ const ICE_CFG = { iceServers: [
   { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }   // Relay für Firmen-WLAN/Mobilfunk
 ] };
-const ROOM = code => 'brawlrm1' + code;
+const ROOM = code => (BETA ? 'brawlrb1' : 'brawlrm1') + code;   // Beta und Live verbinden sich nie miteinander
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function fsWrite(id, data, ut) {   // ut: nur schreiben, wenn seitdem niemand geschrieben hat; null = Dokument darf noch nicht existieren; 'any' = immer
   const pre = ut === 'any' ? '' : ut ? '&currentDocument.updateTime=' + encodeURIComponent(ut) : '&currentDocument.exists=false';
@@ -2168,7 +2172,7 @@ function stepOnlineLobby() {
    Der Gewinner sieht auf seinem Gerät sofort, ob die Zeit für die Top 5 reicht. Gespeichert in Firestore – gleiches Projekt und gleiche
    Ablageform wie der Sync der POS-App (Dokument „brawlonline1“ kann nie ein Sync-Code sein).
    ========================================================================= */
-const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlonline1?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/' + (BETA ? 'brawlbetahs1' : 'brawlonline1') + '?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
 const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
 let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
 const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
@@ -2307,7 +2311,7 @@ const saveQ = () => { try { localStorage.setItem('bb-statq', JSON.stringify(stat
 function logMatch() {
   if (settings.demo || F.length !== 2 || !winner) return;
   const a = k => F.map(f => f.stats[k]);
-  statQ.push({ v: GAME_VERSION, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
+  statQ.push({ v: GAME_VERSION + (BETA ? '-beta' : ''), b: BETA ? 1 : undefined, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
     c: F.map(f => f.def.id), w: winner.idx, t: Math.max(1, Math.round(matchT / 6)), s: F.map(f => Math.max(0, f.stocks)),
     k: a('kos'), d: a('dealt'), h: a('hits'), f: a('fins'), tc: TOUCH ? 1 : 0, at: Date.now() });
   saveQ(); flushStats();
@@ -2350,7 +2354,7 @@ async function sendFeedback() {
   if (fbMsg.dataset.busy) return;
   fbMsg.dataset.busy = '1'; fbMsg.style.color = '#cfcfe0'; fbMsg.textContent = 'Sende …';
   let ok = false;
-  try { ok = await appendParts('brawlf' + monthKey(Date.now()), 'f', [{ t, n, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]); } catch (e) { ok = false; }
+  try { ok = await appendParts('brawlf' + monthKey(Date.now()), 'f', [{ t, n, v: GAME_VERSION + (BETA ? '-beta' : ''), dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]); } catch (e) { ok = false; }
   delete fbMsg.dataset.busy;
   if (ok) { closeFeedback(); showToast('Danke für dein Feedback! 🙌'); sfx.confirm(); }
   else { fbMsg.style.color = '#ff9a8a'; fbMsg.textContent = 'Senden hat nicht geklappt – ist Internet da? Nochmal versuchen.'; }
@@ -2365,7 +2369,7 @@ fbName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'En
    Anmeldungen landen in „brawlpushsnn“ (Teile); verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
    ========================================================================= */
 const PUSH_KEY = 'BJlv1FU_VGh9h0LU7qafNUYJcX1agAdF8u71xrDi1h865gu8vYxDTBimpIX9kuskBjxDVX7mOvciDYMjigRalvA';
-const PUSH_OK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
+const PUSH_OK = !BETA && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
   (location.hostname.endsWith('github.io') || QS.has('push')) && (!IOS || STANDALONE);
 const pushPerm = () => PUSH_OK ? Notification.permission : 'unsupported';
 let pushAsk = PUSH_OK && pushPerm() === 'default' && (() => { try { return !localStorage.getItem('bb-push'); } catch (e) { return true; } })();
@@ -3016,6 +3020,11 @@ function drawTitle() {
   c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(0, 0, W, H);
   const T = TOUCH;   // Handy/Tablet: alles größer, weil das Bild kleiner skaliert wird
   bigText('BACKSTAGE BRAWL', (T ? 116 : 128) + Math.sin(frame * 0.05) * 3, T ? 100 : 84, '#ffd23f', 1, '#2a0d3d');
+  if (BETA) {   // unübersehbar: Testversion
+    c.save(); c.translate(T ? 1000 : 960, T ? 160 : 164); c.rotate(-0.06);
+    RR(c, -72, -24, 144, 48, 12, '#ff3b6b'); c.strokeStyle = '#fff'; c.lineWidth = 3; strokeRR(c, -72, -24, 144, 48, 12);
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 32px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText('BETA', 0, 2); c.textBaseline = 'alphabetic'; c.restore();
+  }
   c.font = `bold ${T ? 24 : 18}px system-ui,sans-serif`; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
   c.fillText('Die Prügelei hinter der Bühne', W / 2, T ? 158 : 166);
   // Menü links, Bestenliste rechts – gleich hoch, zusammen mittig
@@ -3043,7 +3052,7 @@ function drawTitle() {
   ui.push({ id: 'feedback', x: fx, y: fy, w: fw, h: fh });
   muteButton(1232, 44);
   if (PUSH_OK) bellButton(1176, 44);
-  c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
+  c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + (BETA ? ' BETA' : '') + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
   drawWalkers();   // Figuren samt Sprechblasen vor allem anderen
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
@@ -3405,7 +3414,7 @@ function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
   RR(c, x, y, w, h, 18, 'rgba(20,16,36,0.88)'); c.strokeStyle = 'rgba(255,210,63,0.45)'; c.lineWidth = 2; strokeRR(c, x, y, w, h, 18);
   c.textAlign = 'left'; c.font = '900 21px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('🏆 BESTENLISTE', x + 16, y + 30);
-  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Schnellster Sieg im Online-Duell', x + 16, y + 48);
+  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(BETA ? 'Beta-Liste – zählt nicht für die echte' : 'Schnellster Sieg im Online-Duell', x + 16, y + 48);
   const list = HS.list || [], medal = ['#ffd23f', '#d0d4dc', '#d08a4a', '#6a6880', '#6a6880'];
   for (let i = 0; i < 5; i++) {
     const e = list[i], ry = y + 58 + i * 32;
