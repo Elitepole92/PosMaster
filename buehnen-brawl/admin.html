@@ -64,7 +64,7 @@ tr:last-child td{border-bottom:0}
 'use strict';
 const BASE = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/';
 const KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
-const NAMES = { hamster: 'Medien Hamster', hm: 'Hallenmeister', cemil: 'Logistiker', rigger: 'Headrigger', gerch: 'Tontechniker', caterer: 'Caterin', pm: 'Projektleiterin', mb: 'Messebauer', op: 'Operator', it: 'ITler' };
+const NAMES = { hamster: 'Medien Hamster', hm: 'Hallenmeister', cemil: 'Logistiker', rigger: 'Headrigger', gerch: 'Tontechniker', caterer: 'Caterin', pm: 'Projektleiterin', mb: 'Messebauer', op: 'Lichtdesigner', it: 'ITler', sfx: 'SFX Operator' };
 const nm = id => NAMES[id] || id;
 const $ = id => document.getElementById(id);
 const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));

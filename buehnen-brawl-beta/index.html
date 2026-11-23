@@ -1076,7 +1076,7 @@ const ROSTER = [
     id: 'sfx', lobby: 'Ich hab da noch ’ne Ladung im Auto.', name: 'SFX OPERATOR', short: 'SFX Operator', w: 44, h: 110,
     speed: 5.8, airSpeed: 5, airAcc: 0.56, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 1.0,
     color: '#ff6a2a', color2: '#ffd2b8', hitColor: '#ffb070', stats: [4, 3, 3], pt: [8, -97, 1.6],
-    atk: { name: 'Stichflamme', s: 5, a: 6, r: 12, dmg: 8, kb: 5.2, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 10, y: -96, w: 72, h: 40 } },
+    atk: { name: 'Stichflamme', s: 5, a: 6, r: 11, dmg: 9, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 10, y: -92, w: 72, h: 58 } },
     fin: 'oops', finName: 'FALSCHER KANAL', finQuote: '3 … 2 … 1 … Moment, das war der falsche Kanal.', finRange: 650,
     quotes: ['Brennt doch schön.', 'Das war so geplant.', 'Augenbrauen wachsen nach.', 'Sicherheitsabstand? Nie gehört.', 'Mehr Rauch!'],
     style: S_SFX, draw: (c, f, A) => drawHuman(c, f, A, S_SFX)
@@ -1094,7 +1094,7 @@ const FMOVE = {
   mallet: { dmg: 13, kb: 11.5, scale: 0.2, ang: 48, meter: 0 },
   strobe: { dmg: 12, kb: 11, scale: 0.21, ang: 55, meter: 0 },
   matrix: { dmg: 11, kb: 10.5, scale: 0.2, ang: 55, meter: 0 },
-  oops: { dmg: 13, kb: 11, scale: 0.2, ang: 70, meter: 0 }
+  oops: { dmg: 21, kb: 11.5, scale: 0.2, ang: 70, meter: 0 }
 };
 const MATRIX_SMALL = { dmg: 2, kb: 0.5, scale: 0, ang: 15, meter: 0 };
 const MALLET_SMALL = { dmg: 3, kb: 0.6, scale: 0, ang: 20, meter: 0 };
@@ -1166,7 +1166,9 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.0', news: [
+  { v: '4.5.0', chars: ['sfx'], news: [
+    ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
+    ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
     ['🏕️', 'Neuer Schauplatz: Gogos Wohnmobil – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
     ['🎟️', 'Schauplatz-Wahl mit Backstage-Pässen – oder einfach Zufall'],
     ['🔥', 'Spezialitäten: Pyro auf der Main Stage, Wildwechsel bei Gogo'],
@@ -1451,7 +1453,7 @@ function stepFinisher(f, inp, o) {
       if (Fn.t % 3 === 0) parts.push({ x: f.x, y: f.y - f.def.h / 2, vx: rand(-1, 1), vy: -0.5, life: 30, max: 30, col: 'rgba(60,55,50,', size: 8, g: -0.02, kind: 'smoke' });
       if (f.onGround && Fn.t > 44) {   // Bauchlandung mit Schockwelle
         Fn.air = false; Fn.land = Fn.t; f.vx = 0; sfx.stamp(); shake = Math.max(shake, 16); dust(f.x - 40, f.y, 6); dust(f.x + 40, f.y, 6);
-        if (hittable(o) && Math.abs(o.x - f.x) < 130 && Math.abs(o.y - f.y) < 110) finisherHit(f, o, o.x, o.y - o.def.h / 2, 'BAUCHLANDUNG!', '#ffb070');
+        if (hittable(o) && Math.abs(o.x - f.x) < 160 && Math.abs(o.y - f.y) < 130) finisherHit(f, o, o.x, o.y - o.def.h / 2, 'BAUCHLANDUNG!', '#ffb070');
         else popText(f.x, f.y - 60, 'AUA.', '#ffd2b8', 30, 40);
       }
     }
