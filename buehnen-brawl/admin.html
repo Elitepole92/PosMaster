@@ -69,6 +69,12 @@ function weekId(ms) {
   const y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
   return 'brawl' + y + 'w' + String(w).padStart(2, '0');   // Firestore-Regel: genau 12 Zeichen, a–z/0–9
 }
+const monthKey = ms => { const d = new Date(ms); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0'); };
+async function loadParts(prefix, key) {   // Teil-Dokumente prefix+00, +01, … (Firestore-Regel: max. 50.000 Zeichen pro Dokument)
+  const out = [];
+  for (let p = 0; p < 100; p++) { const d = await load(prefix + String(p).padStart(2, '0')); out.push(...(Array.isArray(d[key]) ? d[key] : [])); if (!d.full) break; }
+  return out;
+}
 async function load(id) {
   const r = await fetch(BASE + id + '?' + KEY, { cache: 'no-store' });
   if (r.status === 404) return {};
@@ -79,11 +85,14 @@ let ALL = [], FB = [];
 async function reload() {
   $('status').textContent = 'Lade …';
   try {
-    const n = +$('weeks').value, ids = new Set();
-    for (let i = 0; i < n; i++) ids.add(weekId(Date.now() - i * 7 * 864e5));
-    const docs = await Promise.all([...ids].map(load));
-    ALL = docs.flatMap(d => Array.isArray(d.r) ? d.r : []);
-    FB = ((await load('brawlfeedbk1')).f || []).slice().reverse();
+    const n = +$('weeks').value, from = Date.now() - n * 7 * 864e5, weeks = new Set(), months = new Set();
+    for (let t = from; t <= Date.now() + 864e5; t += 864e5) { weeks.add(weekId(t)); months.add(monthKey(t)); }
+    const old = await Promise.all([...weeks].map(load));   // alte Wochen-Dokumente (bis 4.3.13)
+    const neu = await Promise.all([...months].map(m => loadParts('brawls' + m, 'r')));
+    ALL = old.flatMap(d => Array.isArray(d.r) ? d.r : []).concat(neu.flat()).filter(r => r.at >= from);
+    const fbMonths = []; for (let i = 0; i < 12; i++) { const d = new Date(); d.setMonth(d.getMonth() - i); fbMonths.push(monthKey(d.getTime())); }
+    const fbNew = await Promise.all(fbMonths.map(m => loadParts('brawlf' + m, 'f')));
+    FB = ((await load('brawlfeedbk1')).f || []).concat(fbNew.flat()).sort((a, b) => b.d - a.d);
     const vers = [...new Set(ALL.map(r => r.v))].sort().reverse(), cur = $('ver').value;
     $('ver').innerHTML = '<option value="">alle</option>' + vers.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
     $('status').textContent = 'Stand: ' + new Date().toLocaleString('de-DE');
