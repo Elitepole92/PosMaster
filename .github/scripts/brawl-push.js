@@ -3,30 +3,38 @@
 const webpush = require('web-push');
 const PUBLIC_KEY = 'BJlv1FU_VGh9h0LU7qafNUYJcX1agAdF8u71xrDi1h865gu8vYxDTBimpIX9kuskBjxDVX7mOvciDYMjigRalvA';
 const BASE = process.env.FS_BASE || 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/';
-const KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0', DOC = 'brawlpushes1';
-async function load() {
-  const r = await fetch(BASE + DOC + '?' + KEY);
-  if (r.status === 404) return { list: [], ut: null };
+// Anmeldungen liegen in Teil-Dokumenten brawlpushs00, 01, … (Firestore-Regel: max. 50.000 Zeichen pro Dokument),
+// ältere noch im Einzel-Dokument brawlpushes1.
+const KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+async function loadDoc(id) {
+  const r = await fetch(BASE + id + '?' + KEY);
+  if (r.status === 404) return null;
   if (!r.ok) throw new Error('Firestore ' + r.status);
-  const d = await r.json(); return { list: (JSON.parse(d.fields.data.stringValue).s || []), ut: d.updateTime };
+  const d = await r.json(); return { id, data: JSON.parse(d.fields.data.stringValue), ut: d.updateTime };
 }
-async function removeDead(dead) {
-  for (let i = 0; i < 4; i++) {
-    const { list, ut } = await load();
-    const next = list.filter(s => !dead.has(s.e));
-    const r = await fetch(BASE + DOC + '?' + KEY + '&currentDocument.updateTime=' + encodeURIComponent(ut), { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify({ s: next }) } } }) });
-    if (r.ok) return next.length;
+async function loadAll() {
+  const docs = [], old = await loadDoc('brawlpushes1'); if (old) docs.push(old);
+  for (let p = 0; p < 100; p++) { const d = await loadDoc('brawlpushs' + String(p).padStart(2, '0')); if (!d) break; docs.push(d); if (!d.data.full) break; }
+  return docs;
+}
+async function removeDead(dead) {   // jedes Teil-Dokument ohne die abgelaufenen Anmeldungen zurückschreiben
+  let left = 0;
+  for (const doc of await loadAll()) {
+    const list = doc.data.s || [], next = list.filter(s => !dead.has(s.e)); left += next.length;
+    if (next.length === list.length) continue;
+    await fetch(BASE + doc.id + '?' + KEY + '&currentDocument.updateTime=' + encodeURIComponent(doc.ut), { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify(Object.assign({}, doc.data, { s: next })) } } }) });
   }
-  return -1;
+  return left;
 }
 (async () => {
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!priv) throw new Error('Secret BRAWL_VAPID_PRIVATE_KEY fehlt');
   webpush.setVapidDetails('https://elitepole92.github.io/PosMaster/buehnen-brawl/', PUBLIC_KEY, priv);
-  const title = (process.env.PUSH_TITLE || 'Backstage Brawl').slice(0, 60), body = (process.env.PUSH_BODY || '').slice(0, 200);
+  let title = (process.env.PUSH_TITLE || '').replace(/^\s*Backstage Brawl\s*[–:-]?\s*/i, '').slice(0, 60); if (/^[\d.\sv]*$/i.test(title)) title = '';
+  const body = (process.env.PUSH_BODY || '').slice(0, 200);   // App-Name nie doppelt
   if (!body) throw new Error('Kein Text angegeben');
-  const { list } = await load();
+  const seen = new Set(), list = (await loadAll()).flatMap(d => d.data.s || []).filter(s => !seen.has(s.e) && seen.add(s.e));   // doppelte raus
   const payload = JSON.stringify({ title, body, url: './' });
   const dead = new Set(); let ok = 0, fail = 0;
   await Promise.all(list.map(s => webpush.sendNotification({ endpoint: s.e, keys: s.k }, payload, { TTL: 86400 })

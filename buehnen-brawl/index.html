@@ -53,6 +53,10 @@ const QS = new URLSearchParams(location.search);
 const TOUCH = QS.has('touch') || (matchMedia('(hover: none) and (pointer: coarse)').matches && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const STANDALONE = matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone === true;
+// Beta-Version: gleiche Datei im Ordner „buehnen-brawl-beta“ – eigene Bestenliste, eigene Online-Räume,
+// Statistik als Beta markiert, keine Push-Abfrage, deutliches BETA-Schild.
+const BETA = /-beta\//.test(location.pathname) || QS.has('beta');
+if (BETA) { document.title = 'Brawl Beta'; const m = document.querySelector('meta[name="apple-mobile-web-app-title"]'); if (m) m.content = 'Brawl Beta'; }
 const isPortrait = () => TOUCH && innerHeight > innerWidth;
 
 /* ---------------- Eingabe ---------------- */
@@ -1047,7 +1051,12 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.11', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.4.2', news: [] },
+  { v: '4.4.0', news: [
+    ['🌐', 'Online-Duell läuft wieder – mit neuer, stabilerer Verbindung'],
+    ['🤖', 'Die CPU kommt jetzt auch wieder von der Traverse runter'],
+    ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
+  ] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -1615,6 +1624,11 @@ function cpuInput(f, o) {
     return inp;
   }
   const dx = o.x - f.x, adx = Math.abs(dx), reach = f.def.atk.box.x + f.def.atk.box.w;
+  // Auf der Traverse und der Gegner ist unten: runterfallen (sonst bleibt die CPU oben kleben)
+  if (f.onGround && f.ground !== STAGE && !o.dead && o.y > f.y + 30) {
+    if (Math.random() < 0.12) { inp.downP = true; return inp; }
+    if (adx > 60) inp[dx > 0 ? 'right' : 'left'] = true;
+  }
   ai.t--;
   if (o.atk && o.atkT < o.atk.s && adx < 130 && f.onGround && f.ground === STAGE && f.shieldCD <= 0 && !f.shielding && Math.random() < D.shield * 0.6) { inp.downP = true; return inp; }
   if (f.shielding) return inp;
@@ -1863,7 +1877,6 @@ function step() {
    Der Host rechnet das Spiel. Der Gast schickt nur seine Tasten und zeigt den
    Spielstand an, den der Host 60× pro Sekunde schickt.
    ========================================================================= */
-const PEER_PREFIX = 'buehnen-brawl-';
 const NET = { role: null, peer: null, conn: null, open: false, code: '', state: 'menu', err: '', msg: '', entry: '', menuSel: 0,
   remote: { held: 0, edges: 0 }, lastRx: 0, lastHeld: -1, leaveAsk: false, timer: 0, stocks: 3 };
 let netEv = [], toast = null;
@@ -1887,22 +1900,11 @@ for (const k of Object.keys(sfx)) {
 function loadScript(src) {
   return new Promise((res, rej) => { const el = document.createElement('script'); el.src = src; el.onload = res; el.onerror = rej; document.head.appendChild(el); });
 }
-async function ensurePeerLib() { if (!window.Peer) await loadScript('https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'); }
-function peerOpts() {
-  // STUN für die direkte Verbindung + die TURN-Relays von PeerJS: ohne Relay klappt es nicht bei Firmen-WLAN mit
-  // abgeschotteten Geräten oder über Mobilfunk – dann hing der Ladebildschirm.
-  const o = { debug: 0, config: { iceServers: [
-    { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
-  ], sdpSemantics: 'unified-plan' } };
-  if (QS.get('peerhost')) Object.assign(o, { host: QS.get('peerhost'), port: +(QS.get('peerport') || 9000), path: QS.get('peerpath') || '/', secure: QS.get('peersecure') !== '0' });
-  return o;
-}
 function netSend(m) { if (NET.conn && NET.open) { try { NET.conn.send(m); } catch (e) { /* Verbindung weg – netLost kümmert sich */ } } }
 function netReset() {
-  clearTimeout(NET.timer);
+  clearTimeout(NET.timer); NET.sess = null;
+  if (NET.role === 'host' && NET.code && typeof fsWrite === 'function') fsWrite(ROOM(NET.code), { s: 'closed', t: Date.now() }, 'any').catch(() => {});   // Raum freigeben
   try { if (NET.conn) NET.conn.close(); } catch (e) { /* egal */ }
-  try { if (NET.peer) NET.peer.destroy(); } catch (e) { /* egal */ }
   Object.assign(NET, { role: null, peer: null, conn: null, open: false, code: '', remote: { held: 0, edges: 0 }, lastHeld: -1, leaveAsk: false, joining: false });
   netEv = []; paused = false;
 }
@@ -1917,27 +1919,110 @@ function peerErrorText(err) {
     return 'Vermittlungsserver nicht erreichbar. Ist Internet da? (Im Claude-Link geht Online nicht – GitHub-Pages-Adresse nutzen.)';
   return 'Verbindung fehlgeschlagen (' + (t || 'unbekannt') + ').';
 }
+// ---- Verbindungsaufbau: Vermittlung über Firestore (statt PeerJS-Server), Verbindung direkt per WebRTC ----
+// Raum = Dokument „brawlrm1“ + 4-stelliger Code (Firestore-Regel: genau 12 Zeichen a–z/0–9).
+// Ablauf: Host legt den Raum an (s: wait) → Gast schreibt sein Angebot (s: offer) → Host antwortet (s: answer) → Datenkanal offen.
+const ICE_CFG = { iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }   // Relay für Firmen-WLAN/Mobilfunk
+] };
+const ROOM = code => (BETA ? 'brawlrb1' : 'brawlrm1') + code;   // Beta und Live verbinden sich nie miteinander
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function fsWrite(id, data, ut) {   // ut: nur schreiben, wenn seitdem niemand geschrieben hat; null = Dokument darf noch nicht existieren; 'any' = immer
+  const pre = ut === 'any' ? '' : ut ? '&currentDocument.updateTime=' + encodeURIComponent(ut) : '&currentDocument.exists=false';
+  const r = await fetch(FS_BASE + id + '?' + FS_KEY + pre, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify(data) } } }) });
+  return r.ok;
+}
+function iceDone(pc, ms) {   // alle Verbindungswege sammeln (max. ms), dann in einem Rutsch übertragen
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const t = setTimeout(res, ms);
+    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } });
+  });
+}
+function makeConn(pc, dc) {   // kleine Hülle mit derselben Schnittstelle wie vorher (on/send/close/open)
+  const h = {}, emit = (ev, x) => (h[ev] || []).forEach(cb => cb(x));
+  const conn = { open: false, closed: false, dc: null, pc,
+    on(ev, cb) { (h[ev] = h[ev] || []).push(cb); },
+    send(m) { if (conn.dc && conn.dc.readyState === 'open') conn.dc.send(JSON.stringify(m)); },
+    close() { conn.closed = true; conn.open = false; try { if (conn.dc) conn.dc.close(); } catch (e) { /* egal */ } try { pc.close(); } catch (e) { /* egal */ } } };
+  const gone = () => { if (conn.closed) return; conn.closed = true; conn.open = false; emit('close'); };
+  conn.bind = ch => {
+    conn.dc = ch;
+    ch.onopen = () => { if (!conn.open && !conn.closed) { conn.open = true; emit('open'); } };
+    ch.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } emit('data', m); };
+    ch.onclose = gone; ch.onerror = () => emit('error');
+    if (ch.readyState === 'open') ch.onopen();
+  };
+  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') gone(); };
+  if (dc) conn.bind(dc); else pc.ondatachannel = ev => conn.bind(ev.channel);
+  return conn;
+}
 async function hostGame() {
   netReset(); NET.role = 'host'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Raum wird erstellt …';
-  try { await ensurePeerLib(); } catch (e) { netFail('Online-Baustein konnte nicht geladen werden – ist Internet da?'); return; }
-  if (NET.role !== 'host' || NET.peer) return;
-  const code = String(1000 + Math.floor(Math.random() * 9000));
-  const peer = new Peer(PEER_PREFIX + code, peerOpts()); NET.peer = peer;
-  NET.timer = setTimeout(() => { if (NET.peer === peer && NET.state === 'connecting') netFail('Der Vermittlungsserver antwortet gerade nicht – bitte nochmal „Raum erstellen“.'); }, 15000);
-  peer.on('open', () => { if (NET.peer !== peer) return; clearTimeout(NET.timer); NET.code = code; NET.state = 'hosting'; });
-  peer.on('disconnected', () => { if (NET.peer === peer && !NET.open) try { peer.reconnect(); } catch (e) { /* egal */ } });   // Raum offen halten
-  peer.on('connection', conn => { if (NET.peer !== peer || NET.conn) { conn.close(); return; } attachConn(conn); });
-  peer.on('error', err => { if (NET.peer !== peer) return; if (err.type === 'unavailable-id') hostGame(); else if (!NET.open) netFail(peerErrorText(err)); });
+  const sess = NET.sess = {};
+  let code = null;
+  for (let i = 0; i < 6 && !code; i++) {
+    const c = String(1000 + Math.floor(Math.random() * 9000));
+    try {
+      const { data, ut } = await fsLoad(ROOM(c));
+      if (data.s && data.s !== 'closed' && Date.now() - (data.t || 0) < 2 * 3600000) continue;   // Code gerade belegt
+      if (await fsWrite(ROOM(c), { s: 'wait', t: Date.now() }, ut)) code = c;
+    } catch (e) { await sleep(800); }
+  }
+  if (NET.sess !== sess) return;
+  if (!code) { netFail('Raum konnte nicht erstellt werden – ist Internet da?'); return; }
+  NET.code = code; NET.state = 'hosting';
+  let lastG = null; const opened = Date.now();
+  while (NET.sess === sess && !NET.open) {   // auf ein Angebot warten (alle 1,5 s nachsehen) – spart Datenbank-Zugriffe
+    await sleep(1500);
+    if (NET.sess === sess && !NET.open && !NET.conn && Date.now() - opened > 15 * 60000) { netFail('Raum nach 15 Minuten ohne Mitspieler geschlossen.'); return; }
+    if (NET.sess !== sess || NET.open) return;
+    let r; try { r = await fsLoad(ROOM(code)); } catch (e) { continue; }
+    const d = r.data;
+    if (!NET.conn && d.s === 'answer' && Date.now() - (d.t || 0) > 35000) { fsWrite(ROOM(code), { s: 'wait', t: Date.now() }, r.ut).catch(() => {}); continue; }   // Versuch hängengeblieben → Raum wieder frei
+    if (d.s !== 'offer' || d.g === lastG || NET.conn) continue;
+    lastG = d.g;
+    try {
+      const pc = new RTCPeerConnection(ICE_CFG), conn = makeConn(pc, null);
+      attachConn(conn);
+      await pc.setRemoteDescription({ type: 'offer', sdp: d.o });
+      await pc.setLocalDescription(await pc.createAnswer());
+      await iceDone(pc, 3000);
+      if (NET.sess !== sess || NET.conn !== conn) return;
+      await fsWrite(ROOM(code), { s: 'answer', g: d.g, a: pc.localDescription.sdp, t: Date.now() }, r.ut);
+    } catch (e) { if (NET.conn && !NET.open) { try { NET.conn.close(); } catch (x) { /* egal */ } NET.conn = null; NET.joining = false; } }
+  }
 }
 async function joinGame(code) {
-  netReset(); NET.role = 'guest'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Verbinde mit Raum ' + code + ' …'; NET.code = code;
-  try { await ensurePeerLib(); } catch (e) { netFail('Online-Baustein konnte nicht geladen werden – ist Internet da?'); return; }
-  if (NET.role !== 'guest' || NET.peer) return;
-  const peer = new Peer(peerOpts()); NET.peer = peer;
-  peer.on('open', () => { if (NET.peer === peer) attachConn(peer.connect(PEER_PREFIX + code, { serialization: 'json', reliable: true })); });
-  peer.on('error', err => { if (NET.peer === peer && !NET.open) netFail(peerErrorText(err)); });
-  NET.timer = setTimeout(() => { if (NET.peer === peer && !NET.open) netFail('Keine Verbindung zustande gekommen. Stimmt der Code? Sonst nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 30000);
-  setTimeout(() => { if (NET.peer === peer && !NET.open && NET.state === 'connecting') NET.msg = 'Raum gefunden? Verbindung wird aufgebaut'; }, 8000);
+  netReset(); NET.role = 'guest'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Suche Raum ' + code + ' …'; NET.code = code;
+  const sess = NET.sess = {};
+  NET.timer = setTimeout(() => { if (NET.sess === sess && !NET.open) netFail('Keine Verbindung zustande gekommen. Nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 35000);
+  let r; try { r = await fsLoad(ROOM(code)); } catch (e) { if (NET.sess === sess) netFail('Kein Internet? Der Raum konnte nicht gesucht werden.'); return; }
+  if (NET.sess !== sess) return;
+  const d = r.data, age = Date.now() - (d.t || 0);
+  if (!d.s || d.s === 'closed' || age > 2 * 3600000) { netFail('Raum nicht gefunden – stimmt der Code?'); return; }
+  if (d.s !== 'wait' && age < 35000) { netFail('Da verbindet sich gerade schon jemand – kurz warten und nochmal.'); return; }
+  NET.msg = 'Verbinde mit Raum ' + code + ' …';
+  const pc = new RTCPeerConnection(ICE_CFG), conn = makeConn(pc, pc.createDataChannel('brawl', { ordered: true }));
+  attachConn(conn);
+  const g = Math.random().toString(36).slice(2, 10);
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    await iceDone(pc, 3000);
+    if (NET.sess !== sess) return;
+    if (!(await fsWrite(ROOM(code), { s: 'offer', g, o: pc.localDescription.sdp, t: Date.now() }, r.ut))) { if (NET.sess === sess) netFail('Da war gerade jemand schneller – nochmal versuchen.'); return; }
+  } catch (e) { if (NET.sess === sess) netFail('Verbindung fehlgeschlagen – nochmal versuchen.'); return; }
+  for (let i = 0; i < 30 && NET.sess === sess && !NET.open; i++) {   // auf die Antwort des Hosts warten
+    await sleep(1000);
+    let x; try { x = await fsLoad(ROOM(code)); } catch (e) { continue; }
+    if (x.data.s === 'answer' && x.data.g === g) {
+      try { await pc.setRemoteDescription({ type: 'answer', sdp: x.data.a }); } catch (e) { /* egal */ }
+      if (NET.sess === sess && !NET.open) NET.msg = 'Raum gefunden – Verbindung wird aufgebaut';
+      return;
+    }
+  }
 }
 function attachConn(conn) {
   NET.conn = conn;
@@ -2087,7 +2172,7 @@ function stepOnlineLobby() {
    Der Gewinner sieht auf seinem Gerät sofort, ob die Zeit für die Top 5 reicht. Gespeichert in Firestore – gleiches Projekt und gleiche
    Ablageform wie der Sync der POS-App (Dokument „brawlonline1“ kann nie ein Sync-Code sein).
    ========================================================================= */
-const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/brawlonline1?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
+const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/' + (BETA ? 'brawlbetahs1' : 'brawlonline1') + '?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
 const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
 let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
 const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
@@ -2174,7 +2259,7 @@ nbInput.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'E
 /* =========================================================================
    AUSWERTUNG & FEEDBACK – gleiche Firestore-Ablage wie die Bestenliste.
    Jedes fertige Spiel (nicht Demo; online nur vom Host) landet in einem Wochen-Dokument
-   „brawlJJJJwWW“, Feedback in „brawlfeedbk1“. Auslesen: admin.html
+   „brawlsJJMMnn“ (pro Monat, in Teilen), Feedback in „brawlfJJMMnn“. Auslesen: admin.html
    ========================================================================= */
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/';
 const FS_KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
@@ -2198,6 +2283,24 @@ async function fsUpdate(id, change) {   // laden → ändern → nur speichern, 
   }
   return false;
 }
+// Firestore-Regel: max. 50.000 Zeichen pro Dokument → lange Listen auf Teile verteilen.
+// prefix = 10 Zeichen, Teil = 2 Ziffern (z. B. brawls2611 + 00). Ist ein Teil voll, wird er markiert (full) und es geht im nächsten weiter.
+const PART_MAX = 45000, partId = (prefix, p) => prefix + String(p).padStart(2, '0');
+const monthKey = ms => { const d = new Date(ms); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0'); };
+async function appendParts(prefix, key, items) {
+  for (let p = 0; p < 100; p++) {
+    const id = partId(prefix, p); let full = false;
+    for (let tries = 0; tries < 4; tries++) {
+      const { data, ut } = await fsLoad(id);
+      if (data.full) { full = true; break; }
+      const next = { [key]: (Array.isArray(data[key]) ? data[key] : []).concat(items) };
+      if (JSON.stringify(next).length > PART_MAX) { await fsWrite(id, Object.assign({}, data, { full: true }), ut); full = true; break; }
+      if (await fsWrite(id, next, ut)) return true;
+    }
+    if (!full) return false;
+  }
+  return false;
+}
 function weekId(ms) {   // ISO-Kalenderwoche
   const d = new Date(ms); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
@@ -2208,7 +2311,7 @@ const saveQ = () => { try { localStorage.setItem('bb-statq', JSON.stringify(stat
 function logMatch() {
   if (settings.demo || F.length !== 2 || !winner) return;
   const a = k => F.map(f => f.stats[k]);
-  statQ.push({ v: GAME_VERSION, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
+  statQ.push({ v: GAME_VERSION + (BETA ? '-beta' : ''), b: BETA ? 1 : undefined, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
     c: F.map(f => f.def.id), w: winner.idx, t: Math.max(1, Math.round(matchT / 6)), s: F.map(f => Math.max(0, f.stocks)),
     k: a('kos'), d: a('dealt'), h: a('hits'), f: a('fins'), tc: TOUCH ? 1 : 0, at: Date.now() });
   saveQ(); flushStats();
@@ -2218,8 +2321,8 @@ async function flushStats() {
   statBusy = true;
   try {
     while (statQ.length) {
-      const id = weekId(statQ[0].at), batch = statQ.filter(r => weekId(r.at) === id);
-      const ok = await fsUpdate(id, d => ({ r: (Array.isArray(d.r) ? d.r : []).concat(batch) }));
+      const id = 'brawls' + monthKey(statQ[0].at), batch = statQ.filter(r => 'brawls' + monthKey(r.at) === id);   // pro Monat, in Teilen
+      const ok = await appendParts(id, 'r', batch);
       if (!ok) break;
       statQ = statQ.filter(r => !batch.includes(r)); saveQ();
     }
@@ -2251,7 +2354,7 @@ async function sendFeedback() {
   if (fbMsg.dataset.busy) return;
   fbMsg.dataset.busy = '1'; fbMsg.style.color = '#cfcfe0'; fbMsg.textContent = 'Sende …';
   let ok = false;
-  try { ok = await fsUpdate('brawlfeedbk1', d => ({ f: (Array.isArray(d.f) ? d.f : []).concat([{ t, n, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]).slice(-300) })); } catch (e) { ok = false; }
+  try { ok = await appendParts('brawlf' + monthKey(Date.now()), 'f', [{ t, n, v: GAME_VERSION + (BETA ? '-beta' : ''), dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]); } catch (e) { ok = false; }
   delete fbMsg.dataset.busy;
   if (ok) { closeFeedback(); showToast('Danke für dein Feedback! 🙌'); sfx.confirm(); }
   else { fbMsg.style.color = '#ff9a8a'; fbMsg.textContent = 'Senden hat nicht geklappt – ist Internet da? Nochmal versuchen.'; }
@@ -2263,10 +2366,10 @@ fbName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'En
 
 /* =========================================================================
    PUSH-NACHRICHTEN – normales Web-Push (iPhone ab iOS 16.4 nur als Home-Bildschirm-App).
-   Anmeldungen landen in „brawlpushes1“; verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
+   Anmeldungen landen in „brawlpushsnn“ (Teile); verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
    ========================================================================= */
 const PUSH_KEY = 'BJlv1FU_VGh9h0LU7qafNUYJcX1agAdF8u71xrDi1h865gu8vYxDTBimpIX9kuskBjxDVX7mOvciDYMjigRalvA';
-const PUSH_OK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
+const PUSH_OK = !BETA && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
   (location.hostname.endsWith('github.io') || QS.has('push')) && (!IOS || STANDALONE);
 const pushPerm = () => PUSH_OK ? Notification.permission : 'unsupported';
 let pushAsk = PUSH_OK && pushPerm() === 'default' && (() => { try { return !localStorage.getItem('bb-push'); } catch (e) { return true; } })();
@@ -2278,11 +2381,7 @@ async function pushSubscribe() {
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(PUSH_KEY) });
   const j = sub.toJSON(); let saved = null; try { saved = localStorage.getItem('bb-pushsub'); } catch (e) { /* egal */ }
   if (saved === j.endpoint) return true;
-  const ok = await fsUpdate('brawlpushes1', d => {
-    const list = (Array.isArray(d.s) ? d.s : []).filter(x => x.e !== j.endpoint);
-    list.push({ e: j.endpoint, k: j.keys, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() });
-    return { s: list.slice(-1000) };
-  });
+  const ok = await appendParts('brawlpushs', 's', [{ e: j.endpoint, k: j.keys, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]);   // doppelte filtert der Versand
   if (ok) try { localStorage.setItem('bb-pushsub', j.endpoint); } catch (e) { /* egal */ }
   return ok;
 }
@@ -2897,6 +2996,17 @@ function btn(id, x, y, w, h, label, col = '#ffd23f', size = 22) {
   c.fillStyle = '#1a1024'; c.fillText(label, x + w / 2, y + h / 2 + 1); c.textBaseline = 'alphabetic';
   ui.push({ id, x, y, w, h });
 }
+// Zurück-Knopf im Stil der Menü-Knöpfe (dunkel, heller Rand, gelber Pfeil) – auf Touch extra groß
+function backBtn(id, label) {
+  const c = ctx, T = TOUCH, x = 16, y = 14, h = T ? 66 : 52;
+  c.font = `900 ${T ? 28 : 22}px Impact,"Arial Black",sans-serif`;
+  const w = c.measureText(label).width + (T ? 84 : 70);
+  RR(c, x, y, w, h, h / 2.6, 'rgba(20,16,36,0.9)'); c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2; strokeRR(c, x, y, w, h, h / 2.6);
+  const ax = x + (T ? 30 : 24), ay = y + h / 2, s = T ? 11 : 9;
+  c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(ax - s, ay); c.lineTo(ax + s * 0.7, ay - s); c.lineTo(ax + s * 0.7, ay + s); c.closePath(); c.fill();
+  c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.fillText(label, ax + s + (T ? 14 : 12), ay + 1); c.textBaseline = 'alphabetic';
+  ui.push({ id, x: x - 6, y: y - 6, w: w + 12, h: h + 12 });
+}
 function muteButton(x, y) {
   const c = ctx;
   Cc(c, x, y, 22, 'rgba(20,16,36,0.9)'); c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 22, 0, TAU); c.stroke();
@@ -2910,6 +3020,11 @@ function drawTitle() {
   c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(0, 0, W, H);
   const T = TOUCH;   // Handy/Tablet: alles größer, weil das Bild kleiner skaliert wird
   bigText('BACKSTAGE BRAWL', (T ? 116 : 128) + Math.sin(frame * 0.05) * 3, T ? 100 : 84, '#ffd23f', 1, '#2a0d3d');
+  if (BETA) {   // unübersehbar: Testversion
+    c.save(); c.translate(T ? 1000 : 960, T ? 160 : 164); c.rotate(-0.06);
+    RR(c, -72, -24, 144, 48, 12, '#ff3b6b'); c.strokeStyle = '#fff'; c.lineWidth = 3; strokeRR(c, -72, -24, 144, 48, 12);
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.font = '900 32px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText('BETA', 0, 2); c.textBaseline = 'alphabetic'; c.restore();
+  }
   c.font = `bold ${T ? 24 : 18}px system-ui,sans-serif`; c.fillStyle = '#cfcfe0'; c.textAlign = 'center';
   c.fillText('Die Prügelei hinter der Bühne', W / 2, T ? 158 : 166);
   // Menü links, Bestenliste rechts – gleich hoch, zusammen mittig
@@ -2924,6 +3039,7 @@ function drawTitle() {
     c.font = `${T ? 'bold 20' : '13'}px system-ui,sans-serif`; c.fillStyle = on ? '#4a3a12' : '#9a9ab0'; c.fillText(LBL[r][1], mx + mw / 2, y + (T ? 82 : 52));
     ui.push({ id: r, x: mx, y, w: mw, h: bh }); y += bh + gap;
   });
+  onlineNote(mx, y - gap + (T ? 16 : 12), mw, T);
   if (T) { c.save(); c.translate(670, 196); c.scale(1.3, 1.3); drawTopList(0, 0); c.restore(); ui[ui.length - 1] = { id: 'hs', x: 670, y: 196, w: 494, h: 289 }; }
   else drawTopList(690, 214);
   // Feedback: großer, gut sichtbarer Knopf unter der Bestenliste
@@ -2936,15 +3052,26 @@ function drawTitle() {
   ui.push({ id: 'feedback', x: fx, y: fy, w: fw, h: fh });
   muteButton(1232, 44);
   if (PUSH_OK) bellButton(1176, 44);
-  c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
+  c.textAlign = 'right'; c.font = `${T ? 16 : 12}px system-ui,sans-serif`; c.fillStyle = '#7f7f96'; c.fillText('v' + GAME_VERSION + (BETA ? ' BETA' : '') + '  ·  © ' + new Date().getFullYear() + ' Daniel Lassak', W - 14, 712);
   drawWalkers();   // Figuren samt Sprechblasen vor allem anderen
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
+}
+// Hinweis, solange das Online-Duell Probleme macht (ONLINE_NOTE = false schaltet ihn ab)
+const ONLINE_NOTE = false;
+function onlineNote(x, y, w, big) {
+  if (!ONLINE_NOTE) return;
+  const c = ctx, h = big ? 74 : 58;
+  RR(c, x, y, w, h, 14, 'rgba(255,170,60,0.12)'); c.strokeStyle = 'rgba(255,170,60,0.55)'; c.lineWidth = 1.5; strokeRR(c, x, y, w, h, 14);
+  c.textAlign = 'left'; c.font = `bold ${big ? 18 : 14}px system-ui,sans-serif`; c.fillStyle = '#ffb347';
+  c.fillText('⚠️ Online-Duell zickt gerade rum.', x + 14, y + (big ? 28 : 22));
+  c.font = `${big ? 16 : 12.5}px system-ui,sans-serif`; c.fillStyle = '#e0d4c0';
+  c.fillText('Wir sind dran. Der ITler hat schon zweimal neu gestartet.', x + 14, y + (big ? 56 : 44));
 }
 function drawOnline() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
   bigText('ONLINE-DUELL', 78, 58, '#7ad15a', 1, '#0d2a10');
-  btn('netBack', 16, 16, 140, 42, '◀ ZURÜCK', '#cfcfe0', 18);
+  backBtn('netBack', 'ZURÜCK');
   c.textAlign = 'center';
   const dots = '.'.repeat(1 + ((frame / 20) | 0) % 3);
   if (NET.state === 'menu') {
@@ -2959,6 +3086,7 @@ function drawOnline() {
     c.font = '17px system-ui,sans-serif'; c.fillStyle = '#cfcfe0';
     c.fillText('Beide Geräte brauchen Internet und öffnen dieses Spiel.', W / 2, 404);
     c.fillText('Am zuverlässigsten klappt es, wenn beide im selben WLAN sind.', W / 2, 430);
+    onlineNote(W / 2 - 270, 520, 540, TOUCH);
     if (NET.err) { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#ff7a6a'; c.fillText(NET.err, W / 2, 486); }
   } else if (NET.state === 'hosting') {
     const cx = W / 2;
@@ -3094,7 +3222,7 @@ function drawSelect() {
     }
     cx += w + 8;
   }
-  btn('back', 16, 16, isOnline() ? 160 : 120, 42, isOnline() ? '◀ VERLASSEN' : '◀ MENÜ', '#cfcfe0', 18);
+  backBtn('back', isOnline() ? 'VERLASSEN' : 'MENÜ');
   const ready = sel[0].ok && sel[1].ok, single = isCPU();
   if (single) {
     drawCarousel(0, 640, 470, 2.2, 280, 74, 500, 420);
@@ -3286,7 +3414,7 @@ function drawTopList(x, y) {   // kompakte Bestenliste auf der Startseite
   const c = ctx, w = 380, h = 222;
   RR(c, x, y, w, h, 18, 'rgba(20,16,36,0.88)'); c.strokeStyle = 'rgba(255,210,63,0.45)'; c.lineWidth = 2; strokeRR(c, x, y, w, h, 18);
   c.textAlign = 'left'; c.font = '900 21px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('🏆 BESTENLISTE', x + 16, y + 30);
-  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Schnellster Sieg im Online-Duell', x + 16, y + 48);
+  c.textAlign = 'left'; c.font = '12px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText(BETA ? 'Beta-Liste – zählt nicht für die echte' : 'Schnellster Sieg im Online-Duell', x + 16, y + 48);
   const list = HS.list || [], medal = ['#ffd23f', '#d0d4dc', '#d08a4a', '#6a6880', '#6a6880'];
   for (let i = 0; i < 5; i++) {
     const e = list[i], ry = y + 58 + i * 32;
