@@ -1047,7 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.13', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.3.14', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -2244,7 +2244,7 @@ nbInput.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'E
 /* =========================================================================
    AUSWERTUNG & FEEDBACK – gleiche Firestore-Ablage wie die Bestenliste.
    Jedes fertige Spiel (nicht Demo; online nur vom Host) landet in einem Wochen-Dokument
-   „brawlJJJJwWW“, Feedback in „brawlfeedbk1“. Auslesen: admin.html
+   „brawlsJJMMnn“ (pro Monat, in Teilen), Feedback in „brawlfJJMMnn“. Auslesen: admin.html
    ========================================================================= */
 const FS_BASE = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/';
 const FS_KEY = 'key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
@@ -2268,6 +2268,24 @@ async function fsUpdate(id, change) {   // laden → ändern → nur speichern, 
   }
   return false;
 }
+// Firestore-Regel: max. 50.000 Zeichen pro Dokument → lange Listen auf Teile verteilen.
+// prefix = 10 Zeichen, Teil = 2 Ziffern (z. B. brawls2611 + 00). Ist ein Teil voll, wird er markiert (full) und es geht im nächsten weiter.
+const PART_MAX = 45000, partId = (prefix, p) => prefix + String(p).padStart(2, '0');
+const monthKey = ms => { const d = new Date(ms); return String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0'); };
+async function appendParts(prefix, key, items) {
+  for (let p = 0; p < 100; p++) {
+    const id = partId(prefix, p); let full = false;
+    for (let tries = 0; tries < 4; tries++) {
+      const { data, ut } = await fsLoad(id);
+      if (data.full) { full = true; break; }
+      const next = { [key]: (Array.isArray(data[key]) ? data[key] : []).concat(items) };
+      if (JSON.stringify(next).length > PART_MAX) { await fsWrite(id, Object.assign({}, data, { full: true }), ut); full = true; break; }
+      if (await fsWrite(id, next, ut)) return true;
+    }
+    if (!full) return false;
+  }
+  return false;
+}
 function weekId(ms) {   // ISO-Kalenderwoche
   const d = new Date(ms); d.setUTCHours(0, 0, 0, 0); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const y = d.getUTCFullYear(), w = Math.ceil(((d - Date.UTC(y, 0, 1)) / 864e5 + 1) / 7);
@@ -2288,8 +2306,8 @@ async function flushStats() {
   statBusy = true;
   try {
     while (statQ.length) {
-      const id = weekId(statQ[0].at), batch = statQ.filter(r => weekId(r.at) === id);
-      const ok = await fsUpdate(id, d => ({ r: (Array.isArray(d.r) ? d.r : []).concat(batch) }));
+      const id = 'brawls' + monthKey(statQ[0].at), batch = statQ.filter(r => 'brawls' + monthKey(r.at) === id);   // pro Monat, in Teilen
+      const ok = await appendParts(id, 'r', batch);
       if (!ok) break;
       statQ = statQ.filter(r => !batch.includes(r)); saveQ();
     }
@@ -2321,7 +2339,7 @@ async function sendFeedback() {
   if (fbMsg.dataset.busy) return;
   fbMsg.dataset.busy = '1'; fbMsg.style.color = '#cfcfe0'; fbMsg.textContent = 'Sende …';
   let ok = false;
-  try { ok = await fsUpdate('brawlfeedbk1', d => ({ f: (Array.isArray(d.f) ? d.f : []).concat([{ t, n, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]).slice(-300) })); } catch (e) { ok = false; }
+  try { ok = await appendParts('brawlf' + monthKey(Date.now()), 'f', [{ t, n, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]); } catch (e) { ok = false; }
   delete fbMsg.dataset.busy;
   if (ok) { closeFeedback(); showToast('Danke für dein Feedback! 🙌'); sfx.confirm(); }
   else { fbMsg.style.color = '#ff9a8a'; fbMsg.textContent = 'Senden hat nicht geklappt – ist Internet da? Nochmal versuchen.'; }
@@ -2333,7 +2351,7 @@ fbName.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'En
 
 /* =========================================================================
    PUSH-NACHRICHTEN – normales Web-Push (iPhone ab iOS 16.4 nur als Home-Bildschirm-App).
-   Anmeldungen landen in „brawlpushes1“; verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
+   Anmeldungen landen in „brawlpushsnn“ (Teile); verschickt wird per GitHub Action (.github/workflows/brawl-push.yml).
    ========================================================================= */
 const PUSH_KEY = 'BJlv1FU_VGh9h0LU7qafNUYJcX1agAdF8u71xrDi1h865gu8vYxDTBimpIX9kuskBjxDVX7mOvciDYMjigRalvA';
 const PUSH_OK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext &&
@@ -2348,11 +2366,7 @@ async function pushSubscribe() {
   if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64key(PUSH_KEY) });
   const j = sub.toJSON(); let saved = null; try { saved = localStorage.getItem('bb-pushsub'); } catch (e) { /* egal */ }
   if (saved === j.endpoint) return true;
-  const ok = await fsUpdate('brawlpushes1', d => {
-    const list = (Array.isArray(d.s) ? d.s : []).filter(x => x.e !== j.endpoint);
-    list.push({ e: j.endpoint, k: j.keys, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() });
-    return { s: list.slice(-1000) };
-  });
+  const ok = await appendParts('brawlpushs', 's', [{ e: j.endpoint, k: j.keys, v: GAME_VERSION, dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), d: Date.now() }]);   // doppelte filtert der Versand
   if (ok) try { localStorage.setItem('bb-pushsub', j.endpoint); } catch (e) { /* egal */ }
   return ok;
 }
