@@ -1047,6 +1047,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.4.0', news: [ ['🤖', 'CPU-Gegner springt jetzt wieder von der Traverse runter'], ['◀️', 'Zurück-Knöpfe größer und im üblichen Look'] ] },
   { v: '4.3.13', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
@@ -1600,7 +1601,7 @@ function stepFighter(f, inp, o) {
 /* ---------------- CPU-Gegner (optional) ---------------- */
 function cpuInput(f, o) {
   const inp = { ...NOINPUT }, ai = f.ai, D = DIFFS[settings.diff] || DIFFS[1];
-  if (f.dead || f.plat > 0) { if (f.plat > 0 && f.plat < 120) inp.left = true; return inp; }
+  if (f.dead || f.plat > 0) { if (f.plat > 0) { if (f.x < STAGE.x1 + 20) inp.right = true; else if (f.x > STAGE.x2 - 20) inp.left = true; else if (o.y > f.y + 20) inp.downP = true; else inp[f.facing > 0 ? 'right' : 'left'] = true; } return inp; }
   const offL = f.x < STAGE.x1, offR = f.x > STAGE.x2;
   if (offL || offR) {
     inp.right = offL; inp.left = offR;
@@ -3012,7 +3013,7 @@ function drawTitle() {
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
 // Hinweis, solange das Online-Duell Probleme macht (ONLINE_NOTE = false schaltet ihn ab)
-const ONLINE_NOTE = true;
+const ONLINE_NOTE = false;
 function onlineNote(x, y, w, big) {
   if (!ONLINE_NOTE) return;
   const c = ctx, h = big ? 74 : 58;
@@ -3026,7 +3027,7 @@ function drawOnline() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
   bigText('ONLINE-DUELL', 78, 58, '#7ad15a', 1, '#0d2a10');
-  btn('netBack', 16, 16, 140, 42, '◀ ZURÜCK', '#cfcfe0', 18);
+  btn('netBack', 16, 16, 190, 56, '◀ ZURÜCK', '#ffd23f', 28);
   c.textAlign = 'center';
   const dots = '.'.repeat(1 + ((frame / 20) | 0) % 3);
   if (NET.state === 'menu') {
@@ -3177,7 +3178,7 @@ function drawSelect() {
     }
     cx += w + 8;
   }
-  btn('back', 16, 16, isOnline() ? 160 : 120, 42, isOnline() ? '◀ VERLASSEN' : '◀ MENÜ', '#cfcfe0', 18);
+  btn('back', 16, 16, isOnline() ? 220 : 170, 56, isOnline() ? '◀ VERLASSEN' : '◀ MENÜ', '#ffd23f', 26);
   const ready = sel[0].ok && sel[1].ok, single = isCPU();
   if (single) {
     drawCarousel(0, 640, 470, 2.2, 280, 74, 500, 420);
