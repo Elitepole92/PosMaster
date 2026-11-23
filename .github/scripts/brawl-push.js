@@ -31,7 +31,8 @@ async function removeDead(dead) {   // jedes Teil-Dokument ohne die abgelaufenen
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!priv) throw new Error('Secret BRAWL_VAPID_PRIVATE_KEY fehlt');
   webpush.setVapidDetails('https://elitepole92.github.io/PosMaster/buehnen-brawl/', PUBLIC_KEY, priv);
-  const title = (process.env.PUSH_TITLE || 'Backstage Brawl').slice(0, 60), body = (process.env.PUSH_BODY || '').slice(0, 200);
+  let title = (process.env.PUSH_TITLE || '').replace(/^\s*Backstage Brawl\s*[–:-]?\s*/i, '').slice(0, 60); if (/^[\d.\sv]*$/i.test(title)) title = '';
+  const body = (process.env.PUSH_BODY || '').slice(0, 200);   // App-Name nie doppelt
   if (!body) throw new Error('Kein Text angegeben');
   const seen = new Set(), list = (await loadAll()).flatMap(d => d.data.s || []).filter(s => !seen.has(s.e) && seen.add(s.e));   // doppelte raus
   const payload = JSON.stringify({ title, body, url: './' });

@@ -4,8 +4,11 @@ self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
-  e.waitUntil(self.registration.showNotification(d.title || 'Backstage Brawl', {
-    body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || 'brawl', data: { url: d.url || './' }
+  // Der App-Name steht auf dem Handy schon über der Nachricht – darum nie „Backstage Brawl“ als Titel.
+  // Ohne Titel wird der Text selbst zur Überschrift.
+  const title = d.title || d.body || 'Neuigkeiten', body = d.title ? (d.body || '') : '';
+  e.waitUntil(self.registration.showNotification(title, {
+    body, icon: 'icon-192.png', badge: 'icon-192.png', tag: d.tag || 'brawl', data: { url: d.url || './' }
   }));
 });
 self.addEventListener('notificationclick', e => {

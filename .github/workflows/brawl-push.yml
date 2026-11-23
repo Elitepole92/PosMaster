@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       title:
-        description: Titel
-        required: true
-        default: Backstage Brawl
+        description: Überschrift (optional, ohne „Backstage Brawl“ – der App-Name steht schon automatisch dabei)
+        required: false
+        default: ''
       body:
         description: Text der Nachricht
         required: true
