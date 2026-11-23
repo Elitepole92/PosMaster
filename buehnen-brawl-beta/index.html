@@ -2764,48 +2764,76 @@ function drawCamperBg(T) {
   for (let i = 0; i < 14; i++) { const x = (i * 151 + T * 0.4 * (i % 3 + 1)) % W, y = 380 + Math.sin(T * 0.02 + i * 2) * 60 + (i % 4) * 30; c.globalAlpha = 0.4 + 0.4 * Math.sin(T * 0.08 + i); Cc(c, x, y, 2.5, '#d8ff7a'); }
   c.restore(); c.globalAlpha = 1;
 }
-const GOGO_SAYS = ['40 Jahre Branche, Junge.', 'Früher hatten wir noch Röhren.', 'Nicht am Wohnmobil kratzen!', 'Da hinten steht ’n Sechsender.', 'Das Kabel war schon dreckig, als du geboren wurdest.', '*hust* … geht schon.', 'Gaffa hält alles. Auch mich.', 'Pass auf den Hochsitz auf, der ist von ’83.'];
-function drawGogo(c, x, y, T) {   // älterer VTler im Campingstuhl: Jägerhut mit Feder, grauer Schnauzer, grüner Fleece, dreckige Hose, Kippe
+const GOGO_SAYS = ['Früher hatten wir noch Röhren.', 'Nicht am Wohnmobil kratzen!', 'Da hinten steht ’n Sechsender.', 'Das Kabel war schon dreckig, als du geboren wurdest.', '*hust* … geht schon.', 'Gaffa hält alles. Auch mich.', 'Pass auf den Hochsitz auf, der ist von ’83.'];
+function drawGogo(c, x, y, T) {   // älterer VTler im Campingstuhl: kräftig, Halbglatze, gelbe Warnweste über dunkelblauer Dienstjacke, Kippe
   c.save(); c.translate(x, y);
   // Campingstuhl
-  Ln(c, -26, 0, 18, -40, '#3a5a3a', 4); Ln(c, 26, 0, -18, -40, '#3a5a3a', 4); RR(c, -28, -48, 56, 12, 4, '#2f6a4a'); RR(c, -24, -96, 48, 50, 6, '#2f6a4a');
-  // Beine (dreckige Arbeitshose)
-  Ln(c, -10, -46, 22, -44, '#4a4436', 13); Ln(c, 22, -44, 26, -6, '#4a4436', 12); Ln(c, 6, -46, 36, -42, '#4f4839', 13); Ln(c, 36, -42, 40, -6, '#4f4839', 12);
-  for (const [dx, dy] of [[18, -30], [30, -20], [24, -12]]) Cc(c, dx, dy, 3, 'rgba(60,45,30,0.7)');   // Dreckflecken
-  RR(c, 18, -8, 18, 9, 3, '#2c2620'); RR(c, 34, -8, 18, 9, 3, '#2c2620');
-  // Oberkörper: grüner Fleece mit Weste
-  RR(c, -18, -96, 34, 52, 12, '#3d5a3a'); RR(c, -18, -80, 34, 6, 2, 'rgba(0,0,0,0.25)'); RR(c, -8, -70, 10, 12, 2, '#2a3f28');
-  // Arm mit Kippe
-  const puff = (T % 240) < 40, ay = puff ? -110 : -76;
-  Ln(c, 10, -88, 22, ay + 10, '#3d5a3a', 10); Cc(c, 24, ay + 4, 5, '#e2b08e');
-  RR(c, 26, ay - 1, 14, 3, 1.5, '#f2f2f2'); Cc(c, 40, ay, 1.8, (T >> 2) % 2 ? '#ff5a1a' : '#ffa21a');
-  // Kopf
-  const hx = 2, hy = -118;
-  E(c, hx, hy, 13, 15, '#dfae8c');
-  c.fillStyle = '#c9c9c4'; c.beginPath(); c.ellipse(hx + 3, hy + 6, 9, 4, 0, 0, TAU); c.fill();   // grauer Schnauzer
-  Ln(c, hx - 2, hy + 11, hx + 7, hy + 11, '#8a5a48', 1.5);
-  Cc(c, hx + 6, hy - 2, 1.6, '#222'); Ln(c, hx + 2, hy - 6, hx + 10, hy - 6, '#9a9a96', 2);
-  c.strokeStyle = 'rgba(120,70,60,0.4)'; c.lineWidth = 1; c.beginPath(); c.moveTo(hx + 2, hy + 2); c.lineTo(hx + 8, hy + 3); c.stroke();   // Falten
-  // Jägerhut mit Feder
-  RR(c, hx - 18, hy - 14, 38, 5, 2, '#3f4a2a'); c.fillStyle = '#4a5632'; c.beginPath(); c.ellipse(hx + 1, hy - 16, 13, 9, 0, PI, TAU); c.fill(); RR(c, hx - 12, hy - 17, 26, 3, 1, '#6a4a2a');
-  c.strokeStyle = '#8a8a7a'; c.lineWidth = 2; c.beginPath(); c.moveTo(hx - 10, hy - 18); c.quadraticCurveTo(hx - 22, hy - 34, hx - 14, hy - 40); c.stroke();
+  Ln(c, -30, 0, 20, -42, '#2f4a6a', 4); Ln(c, 30, 0, -20, -42, '#2f4a6a', 4); RR(c, -34, -50, 68, 12, 4, '#243a58'); RR(c, -30, -104, 60, 56, 8, '#243a58');
+  // Beine (dunkle Diensthose, dreckig) + Stiefel
+  Ln(c, -12, -48, 24, -46, '#1f2433', 16); Ln(c, 24, -46, 28, -8, '#1f2433', 14); Ln(c, 8, -48, 40, -44, '#232838', 16); Ln(c, 40, -44, 44, -8, '#232838', 14);
+  for (const [dx, dy] of [[20, -32], [34, -22], [28, -14], [42, -30]]) Cc(c, dx, dy, 3, 'rgba(90,70,45,0.6)');
+  RR(c, 18, -10, 22, 11, 4, '#111'); RR(c, 36, -10, 22, 11, 4, '#111');
+  // Bauch + Oberkörper: dunkelblaue Jacke, gelbe Warnweste
+  E(c, 2, -70, 32, 34, '#1d2a44');
+  c.save(); c.beginPath(); c.ellipse(2, -70, 32, 34, 0, 0, TAU); c.clip();
+  c.fillStyle = '#e8f02c'; c.fillRect(-32, -104, 26, 70); c.fillRect(10, -104, 26, 70);
+  c.fillStyle = '#d4d7d7'; c.fillRect(-32, -66, 26, 6); c.fillRect(10, -66, 26, 6); c.fillRect(-32, -52, 26, 6); c.fillRect(10, -52, 26, 6);
+  c.restore();
+  RR(c, -2, -96, 8, 10, 2, '#2c2c30');   // Funkgerät an der Weste
+  // Arm mit Kippe (zieht ab und zu)
+  const puff = (T % 240) < 40, ay = puff ? -116 : -80;
+  Ln(c, 20, -92, 30, ay + 10, '#1d2a44', 13); Ln(c, 20, -92, 26, -84, '#e8f02c', 13);
+  Cc(c, 32, ay + 4, 6.5, '#dba884'); RR(c, 35, ay - 1, 15, 3, 1.5, '#f2f2f2'); Cc(c, 50, ay, 1.8, (T >> 2) % 2 ? '#ff5a1a' : '#ffa21a');
+  Ln(c, -24, -88, -28, -58, '#1d2a44', 13); Cc(c, -27, -56, 6.5, '#dba884');   // anderer Arm auf der Lehne
+  // Kopf: rund, Doppelkinn, Halbglatze mit grauem Haarkranz
+  const hx = 2, hy = -126;
+  E(c, hx, hy + 14, 14, 7, '#cf9a78');   // Doppelkinn/Hals
+  E(c, hx, hy, 17, 18, '#dba884');
+  c.fillStyle = '#9d9d98'; c.beginPath(); c.ellipse(hx - 4, hy - 2, 18, 15, 0, PI * 0.55, PI * 1.25); c.fill();   // Haarkranz hinten/seitlich
+  c.fillStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.ellipse(hx + 2, hy - 12, 9, 4, -0.2, 0, TAU); c.fill();   // Glatze glänzt
+  E(c, hx - 15, hy + 2, 4, 6, '#cf9a78');   // Ohr
+  c.fillStyle = '#8f8f8a'; c.beginPath(); c.ellipse(hx + 7, hy + 7, 9, 3.5, 0, 0, TAU); c.fill();   // grauer Schnauzer
+  Cc(c, hx + 8, hy - 3, 1.8, '#222'); Ln(c, hx + 4, hy - 8, hx + 12, hy - 7, '#8f8f8a', 2);
+  E(c, hx + 15, hy + 2, 3.5, 3, '#cf9a78');   // Nase
   c.restore();
   // Rauch
-  for (let k = 0; k < 4; k++) { const ph = ((T + k * 30) % 120) / 120; c.fillStyle = `rgba(210,210,205,${0.35 * (1 - ph)})`; c.beginPath(); c.arc(x + 42 + Math.sin(T * 0.05 + k) * 6 + ph * 10, y + ay - 4 - ph * 60, 4 + ph * 10, 0, TAU); c.fill(); }
+  for (let k = 0; k < 4; k++) { const ph = ((T + k * 30) % 120) / 120; c.fillStyle = `rgba(210,210,205,${0.35 * (1 - ph)})`; c.beginPath(); c.arc(x + 52 + Math.sin(T * 0.05 + k) * 6 + ph * 10, y + ay - 4 - ph * 60, 4 + ph * 10, 0, TAU); c.fill(); }
   // Ab und zu ein Spruch
   const cyc = Math.floor(T / 600), inCyc = T % 600;
-  if (inCyc > 380 && inCyc < 560) speech(c, x + 6, y - 165, GOGO_SAYS[cyc % GOGO_SAYS.length]);
+  if (inCyc > 380 && inCyc < 560) speech(c, x + 6, y - 175, GOGO_SAYS[cyc % GOGO_SAYS.length]);
 }
 function drawCamperStage(T) {
   const c = ctx, S = STAGE, w = S.x2 - S.x1;
-  // Hochsitz (linke Plattform)
-  const L = PLATS[0];
-  for (const lx of [L.x1 + 18, L.x2 - 18]) { Ln(c, lx, L.y, lx + (lx < (L.x1 + L.x2) / 2 ? -14 : 14), S.top, '#5a3e26', 9); }
-  for (let y = L.y + 20; y < S.top; y += 26) Ln(c, L.x1 + 70, y, L.x1 + 100, y, '#6e4c2e', 4);   // Leiter
-  Ln(c, L.x1 + 70, L.y, L.x1 + 64, S.top, '#6e4c2e', 4); Ln(c, L.x1 + 100, L.y, L.x1 + 106, S.top, '#6e4c2e', 4);
-  RR(c, L.x1 - 6, L.y, L.x2 - L.x1 + 12, 14, 3, '#7a5534'); c.fillStyle = 'rgba(0,0,0,0.25)'; for (let x = L.x1; x < L.x2; x += 22) c.fillRect(x, L.y, 2, 14);
-  Ln(c, L.x1 + 4, L.y - 30, L.x2 - 4, L.y - 30, '#6e4c2e', 4); Ln(c, L.x1 + 4, L.y - 30, L.x1 + 4, L.y, '#6e4c2e', 4); Ln(c, L.x2 - 4, L.y - 30, L.x2 - 4, L.y, '#6e4c2e', 4);
-  c.fillStyle = '#2f3a24'; c.fillRect(L.x1 + 20, L.y - 26, 60, 20);   // Tarnplane
+  // Hintergrund-Details auf Bodenhöhe: Reh mit leuchtenden Augen, Eule, Wäscheleine mit Warnwesten
+  c.save(); c.globalAlpha = 0.85;
+  const rx = S.x2 + 70, ry = S.top - 30; c.fillStyle = '#1a1420';
+  E(c, rx, ry, 26, 14, '#1a1420'); Ln(c, rx - 16, ry + 8, rx - 18, ry + 34, '#1a1420', 4); Ln(c, rx + 14, ry + 8, rx + 16, ry + 34, '#1a1420', 4); Ln(c, rx + 20, ry - 6, rx + 30, ry - 30, '#1a1420', 7); E(c, rx + 34, ry - 34, 9, 6, '#1a1420');
+  if ((T % 300) < 280) { Cc(c, rx + 38, ry - 36, 1.8, '#d8ff7a'); }
+  c.restore();
+  Ln(c, S.x1 - 40, S.top - 150, S.x1 + 80, S.top - 140, '#444', 1.5);   // Wäscheleine
+  for (const [vx, vy, rot] of [[S.x1 - 10, S.top - 146, 0.05], [S.x1 + 40, S.top - 143, -0.06]]) { c.save(); c.translate(vx, vy); c.rotate(rot + Math.sin(T * 0.03 + vx) * 0.04);
+    RR(c, -14, 0, 28, 38, 4, '#e8f02c'); c.fillStyle = '#d4d7d7'; c.fillRect(-14, 18, 28, 4); c.fillRect(-14, 27, 28, 4); c.fillStyle = '#2a2a2a'; c.fillRect(-4, 0, 8, 10); c.restore(); }
+  // Hochsitz (linke Plattform): gespreizte Beine, Kreuzstreben, schräge Leiter, Brüstung mit Tarnplane, Sitzbrett
+  const L = PLATS[0], wood = '#6b4a2c', woodD = '#4e3520', woodL = '#86603a';
+  const legs = [[L.x1 + 16, L.x1 - 14], [L.x2 - 16, L.x2 + 14]];
+  for (const [tx, bx] of legs) Ln(c, tx, L.y + 8, bx, S.top, woodD, 10);
+  Ln(c, legs[0][0] + 8, L.y + 30, legs[1][1] - 12, S.top - 10, wood, 5); Ln(c, legs[1][0] - 8, L.y + 30, legs[0][1] + 12, S.top - 10, wood, 5);   // Kreuzstreben
+  Ln(c, legs[0][0] + 2, L.y + 70, legs[1][0] - 2, L.y + 70, wood, 5);
+  // Leiter schräg von vorn-links
+  const lb = L.x1 - 70, lt = L.x1 + 20;
+  Ln(c, lb, S.top, lt, L.y + 4, woodL, 6); Ln(c, lb + 28, S.top, lt + 28, L.y + 4, woodL, 6);
+  for (let i = 1; i < 6; i++) { const t = i / 6; Ln(c, lerp(lb, lt, t), lerp(S.top, L.y + 4, t), lerp(lb + 28, lt + 28, t), lerp(S.top, L.y + 4, t), woodL, 4); }
+  // Plattform
+  RR(c, L.x1 - 8, L.y, L.x2 - L.x1 + 16, 14, 3, woodL); c.fillStyle = 'rgba(0,0,0,0.22)'; for (let x = L.x1; x < L.x2; x += 20) c.fillRect(x, L.y + 2, 2, 12);
+  // Brüstung: Pfosten, Querlatten, Tarnplane, Sitzbrett hinten
+  for (const px of [L.x1 + 2, L.x2 - 2]) Ln(c, px, L.y, px, L.y - 44, woodD, 6);
+  Ln(c, L.x1 + 2, L.y - 44, L.x2 - 2, L.y - 44, wood, 5); Ln(c, L.x1 + 2, L.y - 22, L.x1 + 40, L.y - 22, wood, 4); Ln(c, L.x2 - 40, L.y - 22, L.x2 - 2, L.y - 22, wood, 4);
+  c.fillStyle = '#3c4a2a'; c.beginPath(); c.moveTo(L.x1 + 44, L.y - 42); c.lineTo(L.x2 - 44, L.y - 42); for (let i = 0; i <= 10; i++) c.lineTo(L.x2 - 44 - i * (L.x2 - L.x1 - 88) / 10, L.y - 14 + (i % 2) * 5); c.closePath(); c.fill();
+  for (let i = 0; i < 8; i++) Cc(c, L.x1 + 54 + i * 12, L.y - 32 + (i % 2) * 8, 4, i % 2 ? '#2a3420' : '#5a6a3a');
+  // Eule auf dem Pfosten
+  const ox = L.x2 - 2, oy = L.y - 50; E(c, ox, oy, 9, 12, '#5a4632'); E(c, ox, oy + 2, 6, 8, '#8a7256'); Cc(c, ox - 3, oy - 5, 3, '#ffd23f'); Cc(c, ox + 3, oy - 5, 3, '#ffd23f');
+  if ((T % 400) > 10) { Cc(c, ox - 3, oy - 5, 1.3, '#111'); Cc(c, ox + 3, oy - 5, 1.3, '#111'); } else { Ln(c, ox - 5, oy - 5, ox - 1, oy - 5, '#111', 1.5); Ln(c, ox + 1, oy - 5, ox + 5, oy - 5, '#111', 1.5); }
+  c.fillStyle = '#5a4632'; c.beginPath(); c.moveTo(ox - 8, oy - 9); c.lineTo(ox - 5, oy - 15); c.lineTo(ox - 2, oy - 10); c.fill(); c.beginPath(); c.moveTo(ox + 8, oy - 9); c.lineTo(ox + 5, oy - 15); c.lineTo(ox + 2, oy - 10); c.fill();
   // Wohnmobil (rechte Plattform = Dach)
   const P = PLATS[1], vx1 = P.x1 - 40, vx2 = P.x2 + 70, top = P.y, bot = S.top - 22;
   RR(c, vx1, top, vx2 - vx1, bot - top, 14, '#e6d9bb');
@@ -2821,6 +2849,13 @@ function drawCamperStage(T) {
   c.lineTo(vx1 + 92, top + 2); c.closePath(); c.fill();
   for (let i = 0; i < 7; i++) Cc(c, vx1 + 12 + i * 12, top + 10 + (i % 2) * 8, 4, i % 2 ? '#2a3420' : '#5a6a3a');
   for (const wx of [vx1 + 50, vx2 - 120]) { Cc(c, wx, bot + 6, 22, '#151515'); Cc(c, wx, bot + 6, 10, '#8d929b'); }
+  // Markise über der Tür, Sat-Schüssel, Kennzeichen, Gasflasche
+  c.fillStyle = '#2e6a8a'; c.beginPath(); c.moveTo(vx2 - 120, top + 12); c.lineTo(vx2 + 60, top + 12); c.lineTo(vx2 + 80, top + 50); c.lineTo(vx2 - 100, top + 50); c.closePath(); c.fill();
+  c.fillStyle = '#e6d9bb'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(vx2 - 112 + i * 32, top + 12); c.lineTo(vx2 - 96 + i * 32, top + 12); c.lineTo(vx2 - 76 + i * 32, top + 50); c.lineTo(vx2 - 92 + i * 32, top + 50); c.closePath(); c.fill(); }
+  Ln(c, vx2 + 76, top + 50, vx2 + 80, bot + 26, '#8a8f96', 3);
+  c.save(); c.translate(vx2 - 30, top - 26); c.rotate(-0.4); E(c, 0, 0, 16, 7, '#c9ccd1'); Ln(c, 0, 0, 10, -6, '#8a8f96', 2); c.restore(); Ln(c, vx2 - 30, top - 20, vx2 - 30, top - 4, '#8a8f96', 3);
+  RR(c, vx1 + 110, bot - 22, 54, 14, 2, '#f4f4f2'); RR(c, vx1 + 110, bot - 22, 6, 14, 1, '#2a4ab0'); c.fillStyle = '#111'; c.font = 'bold 9px system-ui,sans-serif'; c.textAlign = 'left'; c.fillText('GO 6040', vx1 + 119, bot - 12);
+  RR(c, vx2 + 6, bot - 34, 20, 40, 8, '#c0392b'); RR(c, vx2 + 10, bot - 40, 12, 8, 3, '#8a8f96');
   RR(c, P.x1, top - 6, P.x2 - P.x1, 8, 3, '#cfc2a2');   // Dachkante = Plattform
   c.strokeStyle = '#8a8a8a'; c.lineWidth = 2; for (let x = P.x1 + 20; x < P.x2; x += 40) { c.beginPath(); c.moveTo(x, top - 6); c.lineTo(x, top - 14); c.stroke(); } Ln(c, P.x1 + 10, top - 14, P.x2 - 10, top - 14, '#8a8a8a', 2);   // Dachreling
   // Lichterkette vom Wohnmobil zum Hochsitz
@@ -2828,7 +2863,20 @@ function drawCamperStage(T) {
     if (i < 20) { const t2 = (i + 1) / 20; Ln(c, x, y, lerp(L.x2 - 4, vx1 + 10, t2), lerp(L.y - 30, top + 10, t2) + Math.sin(t2 * PI) * 40, '#222', 1.5); }
     c.save(); c.shadowColor = '#ffcf6a'; c.shadowBlur = 10; Cc(c, x, y + 4, 3.5, (i + (T >> 4)) % 4 ? '#ffd27a' : '#ff8a4a'); c.restore(); }
   // Gogo im Campingstuhl zwischen Hochsitz und Wohnmobil
+  // Campingtisch mit Thermoskanne, Becher und Funkgerät
+  RR(c, 690, S.top - 52, 70, 6, 2, '#c9ccd1'); Ln(c, 696, S.top - 46, 712, S.top, '#8a8f96', 3); Ln(c, 754, S.top - 46, 738, S.top, '#8a8f96', 3);
+  RR(c, 700, S.top - 78, 12, 26, 3, '#a83a2a'); RR(c, 702, S.top - 82, 8, 5, 2, '#555'); RR(c, 720, S.top - 64, 10, 12, 2, '#f0f0f0'); RR(c, 738, S.top - 74, 9, 22, 2, '#2a2a2e'); Ln(c, 744, S.top - 74, 744, S.top - 86, '#2a2a2e', 2);
   c.save(); c.translate(640, S.top); c.scale(0.85, 0.85); drawGogo(c, 0, 0, T); c.restore();
+  // Lagerfeuer mit Steinkreis, Flammen und Funken
+  const fx = 540, fy = S.top;
+  c.save(); c.globalCompositeOperation = 'lighter'; const fg = c.createRadialGradient(fx, fy - 20, 4, fx, fy - 20, 120); fg.addColorStop(0, 'rgba(255,160,60,0.35)'); fg.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = fg; c.fillRect(fx - 120, fy - 140, 240, 160); c.restore();
+  for (let i = 0; i < 7; i++) E(c, fx - 30 + i * 10, fy - 4, 6, 4.5, i % 2 ? '#6a6a70' : '#55555c');
+  Ln(c, fx - 18, fy - 4, fx + 16, fy - 14, '#4e3520', 6); Ln(c, fx + 18, fy - 4, fx - 14, fy - 14, '#5e4028', 6);
+  for (let k = 0; k < 3; k++) { const fl = 1 + 0.15 * Math.sin(T * 0.3 + k * 2); c.fillStyle = ['#ff5a1a', '#ff9a2a', '#ffe27a'][k];
+    c.beginPath(); c.moveTo(fx - 16 + k * 5, fy - 8); c.quadraticCurveTo(fx - 10 + k * 3, fy - 30 * fl + k * 6, fx + Math.sin(T * 0.2 + k) * 3, fy - (44 - k * 10) * fl); c.quadraticCurveTo(fx + 10 - k * 3, fy - 30 * fl + k * 6, fx + 16 - k * 5, fy - 8); c.closePath(); c.fill(); }
+  for (let i = 0; i < 5; i++) { const ph = ((T * 1.3 + i * 37) % 90) / 90; c.globalAlpha = 1 - ph; Cc(c, fx + Math.sin(i * 3 + T * 0.05) * 14, fy - 40 - ph * 80, 1.6, '#ffb34a'); } c.globalAlpha = 1;
+  // Holzstapel unter dem Hochsitz
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 4 - r; k++) { const lx = PLATS[0].x1 + 60 + k * 18 + r * 9, ly = S.top - 9 - r * 15; Cc(c, lx, ly, 8, '#6b4a2c'); Cc(c, lx, ly, 5, '#a07848'); }
   // Boden: Schotterplatz
   RR(c, S.x1, S.top, w, S.bottom - S.top, 6, '#4a4238'); RR(c, S.x1, S.top, w, 8, 3, '#5f7a3a');
   c.fillStyle = 'rgba(255,255,255,0.07)'; for (let i = 0; i < 60; i++) c.fillRect(S.x1 + (i * 131) % w, S.top + 14 + (i * 7) % 50, 3, 2);
@@ -2841,6 +2889,8 @@ function drawCamperStage(T) {
   E(c, S.x1 + 56, S.top - 50, 16, 5, '#9aa0a6'); for (let i = 0; i < 6; i++) RR(c, S.x1 + 44 + i * 4, S.top - 58 - (i % 2) * 3, 2, 8, 1, '#f2efe6');   // voller Aschenbecher
   Cc(c, S.x2 - 54, S.top - 30, 30, '#6a4a2a'); Cc(c, S.x2 - 54, S.top - 30, 22, '#1d1d1d'); Cc(c, S.x2 - 54, S.top - 30, 8, '#6a4a2a');   // Kabeltrommel
   Cc(c, S.x2 - 110, S.top - 9, 9, '#3a3a3a'); Cc(c, S.x2 - 110, S.top - 9, 4, '#a0a0a0');   // Gaffa
+  c.strokeStyle = '#151515'; c.lineWidth = 3; c.beginPath(); c.moveTo(S.x2 - 54, S.top - 2); for (let i = 0; i < 6; i++) c.quadraticCurveTo(S.x2 - 80 - i * 30, S.top + (i % 2 ? 6 : -4), S.x2 - 96 - i * 30, S.top + 2); c.stroke();   // Kabelsalat
+  c.strokeStyle = '#c0392b'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(S.x1 + 94, S.top - 4); c.bezierCurveTo(S.x1 + 140, S.top + 6, S.x1 + 160, S.top - 6, S.x1 + 200, S.top + 2); c.stroke();
   RR(c, 560, S.top - 26, 40, 26, 3, '#2a6a3a'); for (let i = 0; i < 4; i++) Cc(c, 566 + i * 9, S.top - 28, 3.5, '#6a3a10');   // Bierkiste neben Gogo
   c.textAlign = 'left';
 }
