@@ -1039,7 +1039,12 @@ const FOOD_SMALL = { dmg: 3, kb: 1.6, scale: 0.01, ang: 10, meter: 0 }, FOOD_G =
 const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 
 /* ---------------- Spielzustand ---------------- */
-const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true };
+const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true, arena: 0 };
+// Schauplätze (gleiche Plattform-Positionen, nur andere Optik – Balance bleibt gleich). arena-Einstellung: 0, 1 … oder ARENAS.length = Zufall
+const ARENAS = [{ id: 'main', name: 'MAIN STAGE' }, { id: 'camper', name: 'GOGOS WOHNMOBIL' }];
+let ARENA = 'main';
+const arenaLabel = i => i >= ARENAS.length ? 'ZUFALL' : ARENAS[i].name;
+const pickArena = i => (i >= ARENAS.length ? pick(ARENAS) : ARENAS[i] || ARENAS[0]).id;
 try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
 if (TOUCH) settings.mode = 1;
 settings.stocks = 3;   // immer 3 Leben – nicht einstellbar, damit es fair bleibt
@@ -1051,7 +1056,11 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.4.2', news: [] },
+  { v: '4.5.0', news: [
+    ['🏕️', 'Neuer Schauplatz: Gogos Wohnmobil – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
+    ['🗺️', 'Arena-Auswahl in der Kämpferwahl – oder einfach Zufall'],
+    ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
+  ] },
   { v: '4.4.0', news: [
     ['🌐', 'Online-Duell läuft wieder – mit neuer, stabilerer Verbindung'],
     ['🤖', 'Die CPU kommt jetzt auch wieder von der Traverse runter'],
@@ -1104,7 +1113,8 @@ function makeFighter(def, idx, x) {
     stats: { dealt: 0, kos: 0, fins: 0, hits: 0 }, ai: { t: 0, shieldT: 0 }
   };
 }
-function startMatch() {
+function startMatch(arena) {
+  ARENA = arena || (NET.role === 'guest' ? ARENA : pickArena(settings.arena));
   F = [makeFighter(ROSTER[sel[0].i], 0, 450), makeFighter(ROSTER[sel[1].i], 1, 830)];
   parts = []; texts = []; ents = []; koFx = []; itemT = 600;
   freeze = 0; shake = 0; cutin = null; gameOverT = 0; paused = false; winner = null; goT = 0; flashScreen = 0;
@@ -1689,6 +1699,7 @@ function onUI(id) {
     case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
     case 'diffC': settings.diff = (settings.diff + 1) % 3; saveSettings(); sfx.move(); break;
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
+    case 'arenaL': case 'arenaR': settings.arena = (settings.arena + (id === 'arenaR' ? 1 : ARENAS.length) ) % (ARENAS.length + 1); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items, arena: settings.arena }); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'stocksL': case 'stocksR': settings.stocks = clamp(settings.stocks + (id === 'stocksR' ? 1 : -1), 1, 5); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
     case 'newsOk': news = false; closeNews(); try { localStorage.setItem('bb-version', GAME_VERSION); } catch (e) { /* egal */ } sfx.confirm(); break;
@@ -2038,7 +2049,7 @@ function attachConn(conn) {
     NET.joining = false; NET.open = true; clearTimeout(NET.timer); NET.lastRx = performance.now(); NET.state = 'ok'; NET.err = '';
     sfx.confirm(); scene = 'select'; sel[0].i = 0; sel[1].i = 1; sel[0].ok = sel[1].ok = false;
     if (NET.role === 'host') NET.stocks = settings.stocks;
-    netSend({ t: 'hi', stocks: settings.stocks, items: settings.items });
+    netSend({ t: 'hi', stocks: settings.stocks, items: settings.items, arena: settings.arena });
   };
   if (conn.open) onOpen(); else conn.on('open', onOpen);
   conn.on('data', m => { if (NET.conn === conn) onNet(m); });
@@ -2050,14 +2061,14 @@ function onNet(m) {
   if (!m || typeof m !== 'object') return;
   const other = 1 - myIdx();
   switch (m.t) {
-    case 'hi': if (NET.role === 'guest') { NET.stocks = clamp(m.stocks | 0, 1, 5); NET.items = m.items !== false; } break;
-    case 'opts': if (NET.role === 'guest') { NET.stocks = clamp(m.stocks | 0, 1, 5); NET.items = !!m.items; } break;
+    case 'hi': if (NET.role === 'guest') { NET.stocks = clamp(m.stocks | 0, 1, 5); NET.items = m.items !== false; NET.arena = m.arena | 0; } break;
+    case 'opts': if (NET.role === 'guest') { NET.stocks = clamp(m.stocks | 0, 1, 5); NET.items = !!m.items; NET.arena = m.arena | 0; } break;
     case 'sel': if (scene === 'select') { sel[other].i = clamp(m.i | 0, 0, ROSTER.length - 1); sel[other].ok = !!m.ok; } break;
     case 'go': if (NET.role === 'host' && scene === 'select') netStart(); break;
     case 'start':
       if (NET.role === 'guest') {
         sel[0].i = m.a; sel[1].i = m.b; sel[0].ok = sel[1].ok = true;
-        const keep = settings.stocks; settings.stocks = m.stocks; startMatch(); settings.stocks = keep; sfx.go();
+        const keep = settings.stocks; settings.stocks = m.stocks; startMatch(m.ar || 'main'); settings.stocks = keep; sfx.go();
       }
       break;
     case 'in': if (NET.role === 'host') { NET.remote.held = m.b | 0; NET.remote.edges |= m.e | 0; } break;
@@ -2070,8 +2081,9 @@ function onNet(m) {
 }
 function netStart() {
   if (!(sel[0].ok && sel[1].ok)) return;
-  netSend({ t: 'start', a: sel[0].i, b: sel[1].i, stocks: settings.stocks });
-  netEv = []; NET.remote.edges = 0; sfx.go(); startMatch();
+  const ar = pickArena(settings.arena);
+  netSend({ t: 'start', a: sel[0].i, b: sel[1].i, stocks: settings.stocks, ar });
+  netEv = []; NET.remote.edges = 0; sfx.go(); startMatch(ar);
 }
 function localInput() { const a = readInput(0), b = readInput(1), o = {}; for (const k in a) o[k] = a[k] || b[k]; return o; }
 function remoteInput() {
@@ -2311,7 +2323,7 @@ const saveQ = () => { try { localStorage.setItem('bb-statq', JSON.stringify(stat
 function logMatch() {
   if (settings.demo || F.length !== 2 || !winner) return;
   const a = k => F.map(f => f.stats[k]);
-  statQ.push({ v: GAME_VERSION + (BETA ? '-beta' : ''), b: BETA ? 1 : undefined, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
+  statQ.push({ v: GAME_VERSION + (BETA ? '-beta' : ''), b: BETA ? 1 : undefined, ar: ARENA, m: isOnline() ? 'on' : isCPU() ? 'cpu' : '2p', df: isCPU() ? settings.diff : -1, it: settings.items ? 1 : 0,
     c: F.map(f => f.def.id), w: winner.idx, t: Math.max(1, Math.round(matchT / 6)), s: F.map(f => Math.max(0, f.stocks)),
     k: a('kos'), d: a('dealt'), h: a('hits'), f: a('fins'), tc: TOUCH ? 1 : 0, at: Date.now() });
   saveQ(); flushStats();
@@ -2643,6 +2655,7 @@ function speech(c, x, y, text) {
 /* ---- Hintergrund: Eventhalle ---- */
 function drawBackground(T, noLed) {
   const c = ctx;
+  if (!noLed && ARENA === 'camper') { drawCamperBg(T); return; }
   const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0a0718'); g.addColorStop(0.55, '#170d2e'); g.addColorStop(1, '#06040d');
   c.fillStyle = g; c.fillRect(0, 0, W, H);
   const px = (cam.x - 640) * 0.12, py = (cam.y - 400) * 0.08;
@@ -2712,6 +2725,7 @@ function drawTruss(c, x1, y, x2, h, col = '#b9c0c9') {
   c.stroke();
 }
 function drawStage(T) {
+  if (ARENA === 'camper') { drawCamperStage(T); return; }
   const c = ctx, S = STAGE, w = S.x2 - S.x1;
   const ug = c.createLinearGradient(0, S.bottom, 0, S.bottom + 220);
   ug.addColorStop(0, '#1d1d25'); ug.addColorStop(1, 'rgba(20,20,28,0)');
@@ -2733,6 +2747,101 @@ function drawStage(T) {
       c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(p.x1, p.y - 1, p.x2 - p.x1, 2);
     }
   }
+  c.textAlign = 'left';
+}
+/* ---- Schauplatz „Gogos Wohnmobil“: Waldrand in der Dämmerung, rostiges Wohnmobil, Hochsitz, Gogo im Campingstuhl ---- */
+function drawCamperBg(T) {
+  const c = ctx, px = (cam.x - 640) * 0.1, py = (cam.y - 400) * 0.06;
+  const sky = c.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#141a33'); sky.addColorStop(0.45, '#3a2f55'); sky.addColorStop(0.72, '#c0644a'); sky.addColorStop(0.85, '#e8a35a'); sky.addColorStop(1, '#2a1c22');
+  c.fillStyle = sky; c.fillRect(0, 0, W, H);
+  c.fillStyle = 'rgba(255,255,255,0.7)'; for (let i = 0; i < 40; i++) { const x = (i * 263 + 50) % W, y = (i * 97) % 230; c.globalAlpha = 0.3 + 0.3 * Math.sin(T * 0.03 + i); c.fillRect(x - px * 0.3, y, 2, 2); } c.globalAlpha = 1;
+  Cc(c, 1040 - px * 0.4, 110 - py, 34, '#f3ecd2'); Cc(c, 1052 - px * 0.4, 104 - py, 30, 'rgba(58,47,85,0.9)');   // Mondsichel
+  const trees = (n, base, h, col, f) => { c.fillStyle = col; for (let i = 0; i < n; i++) { const x = i * (W + 200) / n - 100 - (px * f) % 60, hh = h * (0.7 + ((i * 37) % 10) / 20);
+    c.beginPath(); c.moveTo(x, base - hh); c.lineTo(x - hh * 0.22, base); c.lineTo(x + hh * 0.22, base); c.closePath(); c.fill(); } };
+  trees(22, 470 - py, 190, '#241a2c', 0.6); trees(16, 520 - py, 260, '#16111d', 1);
+  const g = c.createLinearGradient(0, 500, 0, H); g.addColorStop(0, '#1a2117'); g.addColorStop(1, '#0d100b'); c.fillStyle = g; c.fillRect(0, 500 - py, W, H);
+  c.save(); c.globalCompositeOperation = 'lighter';   // Glühwürmchen
+  for (let i = 0; i < 14; i++) { const x = (i * 151 + T * 0.4 * (i % 3 + 1)) % W, y = 380 + Math.sin(T * 0.02 + i * 2) * 60 + (i % 4) * 30; c.globalAlpha = 0.4 + 0.4 * Math.sin(T * 0.08 + i); Cc(c, x, y, 2.5, '#d8ff7a'); }
+  c.restore(); c.globalAlpha = 1;
+}
+const GOGO_SAYS = ['40 Jahre Branche, Junge.', 'Früher hatten wir noch Röhren.', 'Nicht am Wohnmobil kratzen!', 'Da hinten steht ’n Sechsender.', 'Das Kabel war schon dreckig, als du geboren wurdest.', '*hust* … geht schon.', 'Gaffa hält alles. Auch mich.', 'Pass auf den Hochsitz auf, der ist von ’83.'];
+function drawGogo(c, x, y, T) {   // älterer VTler im Campingstuhl: Jägerhut mit Feder, grauer Schnauzer, grüner Fleece, dreckige Hose, Kippe
+  c.save(); c.translate(x, y);
+  // Campingstuhl
+  Ln(c, -26, 0, 18, -40, '#3a5a3a', 4); Ln(c, 26, 0, -18, -40, '#3a5a3a', 4); RR(c, -28, -48, 56, 12, 4, '#2f6a4a'); RR(c, -24, -96, 48, 50, 6, '#2f6a4a');
+  // Beine (dreckige Arbeitshose)
+  Ln(c, -10, -46, 22, -44, '#4a4436', 13); Ln(c, 22, -44, 26, -6, '#4a4436', 12); Ln(c, 6, -46, 36, -42, '#4f4839', 13); Ln(c, 36, -42, 40, -6, '#4f4839', 12);
+  for (const [dx, dy] of [[18, -30], [30, -20], [24, -12]]) Cc(c, dx, dy, 3, 'rgba(60,45,30,0.7)');   // Dreckflecken
+  RR(c, 18, -8, 18, 9, 3, '#2c2620'); RR(c, 34, -8, 18, 9, 3, '#2c2620');
+  // Oberkörper: grüner Fleece mit Weste
+  RR(c, -18, -96, 34, 52, 12, '#3d5a3a'); RR(c, -18, -80, 34, 6, 2, 'rgba(0,0,0,0.25)'); RR(c, -8, -70, 10, 12, 2, '#2a3f28');
+  // Arm mit Kippe
+  const puff = (T % 240) < 40, ay = puff ? -110 : -76;
+  Ln(c, 10, -88, 22, ay + 10, '#3d5a3a', 10); Cc(c, 24, ay + 4, 5, '#e2b08e');
+  RR(c, 26, ay - 1, 14, 3, 1.5, '#f2f2f2'); Cc(c, 40, ay, 1.8, (T >> 2) % 2 ? '#ff5a1a' : '#ffa21a');
+  // Kopf
+  const hx = 2, hy = -118;
+  E(c, hx, hy, 13, 15, '#dfae8c');
+  c.fillStyle = '#c9c9c4'; c.beginPath(); c.ellipse(hx + 3, hy + 6, 9, 4, 0, 0, TAU); c.fill();   // grauer Schnauzer
+  Ln(c, hx - 2, hy + 11, hx + 7, hy + 11, '#8a5a48', 1.5);
+  Cc(c, hx + 6, hy - 2, 1.6, '#222'); Ln(c, hx + 2, hy - 6, hx + 10, hy - 6, '#9a9a96', 2);
+  c.strokeStyle = 'rgba(120,70,60,0.4)'; c.lineWidth = 1; c.beginPath(); c.moveTo(hx + 2, hy + 2); c.lineTo(hx + 8, hy + 3); c.stroke();   // Falten
+  // Jägerhut mit Feder
+  RR(c, hx - 18, hy - 14, 38, 5, 2, '#3f4a2a'); c.fillStyle = '#4a5632'; c.beginPath(); c.ellipse(hx + 1, hy - 16, 13, 9, 0, PI, TAU); c.fill(); RR(c, hx - 12, hy - 17, 26, 3, 1, '#6a4a2a');
+  c.strokeStyle = '#8a8a7a'; c.lineWidth = 2; c.beginPath(); c.moveTo(hx - 10, hy - 18); c.quadraticCurveTo(hx - 22, hy - 34, hx - 14, hy - 40); c.stroke();
+  c.restore();
+  // Rauch
+  for (let k = 0; k < 4; k++) { const ph = ((T + k * 30) % 120) / 120; c.fillStyle = `rgba(210,210,205,${0.35 * (1 - ph)})`; c.beginPath(); c.arc(x + 42 + Math.sin(T * 0.05 + k) * 6 + ph * 10, y + ay - 4 - ph * 60, 4 + ph * 10, 0, TAU); c.fill(); }
+  // Ab und zu ein Spruch
+  const cyc = Math.floor(T / 600), inCyc = T % 600;
+  if (inCyc > 380 && inCyc < 560) speech(c, x + 6, y - 165, GOGO_SAYS[cyc % GOGO_SAYS.length]);
+}
+function drawCamperStage(T) {
+  const c = ctx, S = STAGE, w = S.x2 - S.x1;
+  // Hochsitz (linke Plattform)
+  const L = PLATS[0];
+  for (const lx of [L.x1 + 18, L.x2 - 18]) { Ln(c, lx, L.y, lx + (lx < (L.x1 + L.x2) / 2 ? -14 : 14), S.top, '#5a3e26', 9); }
+  for (let y = L.y + 20; y < S.top; y += 26) Ln(c, L.x1 + 70, y, L.x1 + 100, y, '#6e4c2e', 4);   // Leiter
+  Ln(c, L.x1 + 70, L.y, L.x1 + 64, S.top, '#6e4c2e', 4); Ln(c, L.x1 + 100, L.y, L.x1 + 106, S.top, '#6e4c2e', 4);
+  RR(c, L.x1 - 6, L.y, L.x2 - L.x1 + 12, 14, 3, '#7a5534'); c.fillStyle = 'rgba(0,0,0,0.25)'; for (let x = L.x1; x < L.x2; x += 22) c.fillRect(x, L.y, 2, 14);
+  Ln(c, L.x1 + 4, L.y - 30, L.x2 - 4, L.y - 30, '#6e4c2e', 4); Ln(c, L.x1 + 4, L.y - 30, L.x1 + 4, L.y, '#6e4c2e', 4); Ln(c, L.x2 - 4, L.y - 30, L.x2 - 4, L.y, '#6e4c2e', 4);
+  c.fillStyle = '#2f3a24'; c.fillRect(L.x1 + 20, L.y - 26, 60, 20);   // Tarnplane
+  // Wohnmobil (rechte Plattform = Dach)
+  const P = PLATS[1], vx1 = P.x1 - 40, vx2 = P.x2 + 70, top = P.y, bot = S.top - 22;
+  RR(c, vx1, top, vx2 - vx1, bot - top, 14, '#e6d9bb');
+  c.fillStyle = '#7a5230'; c.fillRect(vx1, top + 58, vx2 - vx1, 12); c.fillStyle = '#a2703f'; c.fillRect(vx1, top + 72, vx2 - vx1, 5);
+  for (const [x, y, r] of [[vx1 + 30, bot - 10, 12], [vx1 + 140, top + 90, 7], [vx2 - 40, bot - 20, 10], [vx2 - 120, top + 20, 6]]) E(c, x, y, r * 1.4, r, 'rgba(140,70,30,0.45)');   // Rost
+  for (const wx of [vx1 + 30, vx1 + 150]) { RR(c, wx, top + 18, 80, 36, 6, '#2a2520'); const lg = c.createLinearGradient(0, top + 18, 0, top + 54); lg.addColorStop(0, '#ffcf7a'); lg.addColorStop(1, '#c8782e'); RR(c, wx + 4, top + 22, 72, 28, 4, lg);
+    c.fillStyle = '#8a3a2a'; c.fillRect(wx + 4, top + 22, 18, 28); c.fillRect(wx + 58, top + 22, 18, 28); }   // Vorhänge
+  RR(c, vx2 - 90, top + 30, 50, bot - top - 30, 4, '#d6c7a5'); Cc(c, vx2 - 48, top + 80, 3, '#555');   // Tür
+  c.strokeStyle = '#e8dcc4'; c.lineWidth = 3; c.beginPath(); c.moveTo(vx2 - 76, top + 22); c.quadraticCurveTo(vx2 - 92, top + 6, vx2 - 84, top - 4); c.moveTo(vx2 - 54, top + 22); c.quadraticCurveTo(vx2 - 38, top + 6, vx2 - 46, top - 4);
+  c.moveTo(vx2 - 84, top + 8); c.lineTo(vx2 - 94, top + 2); c.moveTo(vx2 - 46, top + 8); c.lineTo(vx2 - 36, top + 2); c.stroke(); RR(c, vx2 - 72, top + 18, 14, 10, 3, '#6a4a2a');   // Geweih über der Tür
+  c.fillStyle = '#3c4a2a'; c.beginPath(); c.moveTo(vx1 + 4, top + 2);   // Tarnnetz hängt hinten übers Dach
+  for (let i = 0; i <= 8; i++) c.lineTo(vx1 + 4 + i * 11, top + 26 + (i % 2) * 10);
+  c.lineTo(vx1 + 92, top + 2); c.closePath(); c.fill();
+  for (let i = 0; i < 7; i++) Cc(c, vx1 + 12 + i * 12, top + 10 + (i % 2) * 8, 4, i % 2 ? '#2a3420' : '#5a6a3a');
+  for (const wx of [vx1 + 50, vx2 - 120]) { Cc(c, wx, bot + 6, 22, '#151515'); Cc(c, wx, bot + 6, 10, '#8d929b'); }
+  RR(c, P.x1, top - 6, P.x2 - P.x1, 8, 3, '#cfc2a2');   // Dachkante = Plattform
+  c.strokeStyle = '#8a8a8a'; c.lineWidth = 2; for (let x = P.x1 + 20; x < P.x2; x += 40) { c.beginPath(); c.moveTo(x, top - 6); c.lineTo(x, top - 14); c.stroke(); } Ln(c, P.x1 + 10, top - 14, P.x2 - 10, top - 14, '#8a8a8a', 2);   // Dachreling
+  // Lichterkette vom Wohnmobil zum Hochsitz
+  for (let i = 0; i <= 20; i++) { const t = i / 20, x = lerp(L.x2 - 4, vx1 + 10, t), y = lerp(L.y - 30, top + 10, t) + Math.sin(t * PI) * 40;
+    if (i < 20) { const t2 = (i + 1) / 20; Ln(c, x, y, lerp(L.x2 - 4, vx1 + 10, t2), lerp(L.y - 30, top + 10, t2) + Math.sin(t2 * PI) * 40, '#222', 1.5); }
+    c.save(); c.shadowColor = '#ffcf6a'; c.shadowBlur = 10; Cc(c, x, y + 4, 3.5, (i + (T >> 4)) % 4 ? '#ffd27a' : '#ff8a4a'); c.restore(); }
+  // Gogo im Campingstuhl zwischen Hochsitz und Wohnmobil
+  c.save(); c.translate(640, S.top); c.scale(0.85, 0.85); drawGogo(c, 0, 0, T); c.restore();
+  // Boden: Schotterplatz
+  RR(c, S.x1, S.top, w, S.bottom - S.top, 6, '#4a4238'); RR(c, S.x1, S.top, w, 8, 3, '#5f7a3a');
+  c.fillStyle = 'rgba(255,255,255,0.07)'; for (let i = 0; i < 60; i++) c.fillRect(S.x1 + (i * 131) % w, S.top + 14 + (i * 7) % 50, 3, 2);
+  c.fillStyle = 'rgba(255,255,255,0.16)'; c.font = 'bold 20px Impact,"Arial Black",sans-serif'; c.textAlign = 'center'; c.fillText('GOGOS STELLPLATZ – BETRETEN AUF EIGENE GEFAHR', (S.x1 + S.x2) / 2, S.top + 50);
+  const ug = c.createLinearGradient(0, S.bottom, 0, S.bottom + 200); ug.addColorStop(0, '#2a241e'); ug.addColorStop(1, 'rgba(20,16,12,0)');
+  c.fillStyle = ug; c.beginPath(); c.moveTo(S.x1 + 30, S.bottom); c.lineTo(S.x2 - 30, S.bottom); c.lineTo(S.x2 - 160, S.bottom + 200); c.lineTo(S.x1 + 160, S.bottom + 200); c.fill();
+  // Kram: dreckiges Flightcase mit Aschenbecher, Kabeltrommel, Gaffa, Bierkiste
+  RR(c, S.x1 + 20, S.top - 46, 74, 46, 5, '#2c2a28'); c.strokeStyle = '#8f8a80'; c.lineWidth = 3; strokeRR(c, S.x1 + 20, S.top - 46, 74, 46, 5);
+  c.fillStyle = 'rgba(90,70,50,0.5)'; c.fillRect(S.x1 + 26, S.top - 30, 40, 8);
+  E(c, S.x1 + 56, S.top - 50, 16, 5, '#9aa0a6'); for (let i = 0; i < 6; i++) RR(c, S.x1 + 44 + i * 4, S.top - 58 - (i % 2) * 3, 2, 8, 1, '#f2efe6');   // voller Aschenbecher
+  Cc(c, S.x2 - 54, S.top - 30, 30, '#6a4a2a'); Cc(c, S.x2 - 54, S.top - 30, 22, '#1d1d1d'); Cc(c, S.x2 - 54, S.top - 30, 8, '#6a4a2a');   // Kabeltrommel
+  Cc(c, S.x2 - 110, S.top - 9, 9, '#3a3a3a'); Cc(c, S.x2 - 110, S.top - 9, 4, '#a0a0a0');   // Gaffa
+  RR(c, 560, S.top - 26, 40, 26, 3, '#2a6a3a'); for (let i = 0; i < 4; i++) Cc(c, 566 + i * 9, S.top - 28, 3.5, '#6a3a10');   // Bierkiste neben Gogo
   c.textAlign = 'left';
 }
 function drawGadget(c, kind, x, y, s = 1) {   // einfache Symbole: Doppelpfeil, Schild, Blitz
@@ -3201,14 +3310,17 @@ function drawCarousel(p, cx, gy, big, sp, top, bot, arrowDX) {
 function drawSelect() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
-  bigText('KÄMPFERWAHL', 50, 42, '#ffd23f', 1, '#2a0d3d');
+  { const tx = TOUCH ? 250 : 178; c.save(); c.font = '900 38px Impact,"Arial Black",sans-serif'; c.textAlign = 'left'; c.lineWidth = 6; c.lineJoin = 'round'; c.strokeStyle = '#2a0d3d';
+    c.strokeText('KÄMPFERWAHL', tx, 54); c.fillStyle = '#ffd23f'; c.fillText('KÄMPFERWAHL', tx, 54); c.restore(); }   // links, damit rechts Platz für die Einstellungen bleibt
   // Einstellungen passend zum Modus
   const cells = [], host = NET.role === 'host';
   if (isOnline()) {
     cells.push(['room', 'RAUM', NET.code, 130, false]);
+    cells.push(['arena', 'ARENA', arenaLabel(host ? settings.arena : (NET.arena | 0)), 250, host]);
     cells.push(['items', 'GADGETS', (host ? settings.items : NET.items) ? 'AN' : 'AUS', 150, host]);
   } else {
     if (isCPU()) cells.push(['diff', 'CPU-STÄRKE', DIFFS[settings.diff].name, 200, true]);
+    cells.push(['arena', 'ARENA', arenaLabel(settings.arena), 250, true]);
     cells.push(['items', 'GADGETS', settings.items ? 'AN' : 'AUS', 150, true]);
   }
   let cx = W - 16 - cells.reduce((a, q) => a + q[3], 0) - (cells.length - 1) * 8;
