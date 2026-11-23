@@ -911,21 +911,25 @@ function drawMatrix(c, x, gy, t, a) {   // Code-Regen über dem Gegner
 /* ---- SFX Operator: Pyromane in Workwear-Kombi (grau/orange), verspiegelte Sportbrille, angesengte Haare, Ruß im Gesicht ---- */
 const S_SFX = {
   hip: -54, sh: -90, hunch: 3, thigh: 28, shin: 27, upper: 24, fore: 23, legW: 13, armW: 10, handR: 4.8,
-  pants: '#3a3e46', pantsD: '#30333a', kneePad: '#1b1b1d', sleeve: '#3a3e46', sleeveD: '#30333a', foreCol: '#e2462a', foreColD: '#c23a22',
-  shirt: '#3a3e46', hand: '#e2b48e', boot: '#1d1d20', bootL: 21, torsoW: 30, headOff: { x: 4, y: -12 },
+  pants: '#1c1d21', pantsD: '#151619', kneePad: '#0c0c0e', sleeve: '#1c1d21', sleeveD: '#151619', foreCol: '#232428', foreColD: '#1a1b1e',
+  shirt: '#1c1d21', hand: '#e2b48e', boot: '#0e0e10', bootL: 21, torsoW: 30, headOff: { x: 4, y: -12 },
   torsoDeco(c, tw, L) {   // Latz-Kombi: orange Schulterpartie, Reflexstreifen, Brusttasche, Reißverschluss
-    RR(c, -tw / 2, -L - 4, tw, L * 0.32, 6, '#e2462a');
-    c.fillStyle = '#d4d7d7'; c.fillRect(-tw / 2, -L * 0.42, tw, 3.5); c.fillRect(-tw / 2, -L * 0.2, tw, 3.5);
-    RR(c, -tw / 2 + 3, -L * 0.62, 10, 9, 2, '#30333a'); Ln(c, 1, -L - 2, 1, -L * 0.05, '#25272c', 1.5);
+    RR(c, -tw / 2, -L - 4, tw, L * 0.32, 6, '#26272c');   // Schulterpasse, Ton in Ton
+    c.fillStyle = '#3a3b40'; c.fillRect(-tw / 2, -L * 0.42, tw, 2.5); c.fillRect(-tw / 2, -L * 0.2, tw, 2.5);   // dunkle Ziernähte statt Reflexstreifen
+    RR(c, -tw / 2 + 3, -L * 0.62, 10, 9, 2, '#26272c'); Ln(c, 1, -L - 2, 1, -L * 0.05, '#3a3b40', 1.5);
     Cc(c, tw / 2 - 6, -L * 0.6, 2.5, '#ffd23f');   // Feuerzeug in der Tasche
   },
-  hipFront(c) { RR(c, -15, -58, 30, 6, 2, '#25272c'); RR(c, 8, -56, 11, 13, 3, '#e2462a'); RR(c, -18, -56, 10, 12, 3, '#30333a'); },
+  hipFront(c) { RR(c, -15, -58, 30, 6, 2, '#0c0c0e'); RR(c, -3, -58, 6, 6, 1, '#8d939b'); RR(c, 8, -56, 11, 13, 3, '#26272c'); RR(c, -18, -56, 10, 12, 3, '#26272c'); },
   head(c, hx, hy, f, A, P) {
     const skin = '#e2b48e';
-    c.fillStyle = '#2a2420';   // angesengte, abstehende Haare
-    for (const [ax, ay, bx, by] of [[-10, -6, -16, -18], [-4, -10, -6, -24], [3, -11, 6, -24], [9, -8, 15, -19], [-12, 0, -20, -6]]) { c.beginPath(); c.moveTo(hx + ax - 3, hy + ay + 3); c.lineTo(hx + bx, hy + by); c.lineTo(hx + ax + 4, hy + ay + 2); c.fill(); }
-    E(c, hx, hy - 4, 12, 9, '#2a2420');
     Cc(c, hx, hy, 11.5, skin);
+    // nach hinten gegelt: hohe Stirn frei, Tolle vorne, glatt nach hinten gekämmt bis in den Nacken, Glanz
+    c.fillStyle = '#1e1a17'; c.beginPath(); c.moveTo(hx + 6, hy - 9);
+    c.quadraticCurveTo(hx + 9, hy - 17, hx + 1, hy - 18); c.quadraticCurveTo(hx - 11, hy - 18, hx - 15, hy - 8);
+    c.quadraticCurveTo(hx - 17, hy - 1, hx - 13, hy + 5); c.lineTo(hx - 9, hy + 2);
+    c.quadraticCurveTo(hx - 9, hy - 9, hx + 6, hy - 9); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,0.4)'; c.lineWidth = 1.3; c.lineCap = 'round';
+    for (const k of [0, 1, 2]) { c.beginPath(); c.moveTo(hx + 4 - k, hy - 14 + k * 2.5); c.quadraticCurveTo(hx - 6, hy - 16 + k * 3, hx - 13, hy - 5 + k * 3); c.stroke(); }
     c.fillStyle = 'rgba(40,35,30,0.45)'; E(c, hx - 4, hy + 5, 5, 3, 'rgba(40,35,30,0.45)'); E(c, hx + 8, hy - 7, 4, 2.5, 'rgba(40,35,30,0.4)'); E(c, hx + 2, hy + 9, 3, 2, 'rgba(40,35,30,0.35)');   // Rußflecken
     E(c, hx - 2.5, hy + 1, 2.5, 3.2, '#cc9c78');
     // verspiegelte Rundum-Sportbrille
