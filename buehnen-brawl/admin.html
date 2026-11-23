@@ -43,6 +43,7 @@ tr:last-child td{border-bottom:0}
     <label>Zeitraum <select id="weeks"><option value="1">diese Woche</option><option value="4" selected>4 Wochen</option><option value="12">12 Wochen</option><option value="52">1 Jahr</option></select></label>
     <label>Modus <select id="mode"><option value="">alle</option><option value="cpu">gegen CPU</option><option value="2p">2 Spieler</option><option value="on">Online</option></select></label>
     <label>Version <select id="ver"><option value="">alle</option></select></label>
+    <label><input type="checkbox" id="beta"> Beta-Runden mitzählen</label>
     <button id="reload">Neu laden</button>
     <span id="status">Lade …</span>
   </div>
@@ -102,7 +103,8 @@ async function reload() {
 }
 function render() {
   const mode = $('mode').value, ver = $('ver').value;
-  const R = ALL.filter(r => (!mode || r.m === mode) && (!ver || r.v === ver));
+  const beta = $('beta').checked;
+  const R = ALL.filter(r => (!mode || r.m === mode) && (!ver || r.v === ver) && (beta || !(r.b || /-beta$/.test(r.v || ''))));
   const avgT = R.length ? R.reduce((a, r) => a + r.t, 0) / R.length : 0;
   const cnt = m => R.filter(r => r.m === m).length;
   $('tiles').innerHTML = [
@@ -132,7 +134,7 @@ function render() {
   $('fb').innerHTML = FB.length ? FB.map(f => `<div class="fb"><p>${esc(f.t)}</p><small>${esc(f.n || 'anonym')} · ${new Date(f.d).toLocaleString('de-DE')} · ${esc(f.dev || '')} · v${esc(f.v || '?')}</small></div>`).join('')
     : '<p class="mut">Noch kein Feedback.</p>';
 }
-$('reload').onclick = reload; $('weeks').onchange = reload; $('mode').onchange = render; $('ver').onchange = render;
+$('reload').onclick = reload; $('weeks').onchange = reload; $('mode').onchange = render; $('ver').onchange = render; $('beta').onchange = render;
 reload();
 </script>
 </body>
