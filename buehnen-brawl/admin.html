@@ -28,7 +28,7 @@ th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;whit
 th:first-child,td:first-child{text-align:left}
 th{color:var(--muted);font-weight:600;font-size:13px;position:sticky;top:0;background:var(--panel)}
 tr:last-child td{border-bottom:0}
-.good{color:var(--good);font-weight:700}.bad{color:var(--bad);font-weight:700}.mut{color:var(--muted)}
+.good{color:var(--good);font-weight:700}.thin td{opacity:.5}.tag{font-size:11px;color:var(--muted);margin-left:6px}.bad{color:var(--bad);font-weight:700}.mut{color:var(--muted)}
 .fb{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
 .fb p{margin:0 0 6px;white-space:pre-wrap;word-break:break-word}
 .fb small{color:var(--muted)}
@@ -48,9 +48,10 @@ tr:last-child td{border-bottom:0}
   </div>
   <div class="tiles" id="tiles"></div>
   <h2>Kämpfer</h2>
+  <p class="sub"><b>Bereinigte Siegquote:</b> Jeder Kämpfer startet rechnerisch mit 5 Siegen und 5 Niederlagen. So hat ein einzelner Sieg nicht gleich 100 % – je mehr echte Runden, desto mehr zählen die echten Ergebnisse. Sortiert wird danach. Unter 10 Runden ist die Aussage noch wackelig (blass).</p>
   <div class="wrap"><table id="chars"></table></div>
-  <h2>Duelle – Siegquote der Zeile gegen die Spalte</h2>
-  <p class="sub">Nur Paarungen mit mindestens einer Runde; in Klammern die Anzahl.</p>
+  <h2>Duelle – Bilanz der Zeile gegen die Spalte</h2>
+  <p class="sub">Siege : Niederlagen. Eingefärbt erst ab 5 Runden in der Paarung (rot = Zeile klar überlegen, grün = klar unterlegen).</p>
   <div class="wrap"><table id="mu"></table></div>
   <h2>Feedback</h2>
   <div id="fb"></div>
@@ -114,18 +115,20 @@ function render() {
     const s = S[id] || (S[id] = { n: 0, w: 0, t: 0, f: 0, d: 0, h: 0, k: 0 });
     s.n++; if (r.w === i) s.w++; s.t += r.t; s.f += r.f[i]; s.d += r.d[i]; s.h += r.h[i]; s.k += r.k[i];
   });
-  const rows = Object.entries(S).sort((a, b) => b[1].w / b[1].n - a[1].w / a[1].n);
-  const q = s => Math.round(100 * s.w / s.n);
-  $('chars').innerHTML = '<tr><th>Kämpfer</th><th>Runden</th><th>Gewählt</th><th>Siege</th><th>Siegquote</th><th>Ø Schaden</th><th>Ø Treffer</th><th>Ø Finisher</th><th>Ø Kampfzeit</th></tr>' +
-    (rows.length ? rows.map(([id, s]) => `<tr><td>${esc(nm(id))}</td><td>${s.n}</td><td>${Math.round(100 * s.n / (2 * R.length))}%</td><td>${s.w}</td>` +
-      `<td class="${s.n >= 10 && q(s) >= 60 ? 'bad' : s.n >= 10 && q(s) <= 40 ? 'good' : ''}">${q(s)}%</td><td>${Math.round(s.d / s.n)}%</td><td>${(s.h / s.n).toFixed(1)}</td><td>${(s.f / s.n).toFixed(2)}</td><td>${fmtT(s.t / s.n)}</td></tr>`).join('')
-      : '<tr><td colspan="9" class="mut">Noch keine Runden in diesem Zeitraum.</td></tr>');
+  const adj = s => (s.w + 5) / (s.n + 10);   // bereinigt: 5 Siege + 5 Niederlagen als Startwert
+  const rows = Object.entries(S).sort((a, b) => adj(b[1]) - adj(a[1]) || b[1].n - a[1].n);
+  $('chars').innerHTML = '<tr><th>Kämpfer</th><th>Siegquote (bereinigt)</th><th>Siege / Runden</th><th>Gewählt</th><th>Ø Schaden</th><th>Ø Treffer</th><th>Ø Finisher</th><th>Ø Kampfzeit</th></tr>' +
+    (rows.length ? rows.map(([id, s]) => { const a = Math.round(100 * adj(s)), raw = Math.round(100 * s.w / s.n), thin = s.n < 10;
+      return `<tr class="${thin ? 'thin' : ''}"><td>${esc(nm(id))}${thin ? '<span class="tag">wenig Daten</span>' : ''}</td>` +
+      `<td class="${!thin && a >= 58 ? 'bad' : !thin && a <= 42 ? 'good' : ''}">${a}%</td><td>${s.w} von ${s.n} <span class="mut">(${raw}%)</span></td><td>${Math.round(100 * s.n / (2 * R.length))}%</td>` +
+      `<td>${Math.round(s.d / s.n)}%</td><td>${(s.h / s.n).toFixed(1)}</td><td>${(s.f / s.n).toFixed(2)}</td><td>${fmtT(s.t / s.n)}</td></tr>`; }).join('')
+      : '<tr><td colspan="8" class="mut">Noch keine Runden in diesem Zeitraum.</td></tr>');
   // Duelle
   const ids = rows.map(r => r[0]), M = {};
   for (const r of R) { const [a, b] = r.c; if (a === b) continue; for (const [x, y, i] of [[a, b, 0], [b, a, 1]]) { const k = x + '|' + y, m = M[k] || (M[k] = { n: 0, w: 0 }); m.n++; if (r.w === i) m.w++; } }
   $('mu').innerHTML = '<tr><th></th>' + ids.map(id => `<th>${esc(nm(id))}</th>`).join('') + '</tr>' +
-    ids.map(a => `<tr><td>${esc(nm(a))}</td>` + ids.map(b => { const m = M[a + '|' + b]; if (!m) return '<td class="mut">–</td>'; const p = Math.round(100 * m.w / m.n);
-      return `<td class="${m.n >= 5 && p >= 65 ? 'bad' : m.n >= 5 && p <= 35 ? 'good' : ''}">${p}% <span class="mut">(${m.n})</span></td>`; }).join('') + '</tr>').join('');
+    ids.map(a => `<tr><td>${esc(nm(a))}</td>` + ids.map(b => { const m = M[a + '|' + b]; if (!m) return '<td class="mut">–</td>'; const p = (m.w + 2) / (m.n + 4);   // bereinigt: 2:2 als Startwert
+      return `<td class="${m.n >= 5 && p >= 0.65 ? 'bad' : m.n >= 5 && p <= 0.35 ? 'good' : m.n < 5 ? 'mut' : ''}">${m.w} : ${m.n - m.w}</td>`; }).join('') + '</tr>').join('');
   $('fb').innerHTML = FB.length ? FB.map(f => `<div class="fb"><p>${esc(f.t)}</p><small>${esc(f.n || 'anonym')} · ${new Date(f.d).toLocaleString('de-DE')} · ${esc(f.dev || '')} · v${esc(f.v || '?')}</small></div>`).join('')
     : '<p class="mut">Noch kein Feedback.</p>';
 }
