@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Backstage Brawl Online-Sync: Raum-Dokumente für Multiplayer
+    match /sync/brawlrm1{roomId} {
+      allow read, write: if request.auth != null;
+    }
+    // Push-Benachrichtigungs-Abos
+    match /sync/brawlpushes1 {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
