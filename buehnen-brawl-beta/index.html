@@ -2758,8 +2758,8 @@ function drawCamperBg(T) {
   Cc(c, 1040 - px * 0.4, 110 - py, 34, '#f3ecd2'); Cc(c, 1052 - px * 0.4, 104 - py, 30, 'rgba(58,47,85,0.9)');   // Mondsichel
   const trees = (n, base, h, col, f) => { c.fillStyle = col; for (let i = 0; i < n; i++) { const x = i * (W + 200) / n - 100 - (px * f) % 60, hh = h * (0.7 + ((i * 37) % 10) / 20);
     c.beginPath(); c.moveTo(x, base - hh); c.lineTo(x - hh * 0.22, base); c.lineTo(x + hh * 0.22, base); c.closePath(); c.fill(); } };
-  trees(22, 470 - py, 190, '#241a2c', 0.6); trees(16, 520 - py, 260, '#16111d', 1);
-  const g = c.createLinearGradient(0, 500, 0, H); g.addColorStop(0, '#1a2117'); g.addColorStop(1, '#0d100b'); c.fillStyle = g; c.fillRect(0, 500 - py, W, H);
+  trees(34, 430 - py, 170, '#2c2236', 0.35); trees(28, 480 - py, 230, '#221a2a', 0.6); trees(22, 540 - py, 300, '#17121e', 0.9); trees(18, 600 - py, 360, '#100c15', 1.1);
+  const g = c.createLinearGradient(0, 560, 0, H); g.addColorStop(0, '#141a12'); g.addColorStop(1, '#0a0c08'); c.fillStyle = g; c.fillRect(0, 580 - py, W, H);
   c.save(); c.globalCompositeOperation = 'lighter';   // Glühwürmchen
   for (let i = 0; i < 14; i++) { const x = (i * 151 + T * 0.4 * (i % 3 + 1)) % W, y = 380 + Math.sin(T * 0.02 + i * 2) * 60 + (i % 4) * 30; c.globalAlpha = 0.4 + 0.4 * Math.sin(T * 0.08 + i); Cc(c, x, y, 2.5, '#d8ff7a'); }
   c.restore(); c.globalAlpha = 1;
@@ -2787,12 +2787,15 @@ function drawGogo(c, x, y, T) {   // älterer VTler im Campingstuhl: kräftig, H
   Ln(c, -24, -88, -28, -58, '#1d2a44', 13); Cc(c, -27, -56, 6.5, '#dba884');   // anderer Arm auf der Lehne
   // Kopf: rund, Doppelkinn, Halbglatze mit grauem Haarkranz
   const hx = 2, hy = -126;
-  E(c, hx, hy + 14, 14, 7, '#cf9a78');   // Doppelkinn/Hals
-  E(c, hx, hy, 17, 18, '#dba884');
-  c.fillStyle = '#9d9d98'; c.beginPath(); c.ellipse(hx - 4, hy - 2, 18, 15, 0, PI * 0.55, PI * 1.25); c.fill();   // Haarkranz hinten/seitlich
+  E(c, hx, hy + 13, 12, 6, '#cf9a78');   // Hals
+  E(c, hx, hy, 16, 18, '#dba884');
+  c.fillStyle = '#4a3f36'; c.beginPath(); c.ellipse(hx - 4, hy - 2, 17, 15, 0, PI * 0.55, PI * 1.25); c.fill();   // Haarkranz, noch dunkel
+  c.fillStyle = 'rgba(170,170,165,0.55)'; c.beginPath(); c.ellipse(hx - 9, hy + 2, 6, 8, 0, 0, TAU); c.fill();   // graue Schläfe
+  c.fillStyle = 'rgba(150,150,145,0.55)'; c.beginPath(); c.arc(hx + 2, hy + 2, 15.5, PI * 0.02, PI * 0.95); c.closePath(); c.fill();   // grauer Stoppelbart
+  c.fillStyle = 'rgba(110,110,105,0.75)'; for (let i = 0; i < 22; i++) { const a = 0.08 + i * 0.04 * PI, r = 9 + (i % 3) * 2; c.fillRect(hx + 2 + Math.cos(a) * r, hy + 2 + Math.sin(a) * r, 1.3, 1.3); }
   c.fillStyle = 'rgba(255,255,255,0.22)'; c.beginPath(); c.ellipse(hx + 2, hy - 12, 9, 4, -0.2, 0, TAU); c.fill();   // Glatze glänzt
   E(c, hx - 15, hy + 2, 4, 6, '#cf9a78');   // Ohr
-  c.fillStyle = '#8f8f8a'; c.beginPath(); c.ellipse(hx + 7, hy + 7, 9, 3.5, 0, 0, TAU); c.fill();   // grauer Schnauzer
+  Ln(c, hx + 4, hy + 9, hx + 11, hy + 8.5, '#7a4a3a', 1.6);   // Mund
   Cc(c, hx + 8, hy - 3, 1.8, '#222'); Ln(c, hx + 4, hy - 8, hx + 12, hy - 7, '#8f8f8a', 2);
   E(c, hx + 15, hy + 2, 3.5, 3, '#cf9a78');   // Nase
   c.restore();
@@ -2804,6 +2807,14 @@ function drawGogo(c, x, y, T) {   // älterer VTler im Campingstuhl: kräftig, H
 }
 function drawCamperStage(T) {
   const c = ctx, S = STAGE, w = S.x2 - S.x1;
+  // Boden: ebener Waldboden über die ganze Breite (keine Kante, kein Kasten)
+  const eg = c.createLinearGradient(0, S.top, 0, S.top + 500); eg.addColorStop(0, '#2f3a22'); eg.addColorStop(0.25, '#232b19'); eg.addColorStop(1, '#0b0e08');
+  c.fillStyle = eg; c.fillRect(BLAST.x1 - 400, S.top, BLAST.x2 - BLAST.x1 + 800, 700);
+  const pg = c.createLinearGradient(0, S.top, 0, S.top + 60); pg.addColorStop(0, 'rgba(110,95,70,0.55)'); pg.addColorStop(1, 'rgba(110,95,70,0)');   // ausgetretener Platz
+  c.fillStyle = pg; c.beginPath(); c.ellipse((S.x1 + S.x2) / 2, S.top + 6, w / 2 + 40, 34, 0, 0, PI); c.fill();
+  c.fillStyle = '#4c6a2e'; c.fillRect(BLAST.x1 - 400, S.top - 2, BLAST.x2 - BLAST.x1 + 800, 4);
+  for (let i = 0; i < 160; i++) { const x = BLAST.x1 - 300 + i * 13 + ((i * 37) % 9), hgt = 4 + (i * 13) % 9; Ln(c, x, S.top + 1, x + ((i % 3) - 1) * 2, S.top - hgt, i % 4 ? '#5a7a34' : '#6f8f3e', 2); }   // Grashalme
+  for (const [bx, sc] of [[S.x1 - 120, 1], [S.x2 + 150, 1.2], [S.x1 - 260, 0.8], [S.x2 + 300, 0.9]]) { c.fillStyle = '#1e2a16'; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(bx + k * 18 * sc, S.top - 14 * sc + (k % 2) * 6, 20 * sc, 0, TAU); c.fill(); } }   // Büsche am Rand
   // Hintergrund-Details auf Bodenhöhe: Reh mit leuchtenden Augen, Eule, Wäscheleine mit Warnwesten
   c.save(); c.globalAlpha = 0.85;
   const rx = S.x2 + 70, ry = S.top - 30; c.fillStyle = '#1a1420';
@@ -2835,7 +2846,7 @@ function drawCamperStage(T) {
   if ((T % 400) > 10) { Cc(c, ox - 3, oy - 5, 1.3, '#111'); Cc(c, ox + 3, oy - 5, 1.3, '#111'); } else { Ln(c, ox - 5, oy - 5, ox - 1, oy - 5, '#111', 1.5); Ln(c, ox + 1, oy - 5, ox + 5, oy - 5, '#111', 1.5); }
   c.fillStyle = '#5a4632'; c.beginPath(); c.moveTo(ox - 8, oy - 9); c.lineTo(ox - 5, oy - 15); c.lineTo(ox - 2, oy - 10); c.fill(); c.beginPath(); c.moveTo(ox + 8, oy - 9); c.lineTo(ox + 5, oy - 15); c.lineTo(ox + 2, oy - 10); c.fill();
   // Wohnmobil (rechte Plattform = Dach)
-  const P = PLATS[1], vx1 = P.x1 - 40, vx2 = P.x2 + 70, top = P.y, bot = S.top - 22;
+  const P = PLATS[1], vx1 = P.x1 - 40, vx2 = P.x2 + 70, top = P.y, bot = S.top - 20;   // Räder stehen direkt auf dem Waldboden
   RR(c, vx1, top, vx2 - vx1, bot - top, 14, '#e6d9bb');
   c.fillStyle = '#7a5230'; c.fillRect(vx1, top + 58, vx2 - vx1, 12); c.fillStyle = '#a2703f'; c.fillRect(vx1, top + 72, vx2 - vx1, 5);
   for (const [x, y, r] of [[vx1 + 30, bot - 10, 12], [vx1 + 140, top + 90, 7], [vx2 - 40, bot - 20, 10], [vx2 - 120, top + 20, 6]]) E(c, x, y, r * 1.4, r, 'rgba(140,70,30,0.45)');   // Rost
@@ -2877,12 +2888,11 @@ function drawCamperStage(T) {
   for (let i = 0; i < 5; i++) { const ph = ((T * 1.3 + i * 37) % 90) / 90; c.globalAlpha = 1 - ph; Cc(c, fx + Math.sin(i * 3 + T * 0.05) * 14, fy - 40 - ph * 80, 1.6, '#ffb34a'); } c.globalAlpha = 1;
   // Holzstapel unter dem Hochsitz
   for (let r = 0; r < 3; r++) for (let k = 0; k < 4 - r; k++) { const lx = PLATS[0].x1 + 60 + k * 18 + r * 9, ly = S.top - 9 - r * 15; Cc(c, lx, ly, 8, '#6b4a2c'); Cc(c, lx, ly, 5, '#a07848'); }
-  // Boden: Schotterplatz
-  RR(c, S.x1, S.top, w, S.bottom - S.top, 6, '#4a4238'); RR(c, S.x1, S.top, w, 8, 3, '#5f7a3a');
-  c.fillStyle = 'rgba(255,255,255,0.07)'; for (let i = 0; i < 60; i++) c.fillRect(S.x1 + (i * 131) % w, S.top + 14 + (i * 7) % 50, 3, 2);
-  c.fillStyle = 'rgba(255,255,255,0.16)'; c.font = 'bold 20px Impact,"Arial Black",sans-serif'; c.textAlign = 'center'; c.fillText('GOGOS STELLPLATZ – BETRETEN AUF EIGENE GEFAHR', (S.x1 + S.x2) / 2, S.top + 50);
-  const ug = c.createLinearGradient(0, S.bottom, 0, S.bottom + 200); ug.addColorStop(0, '#2a241e'); ug.addColorStop(1, 'rgba(20,16,12,0)');
-  c.fillStyle = ug; c.beginPath(); c.moveTo(S.x1 + 30, S.bottom); c.lineTo(S.x2 - 30, S.bottom); c.lineTo(S.x2 - 160, S.bottom + 200); c.lineTo(S.x1 + 160, S.bottom + 200); c.fill();
+  // kleines Holzschild im Boden (vorne zwischen Hochsitz und Feuer)
+  const sgx = 470, sgy = S.top + 2;
+  Ln(c, sgx, sgy + 4, sgx, sgy - 30, '#5a3e26', 4);
+  c.save(); c.translate(sgx, sgy - 34); c.rotate(-0.08); RR(c, -40, -13, 80, 24, 4, '#8a6238'); c.strokeStyle = '#5a3e26'; c.lineWidth = 2; strokeRR(c, -40, -13, 80, 24, 4);
+  c.fillStyle = '#2a1a0e'; c.font = 'italic bold 11px "Comic Sans MS","Marker Felt",system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('Gogos Stellplatz', 0, 3); c.restore();
   // Kram: dreckiges Flightcase mit Aschenbecher, Kabeltrommel, Gaffa, Bierkiste
   RR(c, S.x1 + 20, S.top - 46, 74, 46, 5, '#2c2a28'); c.strokeStyle = '#8f8a80'; c.lineWidth = 3; strokeRR(c, S.x1 + 20, S.top - 46, 74, 46, 5);
   c.fillStyle = 'rgba(90,70,50,0.5)'; c.fillRect(S.x1 + 26, S.top - 30, 40, 8);
