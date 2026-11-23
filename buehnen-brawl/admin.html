@@ -54,6 +54,9 @@ tr:last-child td{border-bottom:0}
   <h2>Duelle – Bilanz der Zeile gegen die Spalte</h2>
   <p class="sub">Siege : Niederlagen. Eingefärbt erst ab 5 Runden in der Paarung (rot = Zeile klar überlegen, grün = klar unterlegen).</p>
   <div class="wrap"><table id="mu"></table></div>
+  <h2>Online-Verbindungen</h2>
+  <p class="sub">Jeder Verbindungsversuch (letzte 30): Ergebnis, Gerät und welche Wege die Handys gefunden haben (host = gleiches WLAN, srflx = übers Internet, relay = über Umleitungs-Server).</p>
+  <div id="net"></div>
   <h2>Feedback</h2>
   <div id="fb"></div>
 </main>
@@ -83,7 +86,7 @@ async function load(id) {
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const d = await r.json(); try { return JSON.parse(d.fields.data.stringValue); } catch (e) { return {}; }
 }
-let ALL = [], FB = [];
+let ALL = [], FB = [], NETL = [];
 async function reload() {
   $('status').textContent = 'Lade …';
   try {
@@ -95,6 +98,7 @@ async function reload() {
     const fbMonths = []; for (let i = 0; i < 12; i++) { const d = new Date(); d.setMonth(d.getMonth() - i); fbMonths.push(monthKey(d.getTime())); }
     const fbNew = await Promise.all(fbMonths.map(m => loadParts('brawlf' + m, 'f')));
     FB = ((await load('brawlfeedbk1')).f || []).concat(fbNew.flat()).sort((a, b) => b.d - a.d);
+    NETL = (await Promise.all(fbMonths.slice(0, 2).map(m => loadParts('brawln' + m, 'n')))).flat().sort((a, b) => b.d - a.d).slice(0, 30);
     const vers = [...new Set(ALL.map(r => r.v))].sort().reverse(), cur = $('ver').value;
     $('ver').innerHTML = '<option value="">alle</option>' + vers.map(v => `<option${v === cur ? ' selected' : ''}>${esc(v)}</option>`).join('');
     $('status').textContent = 'Stand: ' + new Date().toLocaleString('de-DE');
@@ -131,6 +135,8 @@ function render() {
   $('mu').innerHTML = '<tr><th></th>' + ids.map(id => `<th>${esc(nm(id))}</th>`).join('') + '</tr>' +
     ids.map(a => `<tr><td>${esc(nm(a))}</td>` + ids.map(b => { const m = M[a + '|' + b]; if (!m) return '<td class="mut">–</td>'; const p = (m.w + 2) / (m.n + 4);   // bereinigt: 2:2 als Startwert
       return `<td class="${m.n >= 5 && p >= 0.65 ? 'bad' : m.n >= 5 && p <= 0.35 ? 'good' : m.n < 5 ? 'mut' : ''}">${m.w} : ${m.n - m.w}</td>`; }).join('') + '</tr>').join('');
+  $('net').innerHTML = NETL.length ? NETL.map(n => `<div class="fb"><p><b class="${n.r === 'ok' ? 'good' : 'bad'}">${esc(n.r)}</b> · ${esc(n.role || '')} · ${esc(n.dev || '')} · v${esc(n.v || '?')}</p><small>${(n.ev || []).map(esc).join(' → ')}</small><br><small>${new Date(n.d).toLocaleString('de-DE')}</small></div>`).join('')
+    : '<p class="mut">Noch keine Verbindungsversuche protokolliert.</p>';
   $('fb').innerHTML = FB.length ? FB.map(f => `<div class="fb"><p>${esc(f.t)}</p><small>${esc(f.n || 'anonym')} · ${new Date(f.d).toLocaleString('de-DE')} · ${esc(f.dev || '')} · v${esc(f.v || '?')}</small></div>`).join('')
     : '<p class="mut">Noch kein Feedback.</p>';
 }

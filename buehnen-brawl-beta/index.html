@@ -1891,7 +1891,7 @@ function step() {
   if (toast && --toast.t <= 0) toast = null;
   if (NET.open) {
     if (frame % 60 === 0) netSend({ t: 'ping' });
-    if (performance.now() - NET.lastRx > 8000) netLost('Keine Antwort vom anderen Gerät – Verbindung getrennt.');
+    if (performance.now() - NET.lastRx > 15000) netLost('Keine Antwort vom anderen Gerät – Verbindung getrennt.');
   }
   if (isPortrait()) { pressed.clear(); return; }   // Hochformat: Spiel hält an
   if (!touchActive() && (touchHeld.size || pointers.size || JOY.id !== null)) releaseAll();
@@ -1985,7 +1985,8 @@ function peerErrorText(err) {
 // Ablauf: Host legt den Raum an (s: wait) → Gast schreibt sein Angebot (s: offer) → Host antwortet (s: answer) → Datenkanal offen.
 const ICE_CFG = { iceServers: [
   { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] },
-  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }   // Relay für Firmen-WLAN/Mobilfunk
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },   // Relay für Firmen-WLAN/Mobilfunk
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' }   // Ausweich-Relay, auch über TCP 443
 ] };
 const ROOM = code => (BETA ? 'brawlrb1' : 'brawlrm1') + code;   // Beta und Live verbinden sich nie miteinander
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -1995,12 +1996,25 @@ async function fsWrite(id, data, ut) {   // ut: nur schreiben, wenn seitdem niem
     body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify(data) } } }) });
   return r.ok;
 }
-function iceDone(pc, ms) {   // alle Verbindungswege sammeln (max. ms), dann in einem Rutsch übertragen
+function iceDone(pc, ms) {   // Verbindungswege sammeln: fertig, sobald alles da ist oder ein Relay-Weg gefunden wurde (max. ms)
   return new Promise(res => {
     if (pc.iceGatheringState === 'complete') return res();
-    const t = setTimeout(res, ms);
-    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } });
+    const t0 = performance.now(); let relay = false;
+    const done = () => { clearTimeout(t); res(); };
+    const t = setTimeout(done, ms);
+    pc.addEventListener('icecandidate', e => { if (e.candidate && / typ relay /.test(e.candidate.candidate)) { relay = true; setTimeout(done, Math.max(0, 1500 - (performance.now() - t0))); } });
+    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') done(); });
   });
+}
+// Verbindungsprotokoll: bei jedem Versuch kurz festhalten, welche Wege es gab und woran es scheiterte (für die Fehlersuche)
+const netDiag = { start: 0, ev: [] };
+function diagEv(x) { netDiag.ev.push(Math.round((performance.now() - netDiag.start) / 100) / 10 + 's ' + x); if (netDiag.ev.length > 40) netDiag.ev.shift(); }
+const candTypes = sdp => { const o = {}; for (const m of String(sdp || '').matchAll(/ typ (host|srflx|prflx|relay)/g)) o[m[1]] = (o[m[1]] || 0) + 1; return o; };
+function diagSend(result) {
+  if (!netDiag.start) return;
+  const rec = { r: result, role: NET.role || netDiag.role, v: GAME_VERSION + (typeof BETA !== 'undefined' && BETA ? '-beta' : ''), dev: (IOS ? 'iOS' : TOUCH ? 'Touch' : 'Desktop') + (STANDALONE ? ' App' : ''), ev: netDiag.ev.slice(), d: Date.now() };
+  netDiag.start = 0;
+  appendParts('brawln' + monthKey(Date.now()), 'n', [rec]).catch(() => {});
 }
 function makeConn(pc, dc) {   // kleine Hülle mit derselben Schnittstelle wie vorher (on/send/close/open)
   const h = {}, emit = (ev, x) => (h[ev] || []).forEach(cb => cb(x));
@@ -2011,12 +2025,13 @@ function makeConn(pc, dc) {   // kleine Hülle mit derselben Schnittstelle wie v
   const gone = () => { if (conn.closed) return; conn.closed = true; conn.open = false; emit('close'); };
   conn.bind = ch => {
     conn.dc = ch;
-    ch.onopen = () => { if (!conn.open && !conn.closed) { conn.open = true; emit('open'); } };
+    ch.onopen = () => { if (!conn.open && !conn.closed) { conn.open = true; diagEv('kanal offen'); emit('open'); } };
     ch.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (x) { return; } emit('data', m); };
     ch.onclose = gone; ch.onerror = () => emit('error');
     if (ch.readyState === 'open') ch.onopen();
   };
-  pc.onconnectionstatechange = () => { if (pc.connectionState === 'failed' || pc.connectionState === 'closed') gone(); };
+  pc.oniceconnectionstatechange = () => diagEv('ice ' + pc.iceConnectionState);
+  pc.onconnectionstatechange = () => { diagEv('pc ' + pc.connectionState); if (pc.connectionState === 'failed' || pc.connectionState === 'closed') { if (!conn.open) conn.why = 'ice'; gone(); } };
   if (dc) conn.bind(dc); else pc.ondatachannel = ev => conn.bind(ev.channel);
   return conn;
 }
@@ -2034,6 +2049,7 @@ async function hostGame() {
   }
   if (NET.sess !== sess) return;
   if (!code) { netFail('Raum konnte nicht erstellt werden – ist Internet da?'); return; }
+  netDiag.start = performance.now(); netDiag.ev = []; netDiag.role = 'host'; diagEv('raum ' + code);
   NET.code = code; NET.state = 'hosting';
   let lastG = null; const opened = Date.now();
   while (NET.sess === sess && !NET.open) {   // auf ein Angebot warten (alle 1,5 s nachsehen) – spart Datenbank-Zugriffe
@@ -2042,7 +2058,7 @@ async function hostGame() {
     if (NET.sess !== sess || NET.open) return;
     let r; try { r = await fsLoad(ROOM(code)); } catch (e) { continue; }
     const d = r.data;
-    if (!NET.conn && d.s === 'answer' && Date.now() - (d.t || 0) > 35000) { fsWrite(ROOM(code), { s: 'wait', t: Date.now() }, r.ut).catch(() => {}); continue; }   // Versuch hängengeblieben → Raum wieder frei
+    if (!NET.conn && d.s === 'answer' && Date.now() - (d.t || 0) > 45000) { fsWrite(ROOM(code), { s: 'wait', t: Date.now() }, r.ut).catch(() => {}); continue; }   // Versuch hängengeblieben → Raum wieder frei
     if (d.s !== 'offer' || d.g === lastG || NET.conn) continue;
     lastG = d.g;
     try {
@@ -2050,7 +2066,9 @@ async function hostGame() {
       attachConn(conn);
       await pc.setRemoteDescription({ type: 'offer', sdp: d.o });
       await pc.setLocalDescription(await pc.createAnswer());
-      await iceDone(pc, 3000);
+      diagEv('angebot da, gast-wege ' + JSON.stringify(candTypes(d.o)));
+      await iceDone(pc, 7000);
+      diagEv('eigene wege ' + JSON.stringify(candTypes(pc.localDescription.sdp)));
       if (NET.sess !== sess || NET.conn !== conn) return;
       await fsWrite(ROOM(code), { s: 'answer', g: d.g, a: pc.localDescription.sdp, t: Date.now() }, r.ut);
     } catch (e) { if (NET.conn && !NET.open) { try { NET.conn.close(); } catch (x) { /* egal */ } NET.conn = null; NET.joining = false; } }
@@ -2059,26 +2077,29 @@ async function hostGame() {
 async function joinGame(code) {
   netReset(); NET.role = 'guest'; NET.state = 'connecting'; NET.err = ''; NET.msg = 'Suche Raum ' + code + ' …'; NET.code = code;
   const sess = NET.sess = {};
-  NET.timer = setTimeout(() => { if (NET.sess === sess && !NET.open) netFail('Keine Verbindung zustande gekommen. Nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); }, 35000);
+  NET.timer = setTimeout(() => { if (NET.sess === sess && !NET.open) { diagSend('zeit'); netFail('Keine Verbindung zustande gekommen. Nochmal versuchen – oder einer wechselt kurz ins Mobilfunknetz.'); } }, 45000);
   let r; try { r = await fsLoad(ROOM(code)); } catch (e) { if (NET.sess === sess) netFail('Kein Internet? Der Raum konnte nicht gesucht werden.'); return; }
   if (NET.sess !== sess) return;
   const d = r.data, age = Date.now() - (d.t || 0);
   if (!d.s || d.s === 'closed' || age > 2 * 3600000) { netFail('Raum nicht gefunden – stimmt der Code?'); return; }
-  if (d.s !== 'wait' && age < 35000) { netFail('Da verbindet sich gerade schon jemand – kurz warten und nochmal.'); return; }
+  if (d.s !== 'wait' && age < 45000) { netFail('Da verbindet sich gerade schon jemand – kurz warten und nochmal.'); return; }
   NET.msg = 'Verbinde mit Raum ' + code + ' …';
+  netDiag.start = performance.now(); netDiag.ev = []; netDiag.role = 'guest'; diagEv('raum ' + code + ' gefunden');
   const pc = new RTCPeerConnection(ICE_CFG), conn = makeConn(pc, pc.createDataChannel('brawl', { ordered: true }));
   attachConn(conn);
   const g = Math.random().toString(36).slice(2, 10);
   try {
     await pc.setLocalDescription(await pc.createOffer());
-    await iceDone(pc, 3000);
+    await iceDone(pc, 7000);
+    diagEv('eigene wege ' + JSON.stringify(candTypes(pc.localDescription.sdp)));
     if (NET.sess !== sess) return;
     if (!(await fsWrite(ROOM(code), { s: 'offer', g, o: pc.localDescription.sdp, t: Date.now() }, r.ut))) { if (NET.sess === sess) netFail('Da war gerade jemand schneller – nochmal versuchen.'); return; }
   } catch (e) { if (NET.sess === sess) netFail('Verbindung fehlgeschlagen – nochmal versuchen.'); return; }
-  for (let i = 0; i < 30 && NET.sess === sess && !NET.open; i++) {   // auf die Antwort des Hosts warten
+  for (let i = 0; i < 40 && NET.sess === sess && !NET.open; i++) {   // auf die Antwort des Hosts warten
     await sleep(1000);
     let x; try { x = await fsLoad(ROOM(code)); } catch (e) { continue; }
     if (x.data.s === 'answer' && x.data.g === g) {
+      diagEv('antwort da, host-wege ' + JSON.stringify(candTypes(x.data.a)));
       try { await pc.setRemoteDescription({ type: 'answer', sdp: x.data.a }); } catch (e) { /* egal */ }
       if (NET.sess === sess && !NET.open) NET.msg = 'Raum gefunden – Verbindung wird aufgebaut';
       return;
@@ -2093,17 +2114,21 @@ function attachConn(conn) {
     try { conn.close(); } catch (e) { /* egal */ }
     NET.conn = null; NET.joining = false; return true;
   };
-  if (NET.role === 'host') { NET.joining = true; setTimeout(() => { if (dropPending()) showToast('Mitspieler kam nicht durch – bitte nochmal beitreten.'); }, 30000); }
+  if (NET.role === 'host') { NET.joining = true; setTimeout(() => { if (NET.conn === conn && !NET.open) diagSend('host-zeit'); if (dropPending()) showToast('Mitspieler kam nicht durch – bitte nochmal beitreten.'); }, 40000); }
   const onOpen = () => {
     if (NET.open || NET.conn !== conn) return;
-    NET.joining = false; NET.open = true; clearTimeout(NET.timer); NET.lastRx = performance.now(); NET.state = 'ok'; NET.err = '';
+    NET.joining = false; NET.open = true; diagSend('ok'); clearTimeout(NET.timer); NET.lastRx = performance.now(); NET.state = 'ok'; NET.err = '';
     sfx.confirm(); scene = 'select'; sel[0].i = 0; sel[1].i = 1; sel[0].ok = sel[1].ok = false;
     if (NET.role === 'host') NET.stocks = settings.stocks;
     netSend({ t: 'hi', stocks: settings.stocks, items: settings.items, arena: settings.arena });
   };
   if (conn.open) onOpen(); else conn.on('open', onOpen);
   conn.on('data', m => { if (NET.conn === conn) onNet(m); });
-  conn.on('close', () => { if (NET.conn !== conn) return; if (!NET.open && NET.role === 'host') { dropPending(); return; } netLost(); });
+  conn.on('close', () => {
+    if (NET.conn !== conn) return;
+    if (!NET.open) { diagSend(conn.why === 'ice' ? 'ice-fehlgeschlagen' : 'geschlossen'); if (NET.role === 'host') { dropPending(); showToast('Mitspieler kam nicht durch – bitte nochmal beitreten.'); return; }
+      netFail(conn.why === 'ice' ? 'Die Handys kommen nicht zueinander durch (Netzwerk blockiert). Tipp: einer kurz ins Mobilfunknetz, dann nochmal.' : 'Verbindung abgebrochen – bitte nochmal beitreten.'); return; }
+    netLost(); });
   conn.on('error', () => { if (NET.conn !== conn) return; if (!NET.open && NET.role === 'host') { dropPending(); return; } if (NET.open) netLost(); });
 }
 function onNet(m) {
