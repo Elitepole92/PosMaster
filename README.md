@@ -5,7 +5,9 @@ Interaktiver Hallenplan zum Medientechnik-Booklet (Stand 17.11.2026).
 - **Halle / Vertical:** Plan mit Zoom (zwei Finger, Doppeltipp), optimiert fürs iPad im Querformat. Tippen auf eine POS-Nummer öffnet die Details.
 - **Liste:** alle POS nach Bereich, inkl. Positionen ohne Medientechnik.
 - **To-dos:** In der Liste mit **+** Positionen auf die eigene To-do-Liste setzen (erscheint ganz oben), dann abhaken. Lokal gespeichert und per Sync-Code (Firebase Firestore) zwischen eigenen Geräten abgeglichen.
-- **Pink markieren:** Mit der Flagge in der Liste oder in der Detailansicht Positionen pink markieren – unabhängig von den To-dos, sichtbar in Liste und Plan, wird mitsynchronisiert.
+- **Vorverkabelt:** Mit der Flagge in der Liste oder in der Detailansicht Positionen als vorverkabelt (pink) markieren – unabhängig von den To-dos, sichtbar in Liste und Plan, wird mitsynchronisiert.
+- **Set:** In der Detailansicht mit „Set“ markieren, wenn das Gerät eingerichtet ist – blauer Haken neben der POS-Nummer (Liste, Detailansicht, Plan), wird mitsynchronisiert.
+- **Notizen:** Unter dem Detailbild ein Notizfeld pro Position (max. 2000 Zeichen), wird lokal gespeichert und mitsynchronisiert.
 - **Suche:** nach POS-Nummer, Titel oder Gerät (z. B. „414“, „Vestel“, „HDMI 10 m“). Treffer werden im Plan hervorgehoben.
 - **Direktlinks:** `index.html#pos=414` öffnet direkt POS 414.
 
