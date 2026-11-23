@@ -1047,7 +1047,11 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.3.14', news: [] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
+  { v: '4.4.0', news: [
+    ['🌐', 'Online-Duell läuft wieder – mit neuer, stabilerer Verbindung'],
+    ['🤖', 'Die CPU kommt jetzt auch wieder von der Traverse runter'],
+    ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
+  ] },   // Patch-Versionen ohne Infos: lösen nur das Selbst-Update aus, kein Update-Fenster
   { v: '4.3.0', news: [
     ['🛡️', 'Konter-Schild: antippen statt halten – im richtigen Moment gibt’s einen KONTER!'],
     ['🏷️', 'Neue Namen: Cemil ist jetzt der Logistiker, Gerch der Tontechniker'],
@@ -1615,6 +1619,11 @@ function cpuInput(f, o) {
     return inp;
   }
   const dx = o.x - f.x, adx = Math.abs(dx), reach = f.def.atk.box.x + f.def.atk.box.w;
+  // Auf der Traverse und der Gegner ist unten: runterfallen (sonst bleibt die CPU oben kleben)
+  if (f.onGround && f.ground !== STAGE && !o.dead && o.y > f.y + 30) {
+    if (Math.random() < 0.12) { inp.downP = true; return inp; }
+    if (adx > 60) inp[dx > 0 ? 'right' : 'left'] = true;
+  }
   ai.t--;
   if (o.atk && o.atkT < o.atk.s && adx < 130 && f.onGround && f.ground === STAGE && f.shieldCD <= 0 && !f.shielding && Math.random() < D.shield * 0.6) { inp.downP = true; return inp; }
   if (f.shielding) return inp;
@@ -1960,9 +1969,10 @@ async function hostGame() {
   if (NET.sess !== sess) return;
   if (!code) { netFail('Raum konnte nicht erstellt werden – ist Internet da?'); return; }
   NET.code = code; NET.state = 'hosting';
-  let lastG = null;
-  while (NET.sess === sess && !NET.open) {   // auf ein Angebot warten (1× pro Sekunde nachsehen)
-    await sleep(1000);
+  let lastG = null; const opened = Date.now();
+  while (NET.sess === sess && !NET.open) {   // auf ein Angebot warten (alle 1,5 s nachsehen) – spart Datenbank-Zugriffe
+    await sleep(1500);
+    if (NET.sess === sess && !NET.open && !NET.conn && Date.now() - opened > 15 * 60000) { netFail('Raum nach 15 Minuten ohne Mitspieler geschlossen.'); return; }
     if (NET.sess !== sess || NET.open) return;
     let r; try { r = await fsLoad(ROOM(code)); } catch (e) { continue; }
     const d = r.data;
@@ -2981,6 +2991,17 @@ function btn(id, x, y, w, h, label, col = '#ffd23f', size = 22) {
   c.fillStyle = '#1a1024'; c.fillText(label, x + w / 2, y + h / 2 + 1); c.textBaseline = 'alphabetic';
   ui.push({ id, x, y, w, h });
 }
+// Zurück-Knopf im Stil der Menü-Knöpfe (dunkel, heller Rand, gelber Pfeil) – auf Touch extra groß
+function backBtn(id, label) {
+  const c = ctx, T = TOUCH, x = 16, y = 14, h = T ? 66 : 52;
+  c.font = `900 ${T ? 28 : 22}px Impact,"Arial Black",sans-serif`;
+  const w = c.measureText(label).width + (T ? 84 : 70);
+  RR(c, x, y, w, h, h / 2.6, 'rgba(20,16,36,0.9)'); c.strokeStyle = 'rgba(255,255,255,0.35)'; c.lineWidth = 2; strokeRR(c, x, y, w, h, h / 2.6);
+  const ax = x + (T ? 30 : 24), ay = y + h / 2, s = T ? 11 : 9;
+  c.fillStyle = '#ffd23f'; c.beginPath(); c.moveTo(ax - s, ay); c.lineTo(ax + s * 0.7, ay - s); c.lineTo(ax + s * 0.7, ay + s); c.closePath(); c.fill();
+  c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillStyle = '#fff'; c.fillText(label, ax + s + (T ? 14 : 12), ay + 1); c.textBaseline = 'alphabetic';
+  ui.push({ id, x: x - 6, y: y - 6, w: w + 12, h: h + 12 });
+}
 function muteButton(x, y) {
   const c = ctx;
   Cc(c, x, y, 22, 'rgba(20,16,36,0.9)'); c.strokeStyle = 'rgba(255,255,255,0.6)'; c.lineWidth = 2; c.beginPath(); c.arc(x, y, 22, 0, TAU); c.stroke();
@@ -3026,7 +3047,7 @@ function drawTitle() {
   if (TOUCH && IOS && !STANDALONE) { c.textAlign = 'center'; c.font = '17px system-ui,sans-serif'; c.fillStyle = '#9a9ab0'; c.fillText('Tipp: In Safari „Teilen → Zum Home-Bildschirm“ – dann läuft das Spiel im Vollbild.', W / 2, 712); }
 }
 // Hinweis, solange das Online-Duell Probleme macht (ONLINE_NOTE = false schaltet ihn ab)
-const ONLINE_NOTE = true;
+const ONLINE_NOTE = false;
 function onlineNote(x, y, w, big) {
   if (!ONLINE_NOTE) return;
   const c = ctx, h = big ? 74 : 58;
@@ -3040,7 +3061,7 @@ function drawOnline() {
   const c = ctx;
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
   bigText('ONLINE-DUELL', 78, 58, '#7ad15a', 1, '#0d2a10');
-  btn('netBack', 16, 16, 140, 42, '◀ ZURÜCK', '#cfcfe0', 18);
+  backBtn('netBack', 'ZURÜCK');
   c.textAlign = 'center';
   const dots = '.'.repeat(1 + ((frame / 20) | 0) % 3);
   if (NET.state === 'menu') {
@@ -3191,7 +3212,7 @@ function drawSelect() {
     }
     cx += w + 8;
   }
-  btn('back', 16, 16, isOnline() ? 160 : 120, 42, isOnline() ? '◀ VERLASSEN' : '◀ MENÜ', '#cfcfe0', 18);
+  backBtn('back', isOnline() ? 'VERLASSEN' : 'MENÜ');
   const ready = sel[0].ok && sel[1].ok, single = isCPU();
   if (single) {
     drawCarousel(0, 640, 470, 2.2, 280, 74, 500, 420);
