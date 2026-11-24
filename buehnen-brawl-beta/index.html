@@ -125,7 +125,7 @@ const sfx = {
   swing() { noise(0.09, 0.07, 2600, 'highpass'); },
   hit(k) { noise(0.1 + k * 0.006, 0.28, 700 + k * 60); tone(150, 0.14 + k * 0.004, 'sine', 0.35, -90); if (k > 16) tone(70, 0.4, 'sawtooth', 0.12, -40); },
   block() { tone(950, 0.07, 'triangle', 0.1, -200); },
-  ko() { noise(1.0, 0.45, 500); tone(90, 0.9, 'sawtooth', 0.22, -60); tone(1400, 0.5, 'sine', 0.06, -1200); },
+  ko() { koBoom(); },
   ready() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, 'square', 0.05, 0, i * 0.07)); },
   fin() { tone(220, 0.6, 'sawtooth', 0.08, 440); noise(0.5, 0.15, 3000, 'highpass'); },
   engine() { tone(70, 1.8, 'sawtooth', 0.09, 60); tone(140, 0.4, 'square', 0.04, 80); },
@@ -162,7 +162,69 @@ const sfx = {
 };
 
 /* ---------------- Menümusik (läuft im Menü, in der Lobby und in der Kämpferwahl) ---------------- */
-const MUSIC = { on: false, next: 0, step: 0, gain: null };
+function distCurve(k) {   // Verzerrung: erzeugt Obertöne, die kleine Lautsprecher wiedergeben können
+  const n = 1024, c = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; c[i] = (1 + k) * x / (1 + k * Math.abs(x)); }
+  return c;
+}
+function koBoom() {   // „Verglühen“: Laserschwert-Fauchen, das in einen Meteoriteneinschlag kracht
+  if (!AC) return;
+  const t = AC.currentTime, out = AC.createGain(); out.gain.value = 0.68; out.connect(master);
+  // Laserschwert: zwei verstimmte Sägezähne, Bandpass fährt hoch, Brummen mit Vibrato
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3; bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(2600, t + 0.22); bp.frequency.exponentialRampToValueAtTime(300, t + 0.6);
+  const lg = AC.createGain(); lg.gain.setValueAtTime(0.0001, t); lg.gain.exponentialRampToValueAtTime(0.35, t + 0.04); lg.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+  bp.connect(lg); lg.connect(out);
+  const lfo = AC.createOscillator(), lfoG = AC.createGain(); lfo.frequency.value = 9; lfoG.gain.value = 6; lfo.connect(lfoG);
+  for (const d of [0, 2.5]) { const o = AC.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(95 + d, t); o.frequency.exponentialRampToValueAtTime(420 + d * 3, t + 0.18); o.frequency.exponentialRampToValueAtTime(70, t + 0.65);
+    lfoG.connect(o.frequency); o.connect(bp); o.start(t); o.stop(t + 0.75); }
+  lfo.start(t); lfo.stop(t + 0.75);
+  const z = AC.createOscillator(), zg = AC.createGain(); z.type = 'sine'; z.frequency.setValueAtTime(2400, t); z.frequency.exponentialRampToValueAtTime(180, t + 0.35);   // „Zing“
+  zg.gain.setValueAtTime(0.12, t); zg.gain.exponentialRampToValueAtTime(0.0001, t + 0.4); z.connect(zg); zg.connect(out); z.start(t); z.stop(t + 0.45);
+  // Meteoriteneinschlag: verzerrter Mitten-Wumms (hörbar auch auf Handy-Lautsprechern), Crunch, Rumpeln – plus Sub für große Boxen
+  const t2 = t + 0.16, dist = AC.createWaveShaper(); dist.curve = distCurve(60); dist.connect(out);
+  const body = AC.createOscillator(), bg = AC.createGain(); body.type = 'sine'; body.frequency.setValueAtTime(320, t2); body.frequency.exponentialRampToValueAtTime(70, t2 + 0.55);
+  bg.gain.setValueAtTime(0.0001, t2); bg.gain.exponentialRampToValueAtTime(0.9, t2 + 0.01); bg.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.7); body.connect(bg); bg.connect(dist); body.start(t2); body.stop(t2 + 0.75);
+  const cr = AC.createOscillator(), cf = AC.createBiquadFilter(), cg = AC.createGain(); cr.type = 'sawtooth'; cr.frequency.setValueAtTime(160, t2); cr.frequency.exponentialRampToValueAtTime(45, t2 + 0.8);
+  cf.type = 'lowpass'; cf.frequency.setValueAtTime(2200, t2); cf.frequency.exponentialRampToValueAtTime(400, t2 + 0.8);
+  cg.gain.setValueAtTime(0.0001, t2); cg.gain.exponentialRampToValueAtTime(0.35, t2 + 0.01); cg.gain.exponentialRampToValueAtTime(0.0001, t2 + 0.9); cr.connect(cf); cf.connect(cg); cg.connect(dist); cr.start(t2); cr.stop(t2 + 0.95);
+  const sub = AC.createOscillator(), sg = AC.createGain(); sub.type = 'sine'; sub.frequency.setValueAtTime(90, t2); sub.frequency.exponentialRampToValueAtTime(30, t2 + 1.2);
+  sg.gain.setValueAtTime(0.5, t2); sg.gain.exponentialRampToValueAtTime(0.0001, t2 + 1.3); sub.connect(sg); sg.connect(out); sub.start(t2); sub.stop(t2 + 1.35);
+  if (!noiseBuf) noise(0.01, 0.0001, 100);
+  const n = AC.createBufferSource(), lp = AC.createBiquadFilter(), ng = AC.createGain(); n.buffer = noiseBuf; n.loop = true;
+  lp.type = 'bandpass'; lp.Q.value = 0.8; lp.frequency.setValueAtTime(2500, t2); lp.frequency.exponentialRampToValueAtTime(350, t2 + 1.6);
+  ng.gain.setValueAtTime(0.0001, t2); ng.gain.exponentialRampToValueAtTime(0.9, t2 + 0.01); ng.gain.exponentialRampToValueAtTime(0.0001, t2 + 1.8);
+  n.connect(lp); lp.connect(ng); ng.connect(out); n.start(t2); n.stop(t2 + 1.9);
+  for (let i = 0; i < 9; i++) noise(0.05, 0.12 * (1 - i / 9), 3000 + Math.random() * 3000, 'highpass', 0.25 + i * 0.09 + Math.random() * 0.05);   // Prasseln
+}
+const MUSIC = { on: false, next: 0, step: 0, gain: null, track: null };
+// Kampfmusik: episch und treibend – E-Moll, 150 BPM, galoppierender verzerrter Bass, Power-Chords, Streicherfläche, große Drums
+const F_CH = [{ b: 82.41, n: [329.63, 392, 493.88] }, { b: 65.41, n: [261.63, 329.63, 392] }, { b: 73.42, n: [293.66, 369.99, 440] }, { b: 61.74, n: [246.94, 311.13, 369.99] }];   // Em · C · D · H
+let fDist = null;
+function fOsc(type, f, t, dur, vol, cut, att, viaDist, slideTo) {
+  const o = AC.createOscillator(), fl = AC.createBiquadFilter(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  fl.type = 'lowpass'; fl.frequency.value = cut;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + (att || 0.008)); g.gain.setValueAtTime(vol, t + Math.max(att || 0.008, dur * 0.6)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(fl); fl.connect(g); g.connect(viaDist ? fDist : MUSIC.gain); o.start(t); o.stop(t + dur + 0.05);
+}
+function fightStep(i, t) {
+  if (!fDist || fDist.context !== AC) { fDist = AC.createWaveShaper(); fDist.curve = distCurve(30); const fg = AC.createGain(); fg.gain.value = 0.5; fDist.connect(fg); fg.connect(MUSIC.gain); }
+  const st = i % 16, bar = (i >> 4) % 4, ch = F_CH[bar], phrase = (i >> 6) % 2, bl = 60 / 150 * 4;
+  // Drums: Kick (mit Klick, damit man sie auf dem Handy hört), Snare, Hats, Crash am Phrasenanfang, Tom-Fill am Ende
+  if (st % 4 === 0 || (bar === 3 && st === 14)) { fOsc('sine', 150, t, 0.25, 0.55, 800, 0.003, false, 45); mNoise(t, 0.02, 0.12, 3500, 'highpass'); }
+  if (st === 4 || st === 12) { mNoise(t, 0.22, 0.16, 1700, 'bandpass'); fOsc('triangle', 220, t, 0.12, 0.12, 1200, 0.003, false, 160); }
+  if (st % 2 === 1) mNoise(t, 0.05, 0.03, 9000, 'highpass');
+  if (bar === 0 && st === 0) mNoise(t, 1.6, 0.08, 5000, 'highpass');
+  if (bar === 3 && st >= 8 && st % 2 === 0 && st < 14) fOsc('sine', [200, 170, 140][(st - 8) / 2], t, 0.22, 0.35, 900, 0.003, true, 90);
+  // galoppierender Bass (verzerrt, eine Oktave hoch gedoppelt – hörbar auf kleinen Lautsprechern)
+  if (st % 4 !== 1) { fOsc('sawtooth', ch.b, t, 0.11, 0.16, 700, 0.004, true); fOsc('sawtooth', ch.b * 2, t, 0.11, 0.07, 1100, 0.004, true); }
+  // Power-Chords: Grundton + Quinte + Oktave, synkopiert
+  if (st === 0 || st === 6 || st === 10) for (const m of [1, 1.4983, 2]) { fOsc('sawtooth', ch.b * 2 * m, t, st === 0 ? 0.32 : 0.18, 0.05, 2400, 0.005, true); fOsc('sawtooth', ch.b * 2 * m * 1.006, t, st === 0 ? 0.32 : 0.18, 0.04, 2400, 0.005, true); }
+  // Streicherfläche über den ganzen Takt
+  if (st === 0) ch.n.forEach(f => { fOsc('sawtooth', f / 2, t, bl * 0.98, 0.022, 1500, 0.35); fOsc('sawtooth', f / 2 * 1.004, t, bl * 0.98, 0.018, 1500, 0.35); });
+  // Bläser-Melodie in der zweiten Phrase: lange Töne, kein Gedudel
+  if (phrase && (st === 0 || st === 8)) { const f = st === 0 ? ch.n[2] : ch.n[1] * 2; fOsc('sawtooth', f, t, bl / 2 * 0.95, 0.04, 1800, 0.06); fOsc('square', f / 2, t, bl / 2 * 0.95, 0.015, 1200, 0.06); }
+}
 const M_CH = [   // Am – F – C – G
   { b: 110, n: [440, 523.25, 659.25] }, { b: 87.31, n: [349.23, 440, 523.25] },
   { b: 130.81, n: [392, 523.25, 659.25] }, { b: 98, n: [392, 493.88, 587.33] }
@@ -191,7 +253,10 @@ function musicStep(i, t) {
   mNoise(t, 0.04, e % 2 ? 0.03 : 0.018, 7000, 'highpass');                                              // Hi-Hat
 }
 function musicTick() {
-  const want = AC && !settings.mute && !document.hidden && (scene === 'title' || scene === 'online' || scene === 'select');
+  const menu = scene === 'title' || scene === 'online' || scene === 'select' || scene === 'arena', fight = scene === 'countdown' || scene === 'fight';
+  const track = menu ? 'menu' : fight ? 'fight' : null;
+  if (MUSIC.on && track !== MUSIC.track && MUSIC.gain) { MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(0, AC.currentTime, 0.1); MUSIC.on = false; }   // Spurwechsel
+  const want = AC && !settings.mute && !document.hidden && track;
   if (!want) {
     if (MUSIC.on && MUSIC.gain) { MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(0, AC.currentTime, 0.15); }
     MUSIC.on = false; return;
@@ -199,11 +264,12 @@ function musicTick() {
   if (!noiseBuf) noise(0.01, 0.0001, 100);   // Rauschpuffer anlegen
   if (!MUSIC.gain) { MUSIC.gain = AC.createGain(); MUSIC.gain.gain.value = 0; MUSIC.gain.connect(master); }
   if (!MUSIC.on) {
-    MUSIC.on = true; MUSIC.next = AC.currentTime + 0.08;
-    MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(0.55, AC.currentTime, 0.5);
+    MUSIC.on = true; MUSIC.track = track; MUSIC.step = 0; MUSIC.next = AC.currentTime + 0.25;
+    MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(track === 'fight' ? 0.42 : 0.55, AC.currentTime + 0.2, 0.4);   // im Kampf leiser – Effekte gehen vor
   }
   if (MUSIC.next < AC.currentTime) MUSIC.next = AC.currentTime + 0.05;
-  while (MUSIC.next < AC.currentTime + 0.3) { musicStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 108 / 2; }
+  if (track === 'fight') while (MUSIC.next < AC.currentTime + 0.3) { fightStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 150 / 4; }
+  else while (MUSIC.next < AC.currentTime + 0.3) { musicStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 108 / 2; }
 }
 
 /* ---------------- Bühne ---------------- */
@@ -1167,9 +1233,11 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
+  { v: '4.5.1', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
+    ['🎵', 'Kampfmusik und ein neuer, mächtiger KO-Sound'],
     ['⚖️', 'Finisher fairer: Überschallknall, Phase Braun, Ablehnung und Strobo kann man jetzt ausweichen'],
     ['🏕️', 'Neuer Schauplatz: Trailerpark am Waldrand – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
     ['🎟️', 'Schauplatz-Wahl mit Backstage-Pässen – oder einfach Zufall'],
