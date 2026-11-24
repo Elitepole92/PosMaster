@@ -3977,26 +3977,28 @@ function howtoPages() {
     ['🌐 ONLINE & BESTENLISTE', [['📱', 'Online-Duell: einer erstellt einen Raum, der andere gibt den 4-stelligen Code ein.'], ['🏆', 'Bestenliste: schnellster Sieg im Online-Duell kommt in die Top 5.'], ['💬', 'Ideen oder Bugs? Ab damit über „Feedback geben“.']]]
   ];
 }
-function openHowto() {
+function openHowto() {   // einheitlich: eine Titelgröße, alles andere in einer Textgröße
   if (howtoBox) return;
+  const small = innerHeight < 520, fs = small ? 16 : 18, tf = small ? 26 : 30;
   howtoBox = document.createElement('div'); howtoBox.className = 'scrollbox';
-  howtoBox.style.cssText = fbBox.style.cssText + ';width:min(780px,94vw);display:block;overflow:hidden;max-height:none;padding:' + (innerHeight < 520 ? '10px 18px' : '16px 24px');
-  howtoBox.innerHTML = `<div class="ttl" style="font:900 ${innerHeight < 520 ? 26 : 34}px Impact,'Arial Black',sans-serif;color:#ffd23f"></div><div class="bd"></div>` +
+  howtoBox.style.cssText = fbBox.style.cssText + `;width:min(780px,94vw);display:block;overflow:hidden;max-height:none;padding:${small ? '10px 18px' : '16px 24px'};font:600 ${fs}px/1.35 system-ui,sans-serif`;
+  const bt = `font:700 ${fs}px system-ui,sans-serif;border:0;border-radius:14px;padding:10px 22px`;
+  howtoBox.innerHTML = `<div class="ttl" style="font:900 ${tf}px Impact,'Arial Black',sans-serif;color:#ffd23f"></div><div class="bd"></div>` +
     `<div style="margin-top:10px;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap">` +
-    `<button class="prev" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 18px">‹ Zurück</button>` +
-    `<button class="next" style="font:900 22px Impact,'Arial Black',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 34px"></button>` +
-    `<span class="pg" style="color:#9a9ab0;font:600 13px system-ui,sans-serif"></span></div>`;
+    `<button class="prev" style="${bt};background:#3a3450;color:#fff">‹ Zurück</button>` +
+    `<button class="next" style="${bt};background:#ffd23f;color:#1a1024"></button>` +
+    `<span class="pg" style="color:#9a9ab0;font:600 ${fs}px system-ui,sans-serif"></span></div>`;
   document.body.appendChild(howtoBox); howtoPage = 0;
   howtoBox.querySelector('.prev').addEventListener('click', () => { if (howtoPage > 0) { howtoPage--; showHowto(); sfx.move(); } });
   howtoBox.querySelector('.next').addEventListener('click', howtoNext);
   showHowto();
 }
 function showHowto() {
-  const P = howtoPages(), [t, rows] = P[howtoPage], small = innerHeight < 520, esc = x => String(x).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  const P = howtoPages(), [t, rows] = P[howtoPage], small = innerHeight < 520, fs = small ? 16 : 18, esc = x => String(x).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   howtoBox.querySelector('.ttl').textContent = t;
-  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left"><span style="font-size:${small ? 18 : 22}px;width:30px;flex:none">${ic}</span><span style="font:600 ${small ? 15 : 17}px/1.35 system-ui,sans-serif;color:#e8e8f4">${esc(tx)}</span></div>`).join('');
+  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left;font:600 ${fs}px/1.35 system-ui,sans-serif;color:#e8e8f4"><span style="width:28px;flex:none">${ic}</span><span>${esc(tx)}</span></div>`).join('');
   howtoBox.querySelector('.prev').style.display = howtoPage > 0 ? '' : 'none';
-  howtoBox.querySelector('.next').textContent = howtoPage >= P.length - 1 ? 'VERSTANDEN!' : 'WEITER ›';
+  howtoBox.querySelector('.next').textContent = howtoPage >= P.length - 1 ? 'Verstanden!' : 'Weiter ›';
   howtoBox.querySelector('.pg').textContent = `${howtoPage + 1}/${P.length}`;
 }
 function howtoNext() { if (howtoPage < howtoPages().length - 1) { howtoPage++; showHowto(); sfx.move(); } else closeHowto(); }
