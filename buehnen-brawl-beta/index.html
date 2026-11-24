@@ -225,9 +225,9 @@ function fightStep(i, t) {
   // Bläser-Melodie in der zweiten Phrase: lange Töne, kein Gedudel
   if (phrase && (st === 0 || st === 8)) { const f = st === 0 ? ch.n[2] : ch.n[1] * 2; fOsc('sawtooth', f, t, bl / 2 * 0.95, 0.04, 1800, 0.06); fOsc('square', f / 2, t, bl / 2 * 0.95, 0.015, 1200, 0.06); }
 }
-const M_CH = [   // Am – F – C – G
-  { b: 110, n: [440, 523.25, 659.25] }, { b: 87.31, n: [349.23, 440, 523.25] },
-  { b: 130.81, n: [392, 523.25, 659.25] }, { b: 98, n: [392, 493.88, 587.33] }
+const M_CH = [   // Am – F – C – G (Bass eine Oktave tiefer, damit er unter der Fläche liegt)
+  { b: 55, n: [440, 523.25, 659.25] }, { b: 43.65, n: [349.23, 440, 523.25] },
+  { b: 65.41, n: [392, 523.25, 659.25] }, { b: 49, n: [392, 493.88, 587.33] }
 ];
 function mNote(freq, t, dur, type, vol, cut) {
   const o = AC.createOscillator(), g = AC.createGain(), f = AC.createBiquadFilter();
@@ -241,16 +241,19 @@ function mNoise(t, dur, vol, freq, type) {
   s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   s.connect(f); f.connect(g); g.connect(MUSIC.gain); s.start(t); s.stop(t + dur + 0.02);
 }
-function musicStep(i, t) {
-  const bar = (i >> 3) % 4, e = i % 8, ch = M_CH[bar], loop = (i >> 5) % 2;
-  if (e === 0) ch.n.forEach(f => mNote(f / 2, t, 1.9, 'triangle', 0.035, 1200));                    // Pad
-  if (e % 2 === 0) mNote(ch.b, t, 0.32, 'sine', 0.22, 600);                                             // Bass
-  if (e === 3 || e === 7) mNote(ch.b * 2, t, 0.14, 'sine', 0.1, 600);
-  const arp = [0, 1, 2, 1, 2, 0, 1, 2][e], oct = loop && e > 4 ? 2 : 1;
-  mNote(ch.n[arp] * oct, t, 0.2, 'square', 0.022, 1800);                                                // Arpeggio
-  if (e === 0 || e === 4) { mNote(60, t, 0.25, 'sine', 0.3, 300); }                                     // Kick
-  if (e === 2 || e === 6) mNoise(t, 0.12, 0.05, 1800, 'bandpass');                                     // Snare
-  mNoise(t, 0.04, e % 2 ? 0.03 : 0.018, 7000, 'highpass');                                              // Hi-Hat
+function musicStep(i, t) {   // Lobby: dynamisch, 122 BPM, 16tel-Raster – Four-on-the-floor, Clap, Offbeat-Hats, Oktav-Bass, Pluck-Arpeggio, Fill alle 4 Takte
+  if (!fDist || fDist.context !== AC) { fDist = AC.createWaveShaper(); fDist.curve = distCurve(30); const fg = AC.createGain(); fg.gain.value = 0.5; fDist.connect(fg); fg.connect(MUSIC.gain); }
+  const st = i % 16, bar = (i >> 4) % 4, ch = M_CH[bar], phrase = (i >> 6) % 2, bl = 60 / 122 * 4;
+  if (st % 4 === 0) { fOsc('sine', 140, t, 0.22, 0.45, 700, 0.003, false, 48); mNoise(t, 0.015, 0.08, 3500, 'highpass'); }   // Kick
+  if (st === 4 || st === 12) { mNoise(t, 0.14, 0.1, 1500, 'bandpass'); mNoise(t + 0.012, 0.1, 0.06, 2200, 'bandpass'); }   // Clap
+  if (st % 4 === 2) mNoise(t, 0.09, 0.035, 8000, 'highpass');   // Offbeat-Hat
+  else if (st % 2 === 1) mNoise(t, 0.025, 0.015, 9500, 'highpass');
+  if (bar === 3 && st >= 12) mNoise(t, 0.08, 0.04 + (st - 12) * 0.02, 1800, 'bandpass');   // Snare-Fill
+  if (st % 2 === 0) fOsc('sawtooth', st % 4 === 2 ? ch.b * 2 : ch.b, t, 0.13, 0.12, 650, 0.004, true);   // Oktav-Bass
+  if (st === 0) ch.n.forEach(f => fOsc('sawtooth', f / 2, t, bl * 0.97, 0.018, 1300, 0.25));   // Fläche
+  const arp = [0, 1, 2, 1][(st >> 1) % 4], oct = phrase && st >= 8 ? 2 : 1;
+  if (st % 2 === 0) fOsc('sawtooth', ch.n[arp] * oct, t, 0.16, 0.028, 2000 + 600 * Math.sin(i * 0.05), 0.004);   // Pluck mit wanderndem Filter
+  if (phrase && (st === 0 || st === 10)) fOsc('triangle', ch.n[2] * 2, t, 0.5, 0.03, 3000, 0.02);   // Glanz-Ton
 }
 function musicTick() {
   const menu = scene === 'title' || scene === 'online' || scene === 'select' || scene === 'arena', fight = scene === 'countdown' || scene === 'fight';
@@ -265,11 +268,11 @@ function musicTick() {
   if (!MUSIC.gain) { MUSIC.gain = AC.createGain(); MUSIC.gain.gain.value = 0; MUSIC.gain.connect(master); }
   if (!MUSIC.on) {
     MUSIC.on = true; MUSIC.track = track; MUSIC.step = 0; MUSIC.next = AC.currentTime + 0.25;
-    MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(track === 'fight' ? 0.42 : 0.55, AC.currentTime + 0.2, 0.4);   // im Kampf leiser – Effekte gehen vor
+    MUSIC.gain.gain.cancelScheduledValues(AC.currentTime); MUSIC.gain.gain.setTargetAtTime(track === 'fight' ? 0.26 : 0.8, AC.currentTime + 0.2, 0.4);   // Kampf leiser, Lobby lauter   // im Kampf leiser – Effekte gehen vor
   }
   if (MUSIC.next < AC.currentTime) MUSIC.next = AC.currentTime + 0.05;
   if (track === 'fight') while (MUSIC.next < AC.currentTime + 0.3) { fightStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 150 / 4; }
-  else while (MUSIC.next < AC.currentTime + 0.3) { musicStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 108 / 2; }
+  else while (MUSIC.next < AC.currentTime + 0.3) { musicStep(MUSIC.step++, MUSIC.next); MUSIC.next += 60 / 122 / 4; }
 }
 
 /* ---------------- Bühne ---------------- */
@@ -1233,7 +1236,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.2', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.3', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
