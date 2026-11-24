@@ -402,7 +402,7 @@ const S_HM = {
   atkPose(P, e) { P.prop = 'clip'; P.hF = { x: lerp(4, 58, e), y: lerp(-112, -66, e) }; P.rot = 0.12 * e; },
   finPose(P, A) {
     P.prop = 'plug'; P.hB = { x: -4, y: -64 };
-    if (A.t < 30) { const up = Math.min(1, A.t / 12); P.hF = { x: 14 + 18 * up, y: lerp(-60, -122, up) }; }
+    if (A.t < 40) { const up = Math.min(1, A.t / 12); P.hF = { x: 14 + 18 * up, y: lerp(-60, -122, up) }; }
     else { P.hF = { x: 44, y: -92 }; P.rot = -0.04; }
   },
   prop(c, q, f, A, P) {
@@ -983,7 +983,7 @@ function drawStamp(c, x, y, a) {
 const ROSTER = [
   {
     id: 'hamster', lobby: 'Juckt die Fresse?', name: 'MEDIEN HAMSTER', short: 'Hamster', w: 48, h: 74,
-    speed: 5.2, airSpeed: 5, airAcc: 0.6, jump: 13.6, airJump: 12.2, airJumps: 2, grav: 0.64, maxFall: 11, fastFall: 17, weight: 1.0,
+    speed: 5.0, airSpeed: 4.8, airAcc: 0.6, jump: 13.6, airJump: 12.2, airJumps: 2, grav: 0.64, maxFall: 11, fastFall: 17, weight: 1.06,
     color: '#a45cff', color2: '#dcc2ff', hitColor: '#d6a8ff', stats: [3, 4, 2], pt: [10, -44, 1.05],
     atk: { name: 'Pfoten-Hieb', s: 4, a: 5, r: 11, dmg: 7, kb: 5.4, scale: 0.12, ang: 40, meter: 20, lunge: 4, box: { x: 8, y: -62, w: 48, h: 52 } },
     fin: 'smoke', finName: 'RAUCH INS GESICHT', finQuote: 'Kurz eine rauchen … PFFFFFF!', finRange: 260,
@@ -992,7 +992,7 @@ const ROSTER = [
   },
   {
     id: 'hm', lobby: 'Aufzug ist geschlossen!', name: 'HALLENMEISTER', short: 'Hallenmeister', w: 46, h: 110,
-    speed: 5.8, airSpeed: 4.6, airAcc: 0.52, jump: 13.4, airJump: 11.8, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.9,
+    speed: 5.8, airSpeed: 4.6, airAcc: 0.52, jump: 13.4, airJump: 11.8, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.8,
     color: '#3a78e0', color2: '#b4cfff', hitColor: '#7fd3ff', stats: [2, 3, 4], pt: [19, -97, 1.6],
     atk: { name: 'Klemmbrett-Klatsche', s: 6, a: 6, r: 11, dmg: 10, kb: 5.6, scale: 0.125, ang: 50, meter: 20, lunge: 3, box: { x: 8, y: -98, w: 72, h: 72 } },
     fin: 'zap', finName: '400V PHASE BRAUN', finQuote: '400 Volt, Phase Braun. Nicht anfassen!', finRange: 520,
@@ -1001,7 +1001,7 @@ const ROSTER = [
   },
   {
     id: 'cemil', name: 'LOGISTIKER', short: 'Logistiker', w: 38, h: 82,
-    speed: 6.2, airSpeed: 5.8, airAcc: 0.75, jump: 14.6, airJump: 13, airJumps: 2, grav: 0.66, maxFall: 11.5, fastFall: 17, weight: 1.1,
+    speed: 5.9, airSpeed: 5.6, airAcc: 0.72, jump: 14.4, airJump: 13, airJumps: 2, grav: 0.66, maxFall: 11.5, fastFall: 17, weight: 1.17,
     color: '#ffd400', color2: '#fff3a0', hitColor: '#ffe14a', stats: [5, 1, 2], pt: [3, -70, 1.75],
     atk: { name: 'Helm-Kopfnuss', s: 4, a: 6, r: 10, dmg: 7, kb: 5, scale: 0.115, ang: 38, meter: 20, lunge: 5, box: { x: 4, y: -82, w: 46, h: 54 } },
     fin: 'forklift', finName: 'GABELSTAPLER-RAMME', finQuote: 'Piep, piep, piep – Logistik kommt durch!', finRange: 600,
@@ -1019,9 +1019,9 @@ const ROSTER = [
   },
   {
     id: 'gerch', lobby: 'Espresso und Kippe, lecker Frühstück.', name: 'TONTECHNIKER', short: 'Tontechniker', w: 44, h: 108,
-    speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.94,
+    speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.9,
     color: '#ff7a1a', color2: '#ffd0a8', hitColor: '#ffb070', stats: [3, 3, 3], pt: [7, -95, 1.6],
-    atk: { name: 'XLR-Peitsche', s: 6, a: 5, r: 12, dmg: 9, kb: 5.3, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
+    atk: { name: 'XLR-Peitsche', s: 5, a: 6, r: 11, dmg: 10, kb: 5.6, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
     fin: 'boom', finName: '180 dB ÜBERSCHALLKNALL', finQuote: 'Fader auf Anschlag – 180 dB!', finRange: 380,
     quotes: ['Check, eins, zwei.', 'Zu laut gibt es nicht.', 'Das war nur der Soundcheck.', 'Pegel passt.', 'Wer hat am Pult gedreht?!'],
     style: S_GERCH, draw: (c, f, A) => drawHuman(c, f, A, S_GERCH)
@@ -1065,7 +1065,7 @@ const ROSTER = [
   },
   {
     id: 'it', lobby: 'Mac ist was für Loser, ich arbeite seit 1992 auf Ubuntu.', name: 'IT-LER', short: 'ITler', w: 34, h: 124,
-    speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.13,
+    speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.05,
     color: '#3dff7a', color2: '#d0ffdc', hitColor: '#8dffae', stats: [3, 2, 4], pt: [5, -112, 1.6],
     atk: { name: 'Tastatur-Klatsche', s: 5, a: 5, r: 13, dmg: 7, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 8, y: -102, w: 72, h: 64 } },
     fin: 'matrix', finName: 'TROJANER IM NETZWERK', finQuote: 'Hast du den Anhang geöffnet? … Zu spät.', finRange: 640,
@@ -1084,15 +1084,15 @@ const ROSTER = [
 ];
 const FMOVE = {
   smoke: { dmg: 22, kb: 10.5, scale: 0.2, ang: 55, meter: 0 },
-  zap: { dmg: 24, kb: 11, scale: 0.21, ang: 60, meter: 0 },
-  forklift: { dmg: 25, kb: 12, scale: 0.21, ang: 65, meter: 0 },
+  zap: { dmg: 30, kb: 12, scale: 0.21, ang: 60, meter: 0 },
+  forklift: { dmg: 21, kb: 11, scale: 0.21, ang: 65, meter: 0 },
   chain: { dmg: 18, kb: 10.2, scale: 0.17, ang: 35, meter: 0 },
-  boom: { dmg: 24, kb: 11.5, scale: 0.21, ang: 45, meter: 0 },
+  boom: { dmg: 30, kb: 12.2, scale: 0.21, ang: 45, meter: 0 },
   food: { dmg: 13, kb: 11, scale: 0.21, ang: 50, meter: 0 },
-  stamp: { dmg: 22, kb: 11, scale: 0.2, ang: 60, meter: 0 },
+  stamp: { dmg: 25, kb: 11, scale: 0.2, ang: 60, meter: 0 },
   wall: { dmg: 23, kb: 11.5, scale: 0.2, ang: 62, meter: 0 },
   mallet: { dmg: 13, kb: 11.5, scale: 0.2, ang: 48, meter: 0 },
-  strobe: { dmg: 12, kb: 11, scale: 0.21, ang: 55, meter: 0 },
+  strobe: { dmg: 15, kb: 11, scale: 0.21, ang: 55, meter: 0 },
   matrix: { dmg: 11, kb: 10.5, scale: 0.2, ang: 55, meter: 0 },
   oops: { dmg: 21, kb: 11.5, scale: 0.2, ang: 70, meter: 0 }
 };
@@ -1106,7 +1106,7 @@ const GADGETS = {
   energy: { name: 'ENERGY', col: '#ffd23f' }    // Blitz: stärkere Schläge
 };
 const BOOST_T = 540;
-// Schauplatz-Spezialitäten: Pyro (Main Stage) und Wildwechsel (Gogos Wohnmobil) – angekündigt, man kann ausweichen
+// Schauplatz-Spezialitäten: Pyro (Mainstage) und Wildwechsel (Trailerpark am Waldrand) – angekündigt, man kann ausweichen
 let hazT = 720;
 const HAZ = { boar: { dmg: 9, kb: 8.5, scale: 0.08, ang: 55, meter: 0 }, pyro: { dmg: 9, kb: 9, scale: 0.09, ang: 80, meter: 0 } };
 const HAZ_SRC = { stats: { dealt: 0, hits: 0, kos: 0, fins: 0 }, def: { hitColor: '#ffb34a' }, boost: null, meter: 0, x: 640, y: 0 };   // „neutraler“ Verursacher
@@ -1130,7 +1130,7 @@ function stepHazardEnt(e) {
     if (e.t % 3 === 0) dust(e.x - e.dir * 30, e.y, 1, 'rgba(110,90,60,');
     for (const f of F) {
       if (e.hits.includes(f.idx) || !hittable(f)) continue;
-      if (overlap({ x: e.x - 34, y: e.y - 42, w: 68, h: 42 }, hurtbox(f))) { e.hits.push(f.idx); popText(f.x, f.y - f.def.h - 20, 'GRUNZ!', '#ffcf70', 30, 40); applyHit(HAZ_SRC, f, HAZ.boar, e.dir, f.x, f.y - 30); }
+      if (overlap({ x: e.x - 48, y: e.y - 60, w: 96, h: 60 }, hurtbox(f))) { e.hits.push(f.idx); popText(f.x, f.y - f.def.h - 20, 'GRUNZ!', '#ffcf70', 30, 40); applyHit(HAZ_SRC, f, HAZ.boar, e.dir, f.x, f.y - 30); }
     }
     if (e.x < STAGE.x1 - 320 || e.x > STAGE.x2 + 320) e.dead = true;
   } else if (e.type === 'pyro') {
@@ -1151,8 +1151,9 @@ const FORK_BOX = { x: -64, y: -62, w: 160, h: 62 };
 /* ---------------- Spielzustand ---------------- */
 const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true, arena: 0 };
 // Schauplätze (gleiche Plattform-Positionen, nur andere Optik – Balance bleibt gleich). arena-Einstellung: 0, 1 … oder ARENAS.length = Zufall
-const ARENAS = [{ id: 'main', name: 'MAIN STAGE' }, { id: 'camper', name: 'GOGOS WOHNMOBIL' }];
+const ARENAS = [{ id: 'main', name: 'MAINSTAGE' }, { id: 'camper', name: 'TRAILERPARK AM WALDRAND' }];
 let ARENA = 'main';
+const CAMP_GROUND = [{ x1: -2000, x2: STAGE.x1 - 240, y: STAGE.top, solid: true }, { x1: STAGE.x2 + 240, x2: 3000, y: STAGE.top, solid: true }];   // hinter den Gräben
 const arenaLabel = i => i >= ARENAS.length ? 'ZUFALL' : ARENAS[i].name;
 const pickArena = i => (i >= ARENAS.length ? pick(ARENAS) : ARENAS[i] || ARENAS[0]).id;
 try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
@@ -1169,9 +1170,10 @@ const CHANGELOG = [
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
-    ['🏕️', 'Neuer Schauplatz: Gogos Wohnmobil – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
+    ['⚖️', 'Finisher fairer: Überschallknall, Phase Braun, Ablehnung und Strobo kann man jetzt ausweichen'],
+    ['🏕️', 'Neuer Schauplatz: Trailerpark am Waldrand – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
     ['🎟️', 'Schauplatz-Wahl mit Backstage-Pässen – oder einfach Zufall'],
-    ['🔥', 'Spezialitäten: Pyro auf der Main Stage, Wildwechsel bei Gogo'],
+    ['🔥', 'Spezialitäten: Pyro auf der Mainstage, Wildwechsel im Trailerpark'],
     ['📖', 'Neu im Menü: die Anleitung'],
     ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
   ] },
@@ -1269,7 +1271,7 @@ function stepFx() {
 }
 
 /* ---------------- Physik & Logik ---------------- */
-function hurtbox(o) { return { x: o.x - o.def.w / 2, y: o.y - o.def.h, w: o.def.w, h: o.def.h }; }
+function hurtbox(o) { const h = Math.max(o.def.h, 86); return { x: o.x - o.def.w / 2, y: o.y - h, w: o.def.w, h }; }   // kleine Figuren: Mindesthöhe, sonst gehen viele Schläge drüber
 function overlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 function worldBox(f, b) { return { x: f.facing > 0 ? f.x + b.x : f.x - b.x - b.w, y: f.y + b.y, w: b.w, h: b.h }; }
 function hittable(o) { return !o.dead && o.invuln <= 0 && o.plat <= 0; }
@@ -1283,7 +1285,7 @@ function applyHit(att, o, m, dirX, hx, hy) {
   if (att.boost && att.boost.kind === 'energy') { dmg = Math.round(dmg * 1.5); kbm *= 1.2; mm = 1.5; }
   if (o.boost && o.boost.kind === 'gaffa') { dmg = Math.max(1, Math.round(dmg * 0.6)); kbm *= 0.6; }
   if (o.shielding) {
-    if (o.shieldAge <= SHIELD_PARRY) {   // im richtigen Moment geblockt: KONTER – Angreifer taumelt, Verteidiger bekommt Energie
+    if (o.shieldAge <= (Object.values(FMOVE).includes(m) ? SHIELD_PARRY * 2 : SHIELD_PARRY)) {   // im richtigen Moment geblockt (gegen Finisher doppelt so viel Zeit): KONTER – Angreifer taumelt, Verteidiger bekommt Energie
       freeze = 10; o.vx = 0; sfx.parry(); sparks(hx, hy, '#ffd23f', 16);
       popText(o.x, o.y - o.def.h - 24, 'KONTER!', '#ffd23f', 36, 45);
       addMeter(o, 25); o.shieldT = 0; o.shielding = false; o.shieldCD = 20;
@@ -1349,7 +1351,7 @@ function stepFinisher(f, inp, o) {
       }
     }
     f.facing = Fn.dir;
-    if (Fn.t >= 125) { f.fin = null; f.lag = 16; }
+    if (Fn.t >= 95) { f.fin = null; f.lag = 18; }
   } else if (Fn.type === 'smoke') {
     f.armor = Fn.t < 22; f.vx *= 0.8;
     if (Fn.t === 4) sfx.lighter();
@@ -1358,19 +1360,22 @@ function stepFinisher(f, inp, o) {
     if (Fn.t > 22 && Fn.t < 40) parts.push({ x: f.x + f.facing * 36, y: f.y - 38 + rand(-4, 4), vx: f.facing * rand(4, 7), vy: rand(-0.8, 0.8), life: 30, max: 30, col: 'rgba(215,215,205,', size: rand(5, 9), g: -0.02, kind: 'smoke' });
     if (Fn.t >= 56) { f.fin = null; f.armor = false; f.lag = 8; }
   } else if (Fn.type === 'zap') {
-    f.armor = Fn.t < 30; f.vx *= 0.8;
+    f.armor = Fn.t < 40; f.vx *= 0.8;
     if (Fn.t === 2) sfx.buzz();
-    if (Fn.t === 30) {
+    if (Fn.t === 10) {   // Ziel festlegen: da, wo der Gegner gerade steht – Marker blinkt, Einschlag eine halbe Sekunde später
+      const dx = o.x - f.x, ok = !o.dead && (Math.sign(dx) === f.facing || Math.abs(dx) < 40) && Math.abs(dx) < 560 && Math.abs(o.y - f.y) < 320;
+      Fn.tx = ok ? o.x : f.x + f.facing * 420; Fn.ty = ok ? o.y : f.y; sfx.beep();
+    }
+    if (Fn.t === 40) {
       const hx = f.x + f.facing * 46, hy = f.y - 120;
-      let tx = f.x + f.facing * 420, ty = STAGE.top, hit = false;
-      const dx = o.x - f.x;
-      if (hittable(o) && (Math.sign(dx) === f.facing || Math.abs(dx) < 40) && Math.abs(dx) < 560 && Math.abs(o.y - f.y) < 320) { tx = o.x; ty = o.y - o.def.h / 2; hit = true; }
+      let tx = Fn.tx, ty = Fn.ty - 50, hit = false;
+      if (hittable(o) && Math.abs(o.x - Fn.tx) < 58 + o.def.w / 2 && o.y > Fn.ty - 140 && o.y < Fn.ty + 40) { tx = o.x; ty = o.y - o.def.h / 2; hit = true; }
       ents.push({ type: 'bolt', x1: hx, y1: hy, x2: tx, y2: ty, t: 0 });
       flashScreen = 8; flashCol = '120,200,255'; sfx.zap(); shake = Math.max(shake, 10);
       if (hit) { o.zapped = 60; finisherHit(f, o, tx, ty, 'ZZZZAP!', '#7fd3ff'); }
       else sparks(tx, ty, '#7fd3ff', 14);
     }
-    if (Fn.t >= 54) { f.fin = null; f.armor = false; f.lag = 8; }
+    if (Fn.t >= 64) { f.fin = null; f.armor = false; f.lag = 8; }
   } else if (Fn.type === 'chain') {
     f.armor = Fn.t < 26; f.vx *= 0.8;
     if (Fn.t % 8 === 0 && Fn.t < 26) sfx.chain();
@@ -1386,7 +1391,7 @@ function stepFinisher(f, inp, o) {
     f.armor = Fn.t < 30; f.vx *= 0.8;
     if (Fn.t === 4) sfx.feedback();
     if (Fn.t === 30) {
-      ents.push({ type: 'boom', x: f.x + f.facing * 20, y: f.y - 70, r: 10, t: 0, owner: f, hit: false });
+      ents.push({ type: 'boom', x: f.x + f.facing * 20, y: f.y - 70, gy: f.y, r: 10, t: 0, owner: f, hit: false });
       sfx.sonic(); shake = Math.max(shake, 26); flashScreen = 10; flashCol = '255,240,220';
       popText(f.x + f.facing * 60, f.y - f.def.h - 40, '180 dB!', '#ffb070', 48, 50);
     }
@@ -1407,8 +1412,8 @@ function stepFinisher(f, inp, o) {
   } else if (Fn.type === 'stamp') {
     f.armor = Fn.t < 16; f.vx *= 0.8;
     if (Fn.tx === undefined) Fn.tx = o.dead ? f.x + f.facing * 250 : o.x;
-    if (!o.dead && Fn.t < 16) Fn.tx = lerp(Fn.tx, o.x + o.vx * 4, 0.35);
-    if (Fn.t === 16) { ents.push({ type: 'stamp', x: Fn.tx, y: Math.min(cam.y - H / 2 / cam.z - 60, 40), vy: 24, owner: f, hit: false, landed: false, t: 0 }); sfx.swing(); }
+    if (!o.dead && Fn.t < 6) Fn.tx = lerp(Fn.tx, o.x + o.vx * 4, 0.35);   // Ziel steht früh fest – Schritt zur Seite reicht
+    if (Fn.t === 16) { ents.push({ type: 'stamp', x: Fn.tx, y: Math.min(cam.y - H / 2 / cam.z - 60, 40), vy: 12, owner: f, hit: false, landed: false, t: 0 }); sfx.swing(); }
     if (Fn.t >= 36) { f.fin = null; f.armor = false; f.lag = 8; }
   } else if (Fn.type === 'mallet') {   // hinrennen, dreimal mit dem Gummihammer, dann der große Schlag
     f.armor = true;
@@ -1466,9 +1471,10 @@ function stepFinisher(f, inp, o) {
     if ((Fn.t >= 40 && !ents.some(e => e.type === 'trojan' && e.owner === f)) || Fn.t >= 220) { f.fin = null; f.armor = false; f.lag = 8; }
   } else if (Fn.type === 'strobe') {
     f.armor = Fn.t < 30; f.vx *= 0.8;
-    if (!o.dead) { Fn.tx = o.x; Fn.ty = o.y; }
+    if (Fn.tx === undefined) { Fn.tx = o.dead ? f.x + f.facing * 200 : o.x; Fn.ty = o.y; }
+    if (!o.dead) { if (Fn.t >= 30) Fn.tx += clamp(o.x - Fn.tx, -2.5, 2.5); Fn.ty = o.y; }   // Lichtkegel wandert langsam hinterher – rauslaufen!
     if (Fn.t === 6) sfx.calm();
-    const inRange = hittable(o) && Math.abs(o.x - f.x) < 620 && Math.abs(o.y - f.y) < 360;
+    const inRange = hittable(o) && Math.abs(o.x - Fn.tx) < 60 + o.def.w / 2 && Math.abs(o.y - f.y) < 360;
     if (Fn.t >= 30 && Fn.t < 96) {
       if ((Fn.t - 30) % 3 === 0) sfx.tick();
       if ((Fn.t - 30) % 12 === 0 && inRange) { applyHit(f, o, STROBE_SMALL, Math.sign(o.x - f.x) || f.facing, o.x, o.y - o.def.h * 0.75); o.hitstun = Math.max(o.hitstun, 18); }
@@ -1509,7 +1515,7 @@ function stepEnts() {
     if (e.type === 'stamp') {
       const owner = e.owner, o = F[1 - owner.idx];
       if (e.landed) { if (e.t > 70) e.dead = true; continue; }
-      e.vy = Math.min(e.vy + 2.6, 42); e.y += e.vy;
+      e.vy = Math.min(e.vy + 1.4, 30); e.y += e.vy;
       if (!e.hit && hittable(o) && overlap({ x: e.x - 80, y: e.y - 50, w: 160, h: 50 }, hurtbox(o))) {
         e.hit = true; popText(o.x, o.y - o.def.h - 30, 'ABGELEHNT!', '#ff4a4a', 42, 50);
         applyHit(owner, o, FMOVE.stamp, Math.sign(o.x - e.x) || owner.facing, o.x, o.y - o.def.h * 0.7);
@@ -1544,7 +1550,7 @@ function stepEnts() {
         e.tr.push([r1(e.x), r1(e.y)]); if (e.tr.length > 10) e.tr.shift();
         if (hittable(o) && overlap({ x: e.x - 18, y: e.y - 18, w: 36, h: 36 }, hurtbox(o)) && o.shielding) {   // Schild = Firewall
           e.dead = true; sparks(e.x, e.y, '#39ff6a', 14);
-          if (o.shieldAge <= SHIELD_PARRY) { popText(o.x, o.y - o.def.h - 24, 'KONTER!', '#ffd23f', 36, 45); sfx.parry(); addMeter(o, 25); if (!owner.dead) { owner.broken = 50; owner.fin = null; owner.armor = false; } }
+          if (o.shieldAge <= SHIELD_PARRY * 2) { popText(o.x, o.y - o.def.h - 24, 'KONTER!', '#ffd23f', 36, 45); sfx.parry(); addMeter(o, 25); if (!owner.dead) { owner.broken = 50; owner.fin = null; owner.armor = false; } }
           else { popText(o.x, o.y - o.def.h - 24, 'FIREWALL!', '#7fd3ff', 32, 40); sfx.block(); }
           continue;
         }
@@ -1585,15 +1591,15 @@ function stepEnts() {
     }
     if (e.type === 'boom') {
       const owner = e.owner, o = F[1 - owner.idx];
-      e.r += 18;
-      if (!e.hit && hittable(o) && e.r <= 440) {
-        const hb = hurtbox(o), nx = clamp(e.x, hb.x, hb.x + hb.w), ny = clamp(e.y, hb.y, hb.y + hb.h);
-        if (Math.hypot(nx - e.x, ny - e.y) < e.r) {
+      e.r = Math.min(330, e.r + 9);   // Bodenwelle läuft nach links und rechts – wer springt, ist drüber
+      if (!e.hit && hittable(o) && e.r < 330) {
+        const d = Math.abs(o.x - e.x);
+        if (d < e.r + o.def.w / 2 && d > e.r - 50 && Math.abs(o.y - (e.gy !== undefined ? e.gy : o.y)) < 24) {
           e.hit = true; popText(o.x, o.y - o.def.h - 30, 'ÜBERSCHALLKNALL!', '#ffd0a8', 34, 50);
-          applyHit(owner, o, FMOVE.boom, Math.sign(o.x - e.x) || owner.facing, nx, ny);
+          applyHit(owner, o, FMOVE.boom, Math.sign(o.x - e.x) || owner.facing, o.x, o.y - 20);
         }
       }
-      if (e.t > 32) e.dead = true;
+      if (e.t > 40) e.dead = true;
       continue;
     }
     if (e.type === 'smoke') {
@@ -1636,6 +1642,9 @@ function collide(f, prevY) {
       else { f.x = f.x < (STAGE.x1 + STAGE.x2) / 2 ? STAGE.x1 - hw : STAGE.x2 + hw; f.vx = f.hitstun > 0 ? -f.vx * 0.4 : 0; }
     }
   }
+  if (!f.onGround && f.vy >= 0 && ARENA === 'camper') {   // Waldboden jenseits der Gräben ist begehbar
+    for (const g of CAMP_GROUND) if (f.x > g.x1 && f.x < g.x2 && prevY <= g.y + 0.01 && f.y >= g.y) { land(f, g, g.y); break; }
+  }
   if (!f.onGround && f.vy >= 0 && f.drop <= 0) {
     for (const p of PLATS) if (f.x > p.x1 - 4 && f.x < p.x2 + 4 && prevY <= p.y + 0.01 && f.y >= p.y) { land(f, p, p.y); break; }
   }
@@ -1643,7 +1652,7 @@ function collide(f, prevY) {
 function control(f, inp, o) {
   const d = f.def, dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   const onMain = f.onGround && f.ground === STAGE;
-  if (inp.downP && f.onGround && f.ground !== STAGE) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
+  if (inp.downP && f.onGround && f.ground !== STAGE && !f.ground.solid) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
   // Konter-Schild: antippen (nicht halten) – kurz aktiv, danach Abklingzeit
   if (inp.downP && onMain && f.shieldT <= 0 && f.shieldCD <= 0) { f.shieldT = SHIELD_T; f.shieldAge = 0; sfx.shield(); }
   f.shielding = f.shieldT > 0;
@@ -1763,6 +1772,26 @@ function cpuInput(f, o) {
     if (f.vy > -1 && f.jumps > 0 && (f.y > STAGE.top - 60 || Math.random() < 0.06)) inp.upP = true;
     return inp;
   }
+  if (o.fin) {   // Finisher des Gegners: ausweichen – je nach CPU-Stärke klappt das öfter
+    if (ai.dodgeFor !== o.fin) { ai.dodgeFor = o.fin; ai.dodgeOk = Math.random() < [0.25, 0.55, 0.85][settings.diff]; }
+    const Fo = o.fin;
+    if (ai.dodgeOk) {
+      if (Fo.type === 'boom' && Fo.t >= 26 && f.onGround && Math.abs(f.x - o.x) < 300) { inp.upP = true; return inp; }
+      if ((Fo.type === 'zap' || Fo.type === 'stamp' || Fo.type === 'strobe') && Fo.tx !== undefined && Math.abs(f.x - Fo.tx) < 120) { inp[f.x > Fo.tx ? 'right' : 'left'] = true; return inp; }
+      // alle anderen: Abstand halten bzw. drüberspringen – wie ein echter Spieler
+      const away = f.x > o.x ? 'right' : 'left', edge = (away === 'right' && f.x > STAGE.x2 - 70) || (away === 'left' && f.x < STAGE.x1 + 70);
+      if (Fo.type === 'forklift' && Fo.t >= 18 && f.onGround && Math.abs(f.x - o.x) < 190) { inp.upP = true; return inp; }
+      if (['smoke', 'chain', 'mallet', 'oops', 'food'].includes(Fo.type) && Math.abs(f.x - o.x) < 340) {
+        if (edge) { if (f.onGround) inp.upP = true; inp[away === 'right' ? 'left' : 'right'] = true; } else inp[away] = true;
+        return inp;
+      }
+    }
+  }
+  for (const e of ents) {
+    if (e.type === 'boom' && ai.dodgeOk && f.onGround && Math.abs(Math.abs(f.x - e.x) - e.r) < 60) { inp.upP = true; return inp; }
+    if (e.type === 'stamp' && !e.landed && ai.dodgeOk && Math.abs(f.x - e.x) < 110) { inp[f.x > e.x ? 'right' : 'left'] = true; return inp; }
+    if ((e.type === 'smoke' || e.type === 'trojan' || e.type === 'food') && e.owner && e.owner !== f && ai.dodgeOk && Math.abs(f.x - e.x) < 160 && Math.random() < 0.3 && f.onGround) { inp.upP = true; return inp; }
+  }
   for (const e of ents) {   // Spezialitäten: über das Wildschwein springen, von der Pyro-Düse weg
     if (e.type === 'boar' && !e.wait && f.onGround && Math.sign(f.x - e.x) === e.dir && Math.abs(f.x - e.x) < 170 && Math.random() < 0.5 + 0.2 * settings.diff) { inp.upP = true; return inp; }
     if (e.type === 'pyro' && e.t > 30 && e.t < 130 && Math.abs(f.x - e.x) < 70) { inp[f.x > e.x ? 'right' : 'left'] = true; return inp; }
@@ -1840,6 +1869,7 @@ function onUI(id) {
     case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
     case 'diffC': settings.diff = (settings.diff + 1) % 3; saveSettings(); sfx.move(); break;
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
+    case 'arenaGo': arenaConfirm(); break;
     case 'arenaBack': if (NET.role === 'host') { toSelect(); netSend({ t: 'toSel' }); sfx.select(); break; } toSelect(); sfx.select(); break;
     case 'arenaL': case 'arenaR': settings.arena = (settings.arena + (id === 'arenaR' ? 1 : ARENAS.length) ) % (ARENAS.length + 1); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items, arena: settings.arena }); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
@@ -2669,13 +2699,29 @@ function syncTouches(list) {
   for (const k of now) if (!touchHeld.has(k)) pressed.add(k);
   touchHeld.clear(); for (const k of now) touchHeld.add(k);
 }
+// In der Kämpferwahl und Schauplatz-Wahl wird erst beim Loslassen entschieden: Wischen = drehen, Tippen = Knopf
+const swipes = new Map(), swipeScene = () => scene === 'select' || scene === 'arena';
 cv.addEventListener('touchstart', e => {
   e.preventDefault(); audioInit();
-  for (const t of e.changedTouches) { const hit = uiAt(toCanvas(t)); if (hit) onUI(hit.id); }
+  for (const t of e.changedTouches) { const p = toCanvas(t), hit = uiAt(p);
+    if (swipeScene()) swipes.set(t.identifier, { x: p.x, y: p.y, id: hit && hit.id });
+    else if (hit) onUI(hit.id); }
   syncTouches(e.touches);
 }, { passive: false });
 cv.addEventListener('touchmove', e => { e.preventDefault(); syncTouches(e.touches); }, { passive: false });
-for (const ev of ['touchend', 'touchcancel']) cv.addEventListener(ev, e => { e.preventDefault(); syncTouches(e.touches); }, { passive: false });
+for (const ev of ['touchend', 'touchcancel']) cv.addEventListener(ev, e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const s0 = swipes.get(t.identifier); if (!s0) continue; swipes.delete(t.identifier);
+    if (ev === 'touchcancel' || !swipeScene()) continue;
+    const p = toCanvas(t), dx = p.x - s0.x, dy = p.y - s0.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (scene === 'arena') arenaMove(dx < 0 ? 1 : -1);
+      else carMove(isOnline() ? myIdx() : (isCPU() || s0.y < 381 ? 0 : 1), dx < 0 ? 1 : -1);
+    } else if (s0.id) onUI(s0.id);
+  }
+  syncTouches(e.touches);
+}, { passive: false });
 const releaseAll = () => { pointers.clear(); touchHeld.clear(); JOY.id = null; };
 addEventListener('blur', releaseAll); addEventListener('pagehide', releaseAll);
 document.addEventListener('visibilitychange', releaseAll);
@@ -2840,19 +2886,18 @@ function drawBackground(T, noLed) {
   if (!noLed) {
   RR(c, lx - 10, ly - 10, lw + 20, lh + 20, 4, '#1c1c24');
   c.save(); c.beginPath(); c.rect(lx, ly, lw, lh); c.clip();
-  // Ruhiger Inhalt: eigenes Logo im Workwear-Stil, mit langsamem Glanz
-  const lg = c.createLinearGradient(lx, ly, lx, ly + lh); lg.addColorStop(0, '#1d1d22'); lg.addColorStop(1, '#0c0c10');
+  // Dezenter Inhalt: ruhige, langsam fließende Wellenlinien und ein kleiner Schriftzug
+  const lg = c.createLinearGradient(lx, ly, lx, ly + lh); lg.addColorStop(0, '#15151c'); lg.addColorStop(1, '#0a0a0e');
   c.fillStyle = lg; c.fillRect(lx, ly, lw, lh);
-  const ex = lx + 120, ey = ly + lh / 2;
-  c.fillStyle = '#c8102e'; c.beginPath(); c.moveTo(ex - 58, ey - 62); c.lineTo(ex + 58, ey - 62); c.lineTo(ex + 50, ey + 30); c.quadraticCurveTo(ex, ey + 78, ex - 50, ey + 30); c.closePath(); c.fill();
-  c.strokeStyle = '#fff'; c.lineWidth = 5; c.stroke();
-  c.fillStyle = '#fff'; c.font = 'italic 900 64px Impact,"Arial Black",sans-serif'; c.textAlign = 'center'; c.fillText('BB', ex, ey + 18);
-  c.textAlign = 'left'; c.fillStyle = '#f4f4f4'; c.font = 'italic 900 64px Impact,"Arial Black",sans-serif'; c.fillText('backstage', lx + 210, ey - 6);
-  c.fillStyle = '#c8102e'; c.fillText('brawl', lx + 210, ey + 56);
-  c.fillStyle = '#9a9aa6'; c.font = 'bold 15px system-ui,sans-serif'; c.fillText('WORKWEAR FÜR BÜHNENKÄMPFER', lx + 212, ey + 86);
-  const sx = lx - 200 + ((T * 1.2) % (lw + 600));   // Glanz zieht langsam über das Logo
-  const sg = c.createLinearGradient(sx - 80, 0, sx + 80, 0); sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,0.12)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
-  c.fillStyle = sg; c.fillRect(lx, ly, lw, lh);
+  c.lineWidth = 3;
+  for (let k = 0; k < 5; k++) {
+    c.strokeStyle = `hsla(${(250 + k * 22 + T * 0.05) % 360},70%,${55 - k * 4}%,${0.28 - k * 0.04})`;
+    c.beginPath();
+    for (let x = 0; x <= lw; x += 10) { const y = ly + lh * 0.55 + Math.sin(x * 0.012 + T * 0.012 + k * 0.9) * (26 + k * 9) + Math.sin(x * 0.03 - T * 0.008 + k) * 8; if (x === 0) c.moveTo(lx + x, y); else c.lineTo(lx + x, y); }
+    c.stroke();
+  }
+  c.font = '600 15px system-ui,sans-serif'; c.textAlign = 'right'; c.fillStyle = 'rgba(255,255,255,0.22)';
+  c.fillText('B A C K S T A G E   B R A W L', lx + lw - 18, ly + lh - 18); c.textAlign = 'left';
   c.fillStyle = 'rgba(0,0,0,0.3)';
   for (let x = lx; x < lx + lw; x += 6) c.fillRect(x, ly, 2, lh);
   for (let y = ly; y < ly + lh; y += 6) c.fillRect(lx, y, lw, 2);
@@ -2912,7 +2957,7 @@ function drawStage(T) {
   c.fillStyle = '#5a5a6a'; c.fillRect(S.x1 + 4, S.top, w - 8, 2);
   for (let x = S.x1 + 12; x < S.x2 - 10; x += 16) Cc(c, x, S.top + 22, 3.2, `hsl(${(x * 0.6 + T * 4) % 360},100%,60%)`);
   c.fillStyle = 'rgba(255,255,255,0.18)'; c.font = 'bold 22px Impact,"Arial Black",sans-serif'; c.textAlign = 'center';
-  c.fillText('MAIN STAGE', (S.x1 + S.x2) / 2, S.top + 58);
+  c.fillText('MAINSTAGE', (S.x1 + S.x2) / 2, S.top + 58);
   for (const p of PLATS) {
     if (p.kind === 'truss') {
       Ln(c, p.x1 + 20, p.y - 600, p.x1 + 20, p.y, '#2c2c34', 2); Ln(c, p.x2 - 20, p.y - 600, p.x2 - 20, p.y, '#2c2c34', 2);
@@ -2923,7 +2968,7 @@ function drawStage(T) {
   }
   c.textAlign = 'left';
 }
-/* ---- Schauplatz „Gogos Wohnmobil“: Waldrand in der Dämmerung, rostiges Wohnmobil, Hochsitz, Gogo im Campingstuhl ---- */
+/* ---- Schauplatz „Trailerpark am Waldrand“: Waldrand in der Dämmerung, rostiges Wohnmobil, Hochsitz, Gogo im Campingstuhl ---- */
 function drawCamperBg(T) {
   const c = ctx, px = (cam.x - 640) * 0.1, py = (cam.y - 400) * 0.06;
   const sky = c.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#141a33'); sky.addColorStop(0.45, '#3a2f55'); sky.addColorStop(0.72, '#c0644a'); sky.addColorStop(0.85, '#e8a35a'); sky.addColorStop(1, '#2a1c22');
@@ -3118,13 +3163,26 @@ function drawEnts() {
   for (const f of F) {
     if (!f.fin) continue;
     const Fn = f.fin;
-    if (Fn.type === 'stamp' && Fn.t < 17 && Fn.tx !== undefined) {
+    if (Fn.type === 'stamp' && Fn.t < 17 && Fn.tx !== undefined && false) {
       const p = 0.5 + 0.5 * Math.sin(frame * 0.5);
       c.save(); c.globalAlpha = 0.5 + p * 0.4; c.strokeStyle = '#ff3b3b'; c.lineWidth = 3; c.setLineDash([12, 10]);
       c.beginPath(); c.moveTo(Fn.tx, -400); c.lineTo(Fn.tx, STAGE.top); c.stroke(); c.setLineDash([]);
       c.strokeRect(Fn.tx - 80, STAGE.top - 30, 160, 30);
       c.fillStyle = '#ff3b3b'; c.font = 'bold 18px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('ACHTUNG – ABLEHNUNG!', Fn.tx, STAGE.top - 44);
       c.restore();
+    }
+    if (Fn.type === 'stamp' && Fn.tx !== undefined && Fn.t < 17) {
+      const p = 0.5 + 0.5 * Math.sin(frame * 0.5);
+      c.save(); c.globalAlpha = 0.5 + p * 0.4; c.strokeStyle = '#ff3b3b'; c.lineWidth = 3; c.setLineDash([12, 10]);
+      c.beginPath(); c.moveTo(Fn.tx, -400); c.lineTo(Fn.tx, STAGE.top); c.stroke(); c.setLineDash([]); c.strokeRect(Fn.tx - 80, STAGE.top - 30, 160, 30);
+      c.fillStyle = '#ff3b3b'; c.font = 'bold 18px system-ui,sans-serif'; c.textAlign = 'center'; c.fillText('ACHTUNG – ABLEHNUNG!', Fn.tx, STAGE.top - 44); c.restore();
+    }
+    if (Fn.type === 'zap' && Fn.t >= 10 && Fn.t < 40 && Fn.tx !== undefined) {   // Zielmarker für den Blitz
+      const p = (Fn.t >> 2) % 2, x = Fn.tx, y = Fn.ty;
+      c.save(); c.strokeStyle = p ? '#7fd3ff' : '#ffffff'; c.lineWidth = 3; c.globalAlpha = 0.85;
+      c.beginPath(); c.ellipse(x, y, 52, 12, 0, 0, TAU); c.stroke(); c.beginPath(); c.ellipse(x, y, 30 - (Fn.t % 10) * 2, 7, 0, 0, TAU); c.stroke();
+      Ln(c, x - 60, y, x - 38, y, c.strokeStyle, 3); Ln(c, x + 38, y, x + 60, y, c.strokeStyle, 3);
+      c.font = '900 20px Impact,"Arial Black",sans-serif'; c.textAlign = 'center'; c.fillStyle = '#7fd3ff'; c.fillText('⚡', x, y - 24); c.restore();
     }
     if (Fn.type === 'strobe' && Fn.tx !== undefined) {   // deplatzierter Strobo: mitten in den ruhigsten Moment
       const soft = false, per = 6, onW = 2;
@@ -3172,7 +3230,12 @@ function drawEnts() {
         c.save(); c.globalAlpha = a * 0.75; c.strokeStyle = '#d8322b'; c.lineWidth = 4; c.strokeRect(e.x - 90, STAGE.top + 12, 180, 38);
         c.fillStyle = '#d8322b'; c.font = '900 26px Impact,"Arial Black",sans-serif'; c.textAlign = 'center'; c.fillText('ABGELEHNT', e.x, STAGE.top + 41); c.restore();
         drawStamp(c, e.x, STAGE.top - Math.min(1, e.t / 12) * 140, clamp(1 - e.t / 25, 0, 1));
-      } else drawStamp(c, e.x, e.y, 1);
+      } else {   // Ziel-Markierung am Boden bleibt bis zum Einschlag sichtbar
+        const p = 0.5 + 0.5 * Math.sin(frame * 0.5);
+        c.save(); c.globalAlpha = 0.5 + p * 0.4; c.strokeStyle = '#ff3b3b'; c.lineWidth = 3; c.setLineDash([12, 10]); c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(e.x, STAGE.top); c.stroke(); c.setLineDash([]);
+        c.strokeRect(e.x - 80, STAGE.top - 30, 160, 30); c.restore();
+        drawStamp(c, e.x, e.y, 1);
+      }
     } else if (e.type === 'gadget') {
       const g = GADGETS[e.kind];
       if (e.landed && e.t > 480 && (frame >> 2) % 2) continue;
@@ -3189,13 +3252,13 @@ function drawEnts() {
     } else if (e.type === 'food') {
       c.save(); if (e.landed) c.globalAlpha = clamp(1 - (e.t - 30) / 20, 0, 1); drawFood(c, e.kind, e.x, e.y, e.rot); c.restore();
     } else if (e.type === 'boom') {
-      const a = clamp(1 - e.t / 32, 0, 1);
+      const a = clamp(1 - e.t / 40, 0, 1), gy = e.gy !== undefined ? e.gy : e.y + 70;
       c.save(); c.globalAlpha = a;
-      c.fillStyle = 'rgba(255,240,220,0.12)'; c.beginPath(); c.ellipse(e.x, e.y, e.r, e.r * 0.75, 0, 0, TAU); c.fill();
-      ['#fff', '#ffd0a8', '#ff7a1a'].forEach((col, i) => {
-        const r = Math.max(4, e.r - i * 40); c.strokeStyle = col; c.lineWidth = 10 - i * 3;
-        c.beginPath(); c.ellipse(e.x, e.y, r, r * 0.75, 0, 0, TAU); c.stroke();
-      });
+      for (const d of [-1, 1]) {   // zwei Schallwellen laufen am Boden entlang
+        const x = e.x + d * e.r;
+        ['#fff', '#ffd0a8', '#ff7a1a'].forEach((col, i) => { c.strokeStyle = col; c.lineWidth = 9 - i * 3; c.beginPath(); c.ellipse(x - d * i * 14, gy, 16 + i * 6, 46 - i * 10, 0, PI, TAU); c.stroke(); });
+        c.fillStyle = 'rgba(255,220,180,0.25)'; c.fillRect(Math.min(e.x, x), gy - 4, Math.abs(x - e.x), 4);
+      }
       c.restore();
     } else if (e.type === 'trojan') {
       if (e.ph === 0) {
@@ -3209,13 +3272,21 @@ function drawEnts() {
         if (o && e.ph === 1) { c.save(); c.globalAlpha = 0.6; c.strokeStyle = '#39ff6a'; c.lineWidth = 2; c.strokeRect(e.tx - o.def.w / 2 - 12, e.ty - o.def.h - 12, o.def.w + 24, o.def.h + 18); c.restore(); }
       }
     } else if (e.type === 'boar') {
-      if (e.wait > 0) continue;
-      c.save(); c.translate(e.x, e.y); c.scale(e.dir, 1);
+      if (e.wait > 0) {   // Vorwarnung: blinkender Pfeil an der Seite, von der es kommt
+        const ex = e.dir > 0 ? STAGE.x1 - 20 : STAGE.x2 + 20, on = (frame >> 3) % 2;
+        c.save(); c.globalAlpha = on ? 1 : 0.4; c.translate(ex, STAGE.top - 60); c.scale(e.dir, 1);
+        c.fillStyle = '#ff3b3b'; c.beginPath(); c.moveTo(30, 0); c.lineTo(0, -22); c.lineTo(0, -10); c.lineTo(-26, -10); c.lineTo(-26, 10); c.lineTo(0, 10); c.lineTo(0, 22); c.closePath(); c.fill();
+        c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke(); c.scale(e.dir, 1); c.font = '28px system-ui'; c.textAlign = 'center'; c.fillText('🐗', 0, -36); c.restore();
+        continue;
+      }
+      c.save(); c.translate(e.x, e.y); c.scale(e.dir * 1.5, 1.5);
+      c.save(); c.globalAlpha = 0.35; c.fillStyle = '#ffcf70'; c.beginPath(); c.ellipse(0, -30, 46, 26, 0, 0, TAU); c.fill(); c.restore();   // Lichtschein
+      c.strokeStyle = '#fff4d8'; c.lineWidth = 3; c.beginPath(); c.ellipse(0, -30, 37, 19, 0, 0, TAU); c.stroke(); c.beginPath(); c.ellipse(32, -28, 15, 12, 0, 0, TAU); c.stroke();   // heller Umriss
       const k = Math.sin(e.t * 0.9) * 8;
-      for (const [lx, ph] of [[-18, 1], [-8, -1], [12, 1], [22, -1]]) Ln(c, lx, -16, lx + ph * k * 0.6, 0, '#2e2016', 6);
-      E(c, 0, -30, 36, 18, '#4a3424'); E(c, -6, -38, 24, 9, '#5a4230');   // Körper + Rückenborsten
+      for (const [lx, ph] of [[-18, 1], [-8, -1], [12, 1], [22, -1]]) Ln(c, lx, -16, lx + ph * k * 0.6, 0, '#5a3e26', 6);
+      E(c, 0, -30, 36, 18, '#8a6040'); E(c, -6, -38, 24, 9, '#a0744c');   // Körper + Rückenborsten (heller)
       c.fillStyle = '#2e2016'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(-24 + i * 7, -44); c.lineTo(-21 + i * 7, -52); c.lineTo(-18 + i * 7, -44); c.fill(); }
-      E(c, 32, -28, 14, 11, '#4a3424'); E(c, 45, -26, 6, 6, '#8a6a5a'); Cc(c, 44, -27, 1.3, '#2e2016'); Cc(c, 47, -25, 1.3, '#2e2016');   // Kopf + Rüssel
+      E(c, 32, -28, 14, 11, '#8a6040'); E(c, 45, -26, 6, 6, '#e0a090'); Cc(c, 44, -27, 1.3, '#2e2016'); Cc(c, 47, -25, 1.3, '#2e2016');   // Kopf + Rüssel
       c.strokeStyle = '#f2efe6'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(40, -21); c.quadraticCurveTo(46, -26, 44, -33); c.stroke();   // Hauer
       Cc(c, 34, -34, 2, '#ffcf70'); c.fillStyle = '#3a2818'; c.beginPath(); c.moveTo(26, -38); c.lineTo(30, -46); c.lineTo(33, -37); c.fill();
       c.restore();
@@ -3590,8 +3661,10 @@ function drawCarousel(p, cx, gy, big, sp, top, bot, arrowDX) {
     ui.push({ id: 'carL' + p, x: cx - sp - 110, y: top, w: 200, h: bot - top });
     ui.push({ id: 'carR' + p, x: cx + sp - 90, y: top, w: 200, h: bot - top });
     ui.push({ id: 'pick' + p, x: cx - 100, y: top, w: 200, h: bot - top });
-    arrowBtn('carL' + p, cx - arrowDX, gy - 70 * big / 2, 26, -1, p === 0 ? '#ff8a7a' : '#7fc6ff');
-    arrowBtn('carR' + p, cx + arrowDX, gy - 70 * big / 2, 26, 1, p === 0 ? '#ff8a7a' : '#7fc6ff');
+  }
+  { // Punkte-Leiste: zeigt, wo man im Karussell ist
+    const col = p === 0 ? '#ff8a7a' : '#7fc6ff', dy = gy + (big > 1.5 ? 26 : 14), dw = 14, x0 = cx - (n - 1) * dw / 2;
+    for (let j = 0; j < n; j++) { const on = j === tgt; Cc(c, x0 + j * dw, dy, on ? 5 : 3, on ? col : 'rgba(255,255,255,0.3)'); }
   }
   // Spieler-Plakette über der Figur
   const col = p === 0 ? '#ff5a4a' : '#3fa9ff', lab = who(p) + (s.ok ? ' ✓' : '');
@@ -3621,7 +3694,7 @@ function arenaConfirm() {
 }
 function stepArena() {
   if (arenaPick) {
-    if (++arenaPick.t === 45) { const ar = arenaPick.ar; if (NET.role === 'host') netStart(ar); else if (!NET.role) { sfx.go(); startMatch(ar); } }
+    if (++arenaPick.t === 100) { const ar = arenaPick.ar; if (NET.role === 'host') netStart(ar); else if (!NET.role) { sfx.go(); startMatch(ar); } }
     return;
   }
   if (NET.role === 'guest') { if (pressed.has('Escape')) leaveOnline(); return; }
@@ -3651,9 +3724,9 @@ function drawArenaSelect() {
   const c = ctx, cur = arenaCur(), n = ARENAS.length + 1, guest = NET.role === 'guest';
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
   c.save(); c.font = '900 38px Impact,"Arial Black",sans-serif'; c.textAlign = 'left'; c.lineWidth = 6; c.lineJoin = 'round'; c.strokeStyle = '#2a0d3d';
-  const tx = TOUCH ? 250 : 178; c.strokeText('SCHAUPLATZ', tx, 54); c.fillStyle = '#ffd23f'; c.fillText('SCHAUPLATZ', tx, 54); c.restore();
+  const tx = TOUCH ? 270 : 205; c.strokeText('VENUE WÄHLEN', tx, 54); c.fillStyle = '#ffd23f'; c.fillText('VENUE WÄHLEN', tx, 54); c.restore();
   if (!guest && !arenaPick) backBtn('arenaBack', 'ZURÜCK');
-  const pw = 300, ph = 430, gap = 40, x0 = (W - (n * pw + (n - 1) * gap)) / 2, top = 120;
+  const pw = 300, ph = 430, gap = 40, x0 = (W - (n * pw + (n - 1) * gap)) / 2, top = 104;
   for (let k = 0; k < n; k++) {
     const i = k, on = i === cur, info = ARENA_INFO[i], picked = arenaPick && arenaPick.i === i;
     const sway = Math.sin(frame * 0.025 + k * 1.7) * (on ? 0.012 : 0.025), cx = x0 + k * (pw + gap) + pw / 2, sc = on ? 1.06 : 0.94;
@@ -3666,8 +3739,10 @@ function drawArenaSelect() {
     RR(c, -pw / 2, 28, pw, 46, 0, info.col);
     c.textAlign = 'center'; c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#fff'; c.fillText(info.tag, 0, 62);
     drawArenaPreview(c, i, -pw / 2 + 16, 86, pw - 32, (pw - 32) * 9 / 16);
-    c.font = '900 26px Impact,"Arial Black",sans-serif'; c.fillStyle = '#1a1024'; c.fillText(i >= ARENAS.length ? 'ZUFALL' : ARENAS[i].name, 0, 270);
-    c.font = '15px system-ui,sans-serif'; c.fillStyle = '#4a4560'; info.facts.forEach((f, j) => c.fillText(f, 0, 302 + j * 24));
+    { const nm = i >= ARENAS.length ? 'ZUFALL' : ARENAS[i].name, two = nm.length > 14 && nm.includes(' AM ');
+      c.font = `900 ${two ? 22 : 26}px Impact,"Arial Black",sans-serif`; c.fillStyle = '#1a1024';
+      if (two) { const k = nm.indexOf(' AM '); c.fillText(nm.slice(0, k), 0, 258); c.fillText(nm.slice(k + 1), 0, 282); } else c.fillText(nm, 0, 270); }
+    { const two = i < ARENAS.length && ARENAS[i].name.length > 14; c.font = '15px system-ui,sans-serif'; c.fillStyle = '#4a4560'; info.facts.forEach((f, j) => c.fillText(f, 0, (two ? 312 : 302) + j * 24)); }
     for (let b = 0; b < 26; b++) RR(c, -pw / 2 + 30 + b * 9.4, ph - 40, b % 3 ? 3 : 6, 22, 1, '#1a1024');   // Barcode
     if (picked) {   // GEBUCHT-Stempel knallt drauf
       const t = Math.min(1, arenaPick.t / 8), s2 = 1.8 - 0.8 * t;
@@ -3678,8 +3753,9 @@ function drawArenaSelect() {
     c.restore();
     if (!guest && !arenaPick) ui.push({ id: 'apass' + i, x: cx - pw / 2, y: top, w: pw, h: ph });
   }
+  if (!guest && !arenaPick) btn('arenaGo', W / 2 - 140, 604, 280, 56, 'KAMPF!', '#ffd23f', 32);
   c.textAlign = 'center'; c.font = '15px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
-  c.fillText(guest ? 'Dein Gegner wählt den Schauplatz …' : arenaPick ? '' : (TOUCH ? 'Pass antippen – nochmal tippen zum Buchen' : '← / → wählen  ·  Enter buchen'), W / 2, 690);
+  c.fillText(guest ? 'Dein Gegner wählt die Venue …' : arenaPick ? '' : (TOUCH ? 'Wischen oder Pass antippen' : '← / → wählen  ·  Enter = Kampf'), W / 2, 690);
 }
 function drawSelect() {
   const c = ctx;
@@ -3725,7 +3801,7 @@ function drawSelect() {
       c.font = '900 24px Impact,"Arial Black",sans-serif'; c.fillStyle = o.color; c.fillText(o.name, x + 125, y + 162);
       c.font = 'bold 11px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText(o.finName, x + 125, y + 184);
     }
-    if (ready) btn('go', W / 2 - 140, 630, 280, 56, 'KAMPF!', '#ffd23f', 32);
+    if (ready) btn('go', W / 2 - 160, 630, 320, 56, 'VENUE WÄHLEN ›', '#ffd23f', 28);
   } else {
     [[0, 76, 376], [1, 386, 664]].forEach(([p, top, bot]) => {
       RR(c, 16, top, W - 32, bot - top, 18, 'rgba(8,6,18,0.7)'); RR(c, 16, top, W - 32, bot - top, 18, p === 0 ? 'rgba(255,90,74,0.08)' : 'rgba(63,169,255,0.08)');
@@ -3738,13 +3814,13 @@ function drawSelect() {
       c.textAlign = 'left'; c.font = 'bold 15px system-ui,sans-serif';
       c.fillStyle = sel[p].ok ? '#7ad15a' : '#9a9ab0'; c.fillText(sel[p].ok ? '✓ BEREIT' : (isOnline() && p !== myIdx() ? 'wählt noch …' : 'wählt …'), x, y + 172);
     });
-    if (ready) btn('go', W / 2 - 140, 668, 280, 48, 'KAMPF!', '#ffd23f', 30);
+    if (ready) btn('go', W / 2 - 160, 668, 320, 48, 'VENUE WÄHLEN ›', '#ffd23f', 26);
   }
   if (ready) return;
   c.textAlign = 'center'; c.font = '15px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
   let hint;
-  if (isOnline()) hint = sel[myIdx()].ok ? 'Warte, bis dein Gegner gewählt hat …' : (TOUCH ? 'Pfeile oder Figur antippen – Mitte nochmal tippen zum Bestätigen' : '← / → oder A / D wählen  ·  F, K oder Enter bestätigen');
-  else if (TOUCH) hint = 'Pfeile tippen zum Blättern – Figur in der Mitte antippen zum Bestätigen';
+  if (isOnline()) hint = sel[myIdx()].ok ? 'Warte, bis dein Gegner gewählt hat …' : (TOUCH ? 'Wischen zum Drehen – Mitte nochmal tippen zum Bestätigen' : '← / → oder A / D wählen  ·  F, K oder Enter bestätigen');
+  else if (TOUCH) hint = 'Wischen zum Drehen – Figur in der Mitte antippen zum Bestätigen';
   else hint = single ? '← / → wählen  ·  Enter bestätigen' : 'P1: A / D und F  ·  P2: ← / → und K';
   c.fillText(hint, W / 2, single ? 664 : 696);
 }
@@ -3905,30 +3981,32 @@ function howtoPages() {
       ? [['🕹️', 'Links: Joystick nach links/rechts zum Laufen'], ['⤴️', 'SPRUNG – zweimal tippen für den Doppelsprung'], ['👊', 'SCHLAG – der normale Angriff'], ['💥', 'FINISHER – blinkt, wenn er bereit ist']]
       : [['⌨️', 'P1: A / D laufen · W springen · F Schlag · G Finisher'], ['⌨️', 'P2: ← / → laufen · ↑ springen · K Schlag · L Finisher'], ['⏸️', 'ESC Pause · M Ton an/aus']]],
     ['🛡️ SCHILD & KONTER', [['🛡️', k('S bzw. ↓ antippen', 'SCHILD antippen') + ' – der Schild hält 0,6 Sekunden, dann 1 Sekunde Pause.'], ['✨', 'Getroffen in den ersten 0,2 Sekunden? KONTER! Der Angreifer taumelt, du kriegst Finisher-Energie.'], ['⬇️', 'Auf einer Plattform lässt dich die Taste durchfallen.']]],
-    ['🎁 GADGETS & SCHAUPLÄTZE', [['⏩', 'Tempo: schneller laufen und springen'], ['🛡️', 'Schild: weniger Schaden und Rückstoß'], ['⚡', 'Energy: stärkere Schläge, Finisher lädt schneller'], ['🔥', 'Main Stage: Pyro! Rote Markierung = gleich schießt eine Flamme hoch.'], ['🐗', 'Gogos Wohnmobil: Ruft Gogo „Wildschwein!“ – drüberspringen!']]],
+    ['🎁 GADGETS & SCHAUPLÄTZE', [['⏩', 'Tempo: schneller laufen und springen'], ['🛡️', 'Schild: weniger Schaden und Rückstoß'], ['⚡', 'Energy: stärkere Schläge, Finisher lädt schneller'], ['🔥', 'Mainstage: Pyro! Rote Markierung = gleich schießt eine Flamme hoch.'], ['🐗', 'Trailerpark am Waldrand: Ruft Gogo „Wildschwein!“ – drüberspringen!']]],
     ['🌐 ONLINE & BESTENLISTE', [['📱', 'Online-Duell: einer erstellt einen Raum, der andere gibt den 4-stelligen Code ein.'], ['🏆', 'Bestenliste: schnellster Sieg im Online-Duell kommt in die Top 5.'], ['💬', 'Ideen oder Bugs? Ab damit über „Feedback geben“.']]]
   ];
 }
-function openHowto() {
+function openHowto() {   // einheitlich: eine Titelgröße, alles andere in einer Textgröße
   if (howtoBox) return;
+  const small = innerHeight < 520, fs = small ? 16 : 18, tf = small ? 26 : 30;
   howtoBox = document.createElement('div'); howtoBox.className = 'scrollbox';
-  howtoBox.style.cssText = fbBox.style.cssText + ';width:min(780px,94vw);display:block;overflow:hidden;max-height:none;padding:' + (innerHeight < 520 ? '10px 18px' : '16px 24px');
-  howtoBox.innerHTML = `<div class="ttl" style="font:900 ${innerHeight < 520 ? 26 : 34}px Impact,'Arial Black',sans-serif;color:#ffd23f"></div><div class="bd"></div>` +
+  howtoBox.style.cssText = fbBox.style.cssText + `;width:min(780px,94vw);display:block;overflow:hidden;max-height:none;padding:${small ? '10px 18px' : '16px 24px'};font:600 ${fs}px/1.35 system-ui,sans-serif`;
+  const bt = `font:700 ${fs}px system-ui,sans-serif;border:0;border-radius:14px;padding:10px 22px`;
+  howtoBox.innerHTML = `<div class="ttl" style="font:900 ${tf}px Impact,'Arial Black',sans-serif;color:#ffd23f"></div><div class="bd"></div>` +
     `<div style="margin-top:10px;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap">` +
-    `<button class="prev" style="font:700 16px system-ui,sans-serif;background:#3a3450;color:#fff;border:0;border-radius:14px;padding:10px 18px">‹ Zurück</button>` +
-    `<button class="next" style="font:900 22px Impact,'Arial Black',sans-serif;background:#ffd23f;color:#1a1024;border:0;border-radius:14px;padding:10px 34px"></button>` +
-    `<span class="pg" style="color:#9a9ab0;font:600 13px system-ui,sans-serif"></span></div>`;
+    `<button class="prev" style="${bt};background:#3a3450;color:#fff">‹ Zurück</button>` +
+    `<button class="next" style="${bt};background:#ffd23f;color:#1a1024"></button>` +
+    `<span class="pg" style="color:#9a9ab0;font:600 ${fs}px system-ui,sans-serif"></span></div>`;
   document.body.appendChild(howtoBox); howtoPage = 0;
   howtoBox.querySelector('.prev').addEventListener('click', () => { if (howtoPage > 0) { howtoPage--; showHowto(); sfx.move(); } });
   howtoBox.querySelector('.next').addEventListener('click', howtoNext);
   showHowto();
 }
 function showHowto() {
-  const P = howtoPages(), [t, rows] = P[howtoPage], small = innerHeight < 520, esc = x => String(x).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
+  const P = howtoPages(), [t, rows] = P[howtoPage], small = innerHeight < 520, fs = small ? 16 : 18, esc = x => String(x).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   howtoBox.querySelector('.ttl').textContent = t;
-  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left"><span style="font-size:${small ? 18 : 22}px;width:30px;flex:none">${ic}</span><span style="font:600 ${small ? 15 : 17}px/1.35 system-ui,sans-serif;color:#e8e8f4">${esc(tx)}</span></div>`).join('');
+  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left;font:600 ${fs}px/1.35 system-ui,sans-serif;color:#e8e8f4"><span style="width:28px;flex:none">${ic}</span><span>${esc(tx)}</span></div>`).join('');
   howtoBox.querySelector('.prev').style.display = howtoPage > 0 ? '' : 'none';
-  howtoBox.querySelector('.next').textContent = howtoPage >= P.length - 1 ? 'VERSTANDEN!' : 'WEITER ›';
+  howtoBox.querySelector('.next').textContent = howtoPage >= P.length - 1 ? 'Verstanden!' : 'Weiter ›';
   howtoBox.querySelector('.pg').textContent = `${howtoPage + 1}/${P.length}`;
 }
 function howtoNext() { if (howtoPage < howtoPages().length - 1) { howtoPage++; showHowto(); sfx.move(); } else closeHowto(); }
