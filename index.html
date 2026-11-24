@@ -306,12 +306,14 @@ html.abbau .row .tbtn.pin{display:none}
 .seg:not(.single) #sTodo{flex:0 0 auto}
 .seg:not(.single) #sDone{border-left:1.5px solid var(--todo)}
 .seg:not(.single) #sDone.done-off{background:#fff}
-.seg #sDone{flex:0 0 64px;padding:0;justify-content:center}
-.seg:not(.single){flex:0 0 auto}
-.seg #sDone .bigchk{width:28px;height:28px}
+.seg #sDone{flex:none;width:64px;min-width:64px;max-width:64px;padding:0;display:grid;place-items:center;overflow:hidden}
+.seg:not(.single){flex:none;width:auto}
+.seg:not(.single) #sTodo{flex:none;width:auto}
+.seg #sDone .bigchk{display:block;width:28px;height:28px;margin:0}
+.seg #sDone.hide,html.phone .sheet .actions .seg #sDone.hide{display:none}
 .seg #sDone.done-off .bigchk{color:var(--done);opacity:.9}
 .seg #sDone.done-on .bigchk{color:#fff}
-html.phone .sheet .actions .seg #sDone{flex:0 0 60px;padding:0}
+html.phone .sheet .actions .seg #sDone{flex:none;width:60px;min-width:60px;max-width:60px;padding:0}
 .seg:not(.single) #sDone.done-on{box-shadow:inset 0 0 0 0 transparent}
 .row.todo .item,.row.todo .tbtn{background:var(--todo-bg);border-color:var(--todo-line)}
 .row.todo .item .no{color:var(--todo)}
@@ -368,7 +370,7 @@ html.phone .sheet .actions .seg #sDone{flex:0 0 60px;padding:0}
     <button class="mi" role="menuitem" data-m="desa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"></path><path d="M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg><span>DESA-Link einstellen<small id="desaSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="ui"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg><span>Ansicht<small id="uiSt"></small></span></button>
     <button class="mi" role="menuitem" data-m="reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"></path></svg><span>App neu laden<small>Holt die neueste Version</small></span></button>
-    <div class="mver">PosMaster v1.33 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
+    <div class="mver">PosMaster v1.35 · Daten-Stand <span id="menuStand"></span><br><span id="offSt">Offline-Speicher wird eingerichtet …</span><br>© 2026 Daniel Lassak</div>
   </div>
   <main>
     <section class="view active" id="view-halle"></section>
