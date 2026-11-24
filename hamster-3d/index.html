@@ -2,49 +2,53 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Hamster 3D</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #120b1f; overflow: hidden; -webkit-text-size-adjust: 100%; }
+  html, body { margin: 0; height: 100%; background: #0b0910; overflow: hidden; -webkit-text-size-adjust: 100%; font-family: system-ui, -apple-system, sans-serif; user-select: none; -webkit-user-select: none; }
   canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; }
+  #hearts { position: absolute; left: 16px; top: max(14px, env(safe-area-inset-top)); font-size: 26px; letter-spacing: 2px; text-shadow: 0 2px 4px #000; }
+  #time { position: absolute; right: 16px; top: max(16px, env(safe-area-inset-top)); font: 700 20px/1 ui-monospace, monospace; text-shadow: 0 2px 4px #000; }
+  #prog { position: absolute; left: 50%; top: max(22px, env(safe-area-inset-top)); width: min(40vw, 260px); height: 8px; transform: translateX(-50%); background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; }
+  #prog i { display: block; height: 100%; width: 0; background: #a45cff; }
+  #msg { position: absolute; left: 0; right: 0; top: 16%; text-align: center; font-weight: 900; font-size: clamp(24px, 5.5vw, 44px); text-shadow: 0 3px 0 #4a1f99, 0 6px 14px #000; opacity: 0; transition: opacity .3s; }
+  #msg small { display: block; font-size: 0.38em; font-weight: 600; margin-top: 10px; text-shadow: 0 2px 4px #000; }
+  #jump { position: absolute; right: 26px; bottom: max(30px, env(safe-area-inset-bottom)); width: 86px; height: 86px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.35); background: rgba(164,92,255,0.25); display: none; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; }
+  #stick { position: absolute; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); display: none; }
+  #stick b { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; margin: -22px 0 0 -22px; border-radius: 50%; background: rgba(255,255,255,0.4); }
+  .touch #jump { display: flex; }
 </style>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }</script>
 </head>
 <body>
+<div id="hud">
+  <div id="hearts"></div><div id="prog"><i></i></div><div id="time">0:00</div>
+  <div id="msg"></div>
+  <div id="stick"><b></b></div><div id="jump">SPRUNG</div>
+</div>
 <script type="module">
 import * as THREE from 'three';
 
 const QS = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
 
 /* ---------- Renderer / Szene ---------- */
-const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: QS.has('shot') });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-document.body.appendChild(renderer.domElement);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+document.body.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#1a1030');
-scene.fog = new THREE.Fog('#1a1030', 9, 22);
-const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
+const FOG = '#0d0b12';
+scene.background = new THREE.Color(FOG);
+scene.fog = new THREE.Fog(FOG, 10, 42);
+const camera = new THREE.PerspectiveCamera(58, 1, 0.1, 80);
 
-scene.add(new THREE.HemisphereLight('#c9b6ff', '#2a1a40', 1.1));
-const key = new THREE.DirectionalLight('#fff3e0', 2.4);
-key.position.set(3, 6, 4); key.castShadow = true;
-key.shadow.mapSize.set(1024, 1024); key.shadow.radius = 4; key.shadow.bias = -0.0015; key.shadow.normalBias = 0.03;
-Object.assign(key.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3 });
-scene.add(key);
-const rim = new THREE.DirectionalLight('#a45cff', 2.2); rim.position.set(-4, 3, -4); scene.add(rim);
-
-// Boden: Bühnenplatte mit Lichtkreis
-const floor = new THREE.Mesh(new THREE.CircleGeometry(6, 48), new THREE.MeshStandardMaterial({ color: '#241838', roughness: 0.8 }));
-floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
-const spot = new THREE.Mesh(new THREE.CircleGeometry(1.6, 48), new THREE.MeshBasicMaterial({ color: '#3b2760' }));
-spot.rotation.x = -Math.PI / 2; spot.position.y = 0.002; scene.add(spot);
-
-/* ---------- Toon-Materialien ---------- */
-const grad = (() => { const d = new Uint8Array([90, 170, 255]); const t = new THREE.DataTexture(d, 3, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+/* ---------- Hamster-Materialien ---------- */
 const toon = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.65, ...extra });   // weich schattiert
 const M = {
   fur: toon('#e39a4b'), furD: toon('#b8692a'), belly: toon('#fde9cc'), pink: toon('#f4a0b5'),
@@ -132,60 +136,415 @@ function buildHamster() {
   return root;
 }
 
-const hamster = buildHamster();
-scene.add(hamster);
 
-/* ---------- Animation ---------- */
-function pose(h, mode, t) {
-  const { body, arms, feet, cheeks } = h.userData;
-  body.position.y = 0.95; body.rotation.set(0, 0, 0);
+/* =====================================================================
+   LEVEL 1: KATAKOMBEN DER MESSE
+   Gang läuft entlang +z, Breite x ∈ [-W, W]. Boden y = 0, außer in Gruben.
+   ===================================================================== */
+const W = 3.5, CEIL = 5.4, LEN = 156;
+
+// --- prozedurale Texturen ---
+function canvasTex(w, h, draw, rx = 1, ry = 1) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  draw(cv.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rx, ry);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const speckle = (g, w, h, n, cols) => { for (let i = 0; i < n; i++) { g.fillStyle = cols[i % cols.length]; g.fillRect(rnd() * w, rnd() * h, 1 + rnd() * 2, 1 + rnd() * 2); } };
+const T = {
+  floor: canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#3a3640'; g.fillRect(0, 0, w, h); speckle(g, w, h, 2600, ['#2e2b33', '#47434d', '#35313b']);
+    g.strokeStyle = '#24212a'; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
+    g.fillStyle = 'rgba(0,0,0,0.25)'; g.beginPath(); g.ellipse(170, 90, 40, 18, 0.4, 0, 7); g.fill();   // Ölfleck
+  }, W, LEN / 7),
+  wall: canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#4b4652'; g.fillRect(0, 0, w, h); speckle(g, w, h, 2200, ['#403b47', '#57525e']);
+    g.fillStyle = '#3f3a46'; for (let y = 0; y < h; y += 64) for (let x = (y / 64) % 2 * 64; x < w; x += 128) g.fillRect(x, y, 126, 62);   // Betonsteine
+    g.fillStyle = '#2b5a8c'; g.fillRect(0, h * 0.78, w, h * 0.22);   // blauer Sockelstreifen
+    g.fillStyle = '#e8c21a'; g.fillRect(0, h * 0.76, w, 5);
+  }, LEN / 5, 1),
+  hazard: canvasTex(64, 64, (g, w, h) => {
+    g.fillStyle = '#f2c018'; g.fillRect(0, 0, w, h); g.fillStyle = '#18161a';
+    for (let i = -2; i < 4; i++) { g.beginPath(); g.moveTo(i * 32, 0); g.lineTo(i * 32 + 16, 0); g.lineTo(i * 32 + 16 + 64, h); g.lineTo(i * 32 + 64, h); g.fill(); }
+  }),
+  case: canvasTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#1b1b1f'; g.fillRect(0, 0, w, h); speckle(g, w, h, 900, ['#232328', '#141417']);
+    g.strokeStyle = '#9aa0a8'; g.lineWidth = 14; g.strokeRect(7, 7, w - 14, h - 14);   // Alu-Kanten
+    for (const [x, y] of [[18, 18], [w - 18, 18], [18, h - 18], [w - 18, h - 18]]) { g.fillStyle = '#c9ced4'; g.beginPath(); g.arc(x, y, 14, 0, 7); g.fill(); }
+    g.fillStyle = '#e9e9e9'; g.fillRect(70, 110, 116, 36); g.fillStyle = '#111'; g.font = 'bold 22px monospace'; g.fillText('HALLE 3', 82, 136);
+  })
+};
+
+const MAT = {
+  floor: new THREE.MeshStandardMaterial({ map: T.floor, roughness: 0.9 }),
+  wall: new THREE.MeshStandardMaterial({ map: T.wall, roughness: 0.95 }),
+  ceil: new THREE.MeshStandardMaterial({ color: '#232029', roughness: 1 }),
+  hazard: new THREE.MeshStandardMaterial({ map: T.hazard, roughness: 0.7 }),
+  case: new THREE.MeshStandardMaterial({ map: T.case, roughness: 0.5, metalness: 0.2 }),
+  pipe: new THREE.MeshStandardMaterial({ color: '#7c8088', roughness: 0.4, metalness: 0.6 }),
+  pipeR: new THREE.MeshStandardMaterial({ color: '#a8322c', roughness: 0.5, metalness: 0.3 }),
+  tray: new THREE.MeshStandardMaterial({ color: '#8d9198', roughness: 0.5, metalness: 0.7 }),
+  neon: new THREE.MeshBasicMaterial({ color: '#e9f4ff' }),
+  neonOff: new THREE.MeshBasicMaterial({ color: '#3a3d44' }),
+  chain: new THREE.MeshStandardMaterial({ color: '#9aa0a8', metalness: 0.8, roughness: 0.3 }),
+  hook: new THREE.MeshStandardMaterial({ color: '#e3a21a', metalness: 0.4, roughness: 0.4 }),
+  cableCols: ['#16161a', '#d33', '#2a62d0', '#16161a', '#f2c018', '#16161a'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.6 })),
+  pitGlow: new THREE.MeshBasicMaterial({ color: '#ff5a1a' }),
+  grate: new THREE.MeshStandardMaterial({ color: '#55585f', metalness: 0.7, roughness: 0.5 }),
+  green: new THREE.MeshBasicMaterial({ color: '#19c25a' }),
+  pallet: new THREE.MeshStandardMaterial({ color: '#b88a52', roughness: 0.9 }),
+  barrel: new THREE.MeshStandardMaterial({ color: '#2a62d0', roughness: 0.5, metalness: 0.3 })
+};
+const box = (w, h, d, mat, x, y, z) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+
+// --- Level-Daten ---
+const PITS = [[44, 47.2], [121, 128.5]];
+const SOLIDS = [];   // feste Kisten: {x1,x2,y1,y2,z1,z2}
+function caseBox(x1, x2, z1, z2, h = 1.0, y0 = 0) {
+  SOLIDS.push({ x1, x2, z1, z2, y1: y0, y2: y0 + h });
+  const m = box(x2 - x1, h, z2 - z1, MAT.case, (x1 + x2) / 2, y0 + h / 2, (z1 + z2) / 2);
+  return m;
+}
+const CHECKPOINTS = [2, 51, 90, 131];
+const HOOKS = [58, 66, 74].map((z, i) => ({ z, ph: i * 2.1, L: 4.2 }));
+const SLOW = [80, 87];
+const VENTS = []; for (const [zi, z] of [135, 139.5, 144].entries()) for (const [xi, x] of [-2.2, 0, 2.2].entries()) VENTS.push({ x, z, ph: (zi * 40 + xi * 70) % 150 });
+const ROLL = { z1: 94, z2: 118, every: 62, lanes: [-2.2, 0, 2.2] };
+const GOAL = 151;
+
+// Boden mit Gruben-Lücken
+(() => {
+  let z = -4; const cuts = [...PITS, [LEN, LEN]];
+  for (const [a, b] of cuts) {
+    const len = a - z; if (len > 0) {
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, len), MAT.floor);
+      g.rotation.x = -Math.PI / 2; g.position.set(0, 0, z + len / 2); g.receiveShadow = true;
+      const t = MAT.floor.map; g.material = MAT.floor; scene.add(g);
+    }
+    if (b > a) {   // Grube: Warnkanten, Glut unten, Kabelschacht-Wände
+      for (const zz of [a, b]) box(W * 2, 0.08, 0.3, MAT.hazard, 0, 0.02, zz + (zz === a ? -0.15 : 0.15));
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, b - a), MAT.pitGlow); glow.rotation.x = -Math.PI / 2; glow.position.set(0, -7, (a + b) / 2); scene.add(glow);
+      for (const zz of [a, b]) { const w2 = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, 7), MAT.wall); w2.position.set(0, -3.5, zz); w2.rotation.y = zz === a ? 0 : Math.PI; scene.add(w2); }
+      const pl = new THREE.PointLight('#ff6a20', 18, 9, 1.6); pl.position.set(0, -2, (a + b) / 2); scene.add(pl);
+    }
+    z = b;
+  }
+})();
+// Wände, Decke, Endwand
+for (const s of [-1, 1]) {
+  const w = new THREE.Mesh(new THREE.PlaneGeometry(LEN + 8, CEIL), MAT.wall);
+  w.position.set(s * W, CEIL / 2, LEN / 2 - 4); w.rotation.y = -s * Math.PI / 2; w.receiveShadow = true; scene.add(w);
+  // Kabeltrasse + Rohre an der Wand
+  box(0.5, 0.06, LEN + 8, MAT.tray, s * (W - 0.3), 3.6, LEN / 2 - 4);
+  for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, LEN + 8, 6), MAT.cableCols[k + (s > 0 ? 2 : 0)]); c.rotation.x = Math.PI / 2; c.position.set(s * (W - 0.15 - k * 0.13), 3.7, LEN / 2 - 4); scene.add(c); }
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, LEN + 8, 12), s < 0 ? MAT.pipeR : MAT.pipe); p.rotation.x = Math.PI / 2; p.position.set(s * (W - 0.45), CEIL - 0.5, LEN / 2 - 4); scene.add(p);
+}
+{ const c = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, LEN + 8), MAT.ceil); c.rotation.x = Math.PI / 2; c.position.set(0, CEIL, LEN / 2 - 4); scene.add(c); }
+{ const e = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, CEIL), MAT.wall); e.position.set(0, CEIL / 2, LEN); e.rotation.y = Math.PI; scene.add(e); }
+{ const e = new THREE.Mesh(new THREE.PlaneGeometry(W * 2, CEIL), MAT.wall); e.position.set(0, CEIL / 2, -4); scene.add(e); }
+
+// Neonröhren (ein paar flackern)
+const NEONS = [];
+for (let z = 4; z < LEN; z += 9) {
+  const m = box(0.18, 0.08, 2.2, MAT.neon, 0, CEIL - 0.06, z); m.castShadow = false;
+  NEONS.push({ m, flick: rnd() < 0.25 });
+}
+// Licht: dämmriges Grundlicht, Schattenlicht folgt dem Hamster, warme Lampe um ihn herum
+scene.add(new THREE.HemisphereLight('#8f9bc9', '#2a2230', 1.25));
+const sun = new THREE.DirectionalLight('#dfe9ff', 1.6);
+sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 10, bottom: -10, near: 0.5, far: 30 });
+sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+const lamp = new THREE.PointLight('#ffd9a8', 26, 14, 1.4); scene.add(lamp);
+
+// Schilder
+function sign(text, sub, col, x, y, z, ry = 0, w = 2.6) {
+  const tex = canvasTex(512, 160, (g, cw, ch) => {
+    g.fillStyle = col; g.fillRect(0, 0, cw, ch); g.fillStyle = '#fff'; g.textAlign = 'center';
+    g.font = '900 64px system-ui, sans-serif'; g.fillText(text, cw / 2, sub ? 82 : 102);
+    if (sub) { g.font = '700 34px system-ui, sans-serif'; g.fillText(sub, cw / 2, 132); }
+  });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 160 / 512), new THREE.MeshBasicMaterial({ map: tex }));
+  m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); return m;
+}
+sign('KATAKOMBEN', 'Messe · Ebene −2', '#2b5a8c', 0, 3.2, 20.5, Math.PI, 3.4);
+sign('LASTENAUFZUG', 'Kettenzüge in Betrieb!', '#c0392b', -W + 0.02, 2.4, 62, Math.PI / 2);
+sign('ACHTUNG', 'Dampfleitung undicht', '#d68910', W - 0.02, 2.4, 133, -Math.PI / 2);
+sign('HALLE 5 ›', 'Ausgang Bühne', '#19a24a', 0, 3.8, LEN - 0.02, Math.PI, 3.2);
+// Ziel-Tor
+box(3.2, 0.25, 0.3, MAT.hazard, 0, 3.1, LEN - 0.2);
+for (const s of [-1, 1]) box(0.25, 3.1, 0.3, MAT.hazard, s * 1.6, 1.55, LEN - 0.2);
+{ const d = new THREE.Mesh(new THREE.PlaneGeometry(2.95, 2.95), new THREE.MeshBasicMaterial({ color: '#ffe9b0' })); d.position.set(0, 1.5, LEN - 0.05); d.rotation.y = Math.PI; scene.add(d); }
+
+// Hindernisse: Flightcases
+caseBox(-W, -0.6, 23, 24.6);
+caseBox(0.6, W, 28, 29.6);
+caseBox(-1.8, 1.8, 33, 34.4, 1.1);
+caseBox(-W, -2.2, 33, 34.4, 2.1);
+caseBox(2.2, W, 33, 34.4, 2.1);
+caseBox(-1, 1, 124.1, 125.5, 6, -6);   // Trittstein in Grube 2
+// Deko an den Rändern (nicht im Weg)
+for (const [x, z] of [[-3, 8], [3, 14], [-3.05, 40], [3.05, 52.5], [-3, 89], [3, 92], [3, 147], [-3, 150]]) {
+  if (rnd() < 0.5) { box(0.9, 0.14, 1.1, MAT.pallet, x * 0.93, 0.07, z); box(0.8, 0.9, 1.0, MAT.case, x * 0.93, 0.6, z); }
+  else for (const k of [0, 0.7]) { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 16), MAT.barrel); b.position.set(x * 0.95, 0.45, z + k); b.castShadow = true; scene.add(b); }
+}
+
+// Kettenzüge mit schwingendem Haken
+for (const h of HOOKS) {
+  box(W * 2, 0.25, 0.25, MAT.pipe, 0, CEIL - 0.25, h.z);   // Traverse
+  const g = new THREE.Group(); g.position.set(0, CEIL - 0.4, h.z); scene.add(g);
+  const motor = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.45, 0.4), MAT.hook); motor.position.y = -0.1; g.add(motor);
+  const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, h.L, 6), MAT.chain); ch.position.y = -h.L / 2; g.add(ch);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.42, 18, 14), MAT.hook); ball.position.y = -h.L; ball.castShadow = true; g.add(ball);
+  const hk = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.07, 8, 16, Math.PI * 1.4), MAT.chain); hk.position.y = -h.L - 0.45; g.add(hk);
+  h.g = g;
+}
+// Kabelsalat (bremst)
+{
+  const grp = new THREE.Group(); scene.add(grp);
+  for (let i = 0; i < 26; i++) {
+    const pts = []; const x0 = -W + rnd() * W * 2, z0 = SLOW[0] + rnd() * (SLOW[1] - SLOW[0]);
+    for (let k = 0; k < 6; k++) pts.push(new THREE.Vector3(Math.max(-W + 0.1, Math.min(W - 0.1, x0 + (rnd() - 0.5) * 3)), 0.06 + rnd() * 0.12, Math.max(SLOW[0], Math.min(SLOW[1], z0 + (rnd() - 0.5) * 3))));
+    const m = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.05, 6), MAT.cableCols[i % 6]); m.castShadow = true; grp.add(m);
+  }
+  box(W * 2, 0.02, 0.25, MAT.hazard, 0, 0.01, SLOW[0] - 0.4);
+}
+// Dampf-Gitter
+const puffTex = canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,0.9)'); r.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
+const puffMat = new THREE.SpriteMaterial({ map: puffTex, color: '#dfe6ee', transparent: true, depthWrite: false, fog: true });
+for (const v of VENTS) {
+  box(1.3, 0.05, 1.3, MAT.grate, v.x, 0.02, v.z);
+  v.puffs = []; for (let k = 0; k < 7; k++) { const s = new THREE.Sprite(puffMat.clone()); s.visible = false; scene.add(s); v.puffs.push(s); }
+}
+// Checkpoint-Markierungen (grüne Bodenlinie)
+for (const z of CHECKPOINTS.slice(1)) box(W * 2, 0.02, 0.18, MAT.green, 0, 0.012, z);
+
+// rollende Flightcases
+const rollers = [];
+function spawnRoller(lane) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.1, 1.4), MAT.case); m.castShadow = true; scene.add(m);
+  for (const s of [-1, 1]) for (const t of [-1, 1]) { const wl = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 10), MAT.tray); wl.rotation.z = Math.PI / 2; wl.position.set(s * 0.55, -0.62, t * 0.55); m.add(wl); }
+  rollers.push({ m, x: lane, z: ROLL.z2, y: 0.67 });
+}
+
+/* =====================================================================
+   SPIELER
+   ===================================================================== */
+const hamster = buildHamster();
+hamster.scale.setScalar(0.62);
+scene.add(hamster);
+const P = { x: 0, y: 0, z: 2, vx: 0, vy: 0, vz: 0, ground: true, face: 0, hp: 3, inv: 0, cp: 0, slow: false, jumps: 0, anim: 0, done: false, frame: 0, dead: 0 };
+const R = 0.42, H = 1.2, SPEED = 0.115, GRAV = 0.017, JUMP = 0.3;
+
+function overlap(o) { return P.x + R > o.x1 && P.x - R < o.x2 && P.z + R > o.z1 && P.z - R < o.z2 && P.y + H > o.y1 && P.y < o.y2; }
+const inPit = z => PITS.some(([a, b]) => z > a + 0.15 && z < b - 0.15);
+
+function msg(html, frames = 120) { const m = $('msg'); m.innerHTML = html; m.style.opacity = 1; P.msgT = frames; }
+function hurt(kx, kz) {
+  if (P.inv > 0 || P.done) return;
+  P.hp--; P.inv = 90; P.vx = kx; P.vz = kz; P.vy = 0.2; P.ground = false; sfx('hurt');
+  if (P.hp <= 0) { P.dead = 70; msg('AUTSCH!<small>Nochmal vom Checkpoint</small>'); }
+  updHud();
+}
+function respawn(full) {
+  const z = CHECKPOINTS[P.cp];
+  Object.assign(P, { x: 0, y: 0, z, vx: 0, vy: 0, vz: 0, ground: true, inv: 60, dead: 0 });
+  if (full) P.hp = 3;
+  updHud();
+}
+function updHud() {
+  $('hearts').textContent = '❤'.repeat(Math.max(0, P.hp)) + '♡'.repeat(3 - Math.max(0, P.hp));
+}
+
+/* ---------- Eingabe ---------- */
+const keys = {}; const IN = { x: 0, z: 0, jump: false, jumpHeld: false };
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); audioInit(); });
+addEventListener('keyup', e => keys[e.code] = false);
+let stick = null; const stickEl = $('stick'), knob = stickEl.firstElementChild;
+const touchJump = { down: false };
+addEventListener('pointerdown', e => {
+  audioInit();
+  if (e.pointerType !== 'mouse') document.body.classList.add('touch');
+  if (e.target.id === 'jump') { touchJump.down = true; return; }
+  if (e.clientX < innerWidth * 0.6) { stick = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 }; stickEl.style.display = 'block'; stickEl.style.left = e.clientX + 'px'; stickEl.style.top = e.clientY + 'px'; }
+  else touchJump.down = true;
+});
+$('jump').style.pointerEvents = 'auto';
+addEventListener('pointermove', e => {
+  if (stick && e.pointerId === stick.id) {
+    let dx = e.clientX - stick.ox, dy = e.clientY - stick.oy; const l = Math.hypot(dx, dy), mx = 50;
+    if (l > mx) { dx *= mx / l; dy *= mx / l; }
+    stick.dx = dx / mx; stick.dy = dy / mx; knob.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+});
+const endStick = e => { if (stick && e.pointerId === stick.id) { stick = null; stickEl.style.display = 'none'; knob.style.transform = ''; } else touchJump.down = false; };
+addEventListener('pointerup', endStick); addEventListener('pointercancel', endStick);
+
+function readInput() {
+  let x = 0, z = 0;
+  if (keys.ArrowLeft || keys.KeyA) x += 1; if (keys.ArrowRight || keys.KeyD) x -= 1;
+  if (keys.ArrowUp || keys.KeyW) z += 1; if (keys.ArrowDown || keys.KeyS) z -= 1;
+  if (stick) { x -= stick.dx; z -= stick.dy; }
+  const l = Math.hypot(x, z); if (l > 1) { x /= l; z /= l; }
+  const j = keys.Space || keys.KeyK || touchJump.down;
+  IN.jump = j && !IN.jumpHeld; IN.jumpHeld = j; IN.x = x; IN.z = z;
+}
+
+/* ---------- Sound (kurz & synthetisch) ---------- */
+let AC = null;
+function audioInit() { if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } } else if (AC.state === 'suspended') AC.resume(); }
+function sfx(kind) {
+  if (!AC) return; const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  const S = { jump: ['square', 300, 620, 0.12, 0.07], hurt: ['sawtooth', 240, 70, 0.3, 0.12], cp: ['triangle', 660, 990, 0.25, 0.1], win: ['triangle', 520, 1040, 0.6, 0.12], bonk: ['square', 160, 220, 0.08, 0.08] }[kind];
+  o.type = S[0]; o.frequency.setValueAtTime(S[1], t); o.frequency.exponentialRampToValueAtTime(S[2], t + S[3]);
+  g.gain.setValueAtTime(S[4], t); g.gain.exponentialRampToValueAtTime(0.001, t + S[3]); o.start(t); o.stop(t + S[3] + 0.02);
+}
+
+/* ---------- Spiel-Schritt (60 Hz fest) ---------- */
+let F = 0;
+function step() {
+  F++; P.frame++;
+  if (P.msgT > 0 && --P.msgT === 0) $('msg').style.opacity = 0;
+  if (P.dead > 0) { if (--P.dead === 0) respawn(true); return; }
+  if (P.done) return;
+
+  // Bewegung
+  const sp = SPEED * (P.slow && P.ground ? 0.45 : 1);
+  const acc = P.ground ? 0.25 : 0.08;
+  P.vx += (IN.x * sp - P.vx) * acc; P.vz += (IN.z * sp - P.vz) * acc;
+  if (IN.jump && (P.ground || P.jumps < 1)) { if (!P.ground) P.jumps++; P.vy = JUMP * (P.ground ? 1 : 0.85); P.ground = false; sfx('jump'); }
+  P.vy -= GRAV; if (P.vy < -0.5) P.vy = -0.5;
+
+  // x
+  P.x += P.vx; for (const o of SOLIDS) if (overlap(o)) { P.x = P.vx > 0 ? o.x1 - R : o.x2 + R; P.vx = 0; }
+  P.x = Math.max(-W + R, Math.min(W - R, P.x));
+  // z
+  P.z += P.vz; for (const o of SOLIDS) if (overlap(o)) { P.z = P.vz > 0 ? o.z1 - R : o.z2 + R; P.vz = 0; }
+  P.z = Math.max(-3.5, Math.min(LEN - 0.5, P.z));
+  // y
+  const wasGround = P.ground; P.ground = false; P.y += P.vy;
+  for (const o of SOLIDS) if (overlap(o)) {
+    if (P.vy <= 0) { P.y = o.y2; P.vy = 0; P.ground = true; } else { P.y = o.y1 - H; P.vy = 0; sfx('bonk'); }
+  }
+  if (!inPit(P.z) && P.y <= 0 && P.y > -0.6) { P.y = 0; P.vy = Math.max(0, P.vy); P.ground = true; }
+  if (P.ground) P.jumps = 0;
+  if (P.y < -5) { P.hp--; updHud(); if (P.hp <= 0) { P.dead = 70; msg('AUTSCH!<small>Ab in den Kabelschacht …</small>'); } else { respawn(false); msg('KABELSCHACHT!<small>−1 Leben</small>', 80); sfx('hurt'); } return; }
+
+  P.slow = P.z > SLOW[0] && P.z < SLOW[1] && P.y < 0.3;
+  if (Math.hypot(P.vx, P.vz) > 0.01) P.face = Math.atan2(P.vx, P.vz);
+
+  // Checkpoints
+  for (let i = P.cp + 1; i < CHECKPOINTS.length; i++) if (P.z > CHECKPOINTS[i]) { P.cp = i; sfx('cp'); msg('CHECKPOINT', 60); }
+  // Ziel
+  if (P.z > GOAL) { P.done = true; P.endF = F; sfx('win'); msg('GESCHAFFT!<small>Zeit ' + fmtTime(F) + ' · Ab auf die Bühne!</small>', 1e9); }
+
+  // Haken
+  for (const h of HOOKS) {
+    const a = 1.05 * Math.sin(F / 60 * 1.7 + h.ph);
+    h.g.rotation.z = a;
+    const bx = Math.sin(a) * h.L, by = CEIL - 0.4 - Math.cos(a) * h.L;
+    const dx = P.x - bx, dy = P.y + 0.6 - by, dz = P.z - h.z;
+    if (dx * dx + dy * dy + dz * dz < 0.85 * 0.85) hurt(Math.sign(dx || 1) * 0.25, -0.12);
+  }
+  // Dampf
+  for (const v of VENTS) {
+    const c = (F + v.ph) % 150, on = c > 90;
+    v.on = on; v.c = c;
+    if (on && Math.abs(P.x - v.x) < 0.75 && Math.abs(P.z - v.z) < 0.75 && P.y < 2.6) hurt(0, -0.18);
+  }
+  // Roller
+  if (F % ROLL.every === 0) spawnRoller(ROLL.lanes[(F / ROLL.every) % 3 | 0]);
+  if (F % ROLL.every === 30) spawnRoller(ROLL.lanes[((F / ROLL.every | 0) + 2) % 3]);
+  for (let i = rollers.length - 1; i >= 0; i--) {
+    const r = rollers[i]; r.z -= 0.09;
+    if (r.z < ROLL.z1) { scene.remove(r.m); rollers.splice(i, 1); continue; }
+    const o = { x1: r.x - 0.7, x2: r.x + 0.7, z1: r.z - 0.7, z2: r.z + 0.7, y1: 0, y2: 1.2 };
+    if (overlap(o)) {
+      if (P.vy < 0 && P.y > 0.85) { P.y = 1.2; P.vy = JUMP * 0.9; P.jumps = 0; sfx('jump'); }   // draufspringen = Abprall
+      else hurt(0, -0.3);
+    }
+  }
+  if (P.inv > 0) P.inv--;
+}
+
+/* ---------- Posen ---------- */
+function pose(h, t) {
+  const { body, arms, feet } = h.userData;
+  body.position.y = 0.95; body.rotation.set(0, 0, 0); body.scale.set(1, 1, 1);
   arms.forEach(a => a.rotation.set(0, 0, 0));
   feet.forEach(f => { f.position.y = 0; f.position.z = 0.12; });
-  cheeks.forEach(c => c.scale.setScalar(1).multiply(new THREE.Vector3(1, 0.85, 0.75)));
-  if (mode === 'idle') {
-    body.position.y += Math.sin(t * 3) * 0.025;
-    body.scale.set(1 + Math.sin(t * 3) * 0.012, 1 - Math.sin(t * 3) * 0.012, 1);
-  } else if (mode === 'run') {
-    const s = Math.sin(t * 14), c = Math.cos(t * 14);
+  const spd = Math.hypot(P.vx, P.vz);
+  if (!P.ground) {
+    body.rotation.x = P.vy > 0 ? -0.15 : 0.15;
+    arms[0].rotation.x = arms[1].rotation.x = -2.3; arms[0].rotation.z = -0.4; arms[1].rotation.z = 0.4;
+    feet[0].position.set(-0.34, 0.25, 0.3); feet[1].position.set(0.34, 0.15, -0.05);
+    body.scale.set(0.95, 1.06, 0.95);
+  } else if (spd > 0.02) {
+    P.anim += spd * 1.6; const s = Math.sin(P.anim), c = Math.cos(P.anim);
     feet[0].position.z = 0.12 + s * 0.32; feet[0].position.y = Math.max(0, c) * 0.18;
     feet[1].position.z = 0.12 - s * 0.32; feet[1].position.y = Math.max(0, -c) * 0.18;
     body.position.y += Math.abs(s) * 0.08; body.rotation.x = 0.2; body.rotation.z = s * 0.05;
     arms[0].rotation.x = -s * 0.9; arms[1].rotation.x = s * 0.9;
-  } else if (mode === 'punch') {
-    body.rotation.x = 0.18; body.rotation.y = -0.35;
-    arms[1].rotation.x = -1.5; arms[1].position.z = 0.6;
-    arms[0].rotation.x = 0.5;
-    cheeks.forEach(c => c.scale.multiplyScalar(1.15));
+  } else {
+    body.position.y += Math.sin(t * 3) * 0.025;
+    body.scale.set(1 + Math.sin(t * 3) * 0.012, 1 - Math.sin(t * 3) * 0.012, 1);
   }
 }
 
-/* ---------- Kamera / Loop ---------- */
-function resize() {
-  const w = innerWidth, h = innerHeight;
-  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
-}
-addEventListener('resize', resize); resize();
+/* ---------- Darstellung ---------- */
+const camPos = new THREE.Vector3(0, 3, -4), camLook = new THREE.Vector3();
+function fmtTime(f) { const s = f / 60; return (s / 60 | 0) + ':' + String((s % 60).toFixed(1)).padStart(4, '0'); }
+function draw(t) {
+  hamster.position.set(P.x, P.y, P.z);
+  let d = P.face - hamster.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); hamster.rotation.y += d * 0.25;
+  hamster.visible = !(P.inv > 0 && (P.inv >> 2) % 2) || P.dead > 0;
+  pose(hamster, t);
 
-let mode = QS.get('pose') || 'idle', angle = QS.has('angle') ? +QS.get('angle') : 0.5, auto = !QS.has('angle');
-let drag = null;
-addEventListener('pointerdown', e => { drag = e.clientX; auto = false; });
-addEventListener('pointermove', e => { if (drag !== null) { angle -= (e.clientX - drag) * 0.01; drag = e.clientX; } });
-addEventListener('pointerup', () => drag = null);
-addEventListener('dblclick', () => { mode = { idle: 'run', run: 'punch', punch: 'idle' }[mode]; });
+  const tgt = new THREE.Vector3(P.x * 0.55, Math.max(P.y, 0) * 0.6 + 2.1, P.z - 3.9);
+  camPos.lerp(tgt, 0.12); camera.position.copy(camPos);
+  camLook.lerp(new THREE.Vector3(P.x * 0.7, Math.max(P.y, -1) * 0.7 + 0.8, P.z + 3.5), 0.15); camera.lookAt(camLook);
 
-window.__render = (t) => {   // für Vorschau-Screenshots
-  pose(hamster, mode, t);
-  const r = 4.6;
-  camera.position.set(Math.sin(angle) * r, 1.9, Math.cos(angle) * r);
-  camera.lookAt(0, 0.95, 0);
+  sun.position.set(P.x + 2, 9, P.z - 3); sun.target.position.set(P.x, 0, P.z + 2);
+  lamp.position.set(P.x, 2.6, P.z + 1.5);
+
+  for (const n of NEONS) if (n.flick) n.m.material = (Math.sin(F * 0.7 + n.m.position.z) > 0.6 || (F % 97) < 6) ? MAT.neonOff : MAT.neon;
+  for (const r of rollers) { r.m.position.set(r.x, r.y, r.z); }
+  for (const v of VENTS) v.puffs.forEach((s, k) => {
+    const life = ((v.c - 90) / 60 + k / 7) % 1;
+    s.visible = v.on && Math.abs(v.z - P.z) < 30;
+    if (s.visible) { s.position.set(v.x + Math.sin(k * 3 + F * 0.05) * 0.15, 0.2 + life * 3, v.z); s.scale.setScalar(0.6 + life * 1.6); s.material.opacity = 0.75 * (1 - life); }
+    else if (!v.on && v.c > 70 && k === 0) { s.visible = true; s.position.set(v.x, 0.25, v.z); s.scale.setScalar(0.4); s.material.opacity = 0.4; }   // Vorwarnung: Zischen
+  });
+
+  $('time').textContent = fmtTime(P.done ? P.endF : F);
+  $('prog').firstElementChild.style.width = Math.max(0, Math.min(1, P.z / GOAL)) * 100 + '%';
   renderer.render(scene, camera);
+}
+
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+updHud();
+msg('KATAKOMBEN<small>der Messe · Finde den Weg zu Halle 5</small>', 150);
+
+// Test-Hook für Vorschaubilder: n Schritte mit fester Eingabe simulieren
+window.__sim = (n, inp = {}, place) => {
+  if (inp.clearMsg) { P.msgT = 0; $('msg').style.opacity = 0; $('msg').style.transition = 'none'; }
+  if (place) { Object.assign(P, place); camPos.set(P.x * 0.55, P.y * 0.6 + 2.1, P.z - 3.9); camLook.set(P.x * 0.7, 0.9, P.z + 4); }
+  for (let i = 0; i < n; i++) { IN.x = inp.x || 0; IN.z = inp.z || 0; IN.jump = !!(inp.jumpAt && inp.jumpAt.includes(i)); step(); }
+  draw(F / 60); return { x: P.x, y: P.y, z: P.z, hp: P.hp, done: P.done, cp: P.cp };
 };
-const clock = new THREE.Clock();
-renderer.setAnimationLoop(() => {
-  const t = clock.getElapsedTime();
-  if (auto) angle += 0.006;
-  window.__render(t);
-});
+
+if (!QS.has('shot')) {
+  let acc = 0, last = performance.now();
+  renderer.setAnimationLoop(() => {
+    const now = performance.now(); acc += Math.min(100, now - last); last = now;
+    while (acc >= 1000 / 60) { readInput(); step(); acc -= 1000 / 60; }
+    draw(now / 1000);
+  });
+}
 </script>
 </body>
 </html>
