@@ -1116,7 +1116,7 @@ function stepHazards() {
   if (ARENA === 'camper') {
     const dir = Math.random() < 0.5 ? 1 : -1;
     ents.push({ type: 'boar', dir, x: dir > 0 ? STAGE.x1 - 260 : STAGE.x2 + 260, y: STAGE.top, wait: 75, t: 0, hits: [] });
-    popText(1000, STAGE.top - 170, 'ACHTUNG, WILDSCHWEIN!', '#ffcf70', 26, 80); sfx.drop();
+    popText(PLATS[1].x2 + 20, PLATS[1].y - 130, 'ACHTUNG, WILDSCHWEIN!', '#ffcf70', 26, 80); sfx.drop();
   } else {
     const xs = [rand(STAGE.x1 + 80, 600), rand(680, STAGE.x2 - 80)];
     for (const x of xs) ents.push({ type: 'pyro', x, t: 0, hits: [] });
@@ -1645,6 +1645,7 @@ function collide(f, prevY) {
   if (!f.onGround && f.vy >= 0 && ARENA === 'camper') {   // Waldboden jenseits der Gräben ist begehbar
     for (const g of CAMP_GROUND) if (f.x > g.x1 && f.x < g.x2 && prevY <= g.y + 0.01 && f.y >= g.y) { land(f, g, g.y); break; }
   }
+  if (f.onGround && f.ground && f.ground.solid && (f.x < BLAST.x1 + 45 || f.x > BLAST.x2 - 45)) { f.x = clamp(f.x, BLAST.x1 + 45, BLAST.x2 - 45); f.vx = 0; }   // Weidezaun: hinter dem Graben nicht ins Aus laufen
   if (!f.onGround && f.vy >= 0 && f.drop <= 0) {
     for (const p of PLATS) if (f.x > p.x1 - 4 && f.x < p.x2 + 4 && prevY <= p.y + 0.01 && f.y >= p.y) { land(f, p, p.y); break; }
   }
@@ -3058,6 +3059,10 @@ function drawCamperStage(T) {
   for (const gx of [gL, gR]) { const d = gx === gL ? -1 : 1;
     c.fillStyle = '#4c6a2e'; c.beginPath(); c.moveTo(gx - d * 6, S.top - 2); c.lineTo(gx + d * 8, S.top + 2); c.lineTo(gx + d * 2, S.top + 12); c.lineTo(gx - d * 4, S.top + 6); c.closePath(); c.fill();   // Grasüberhang
     Ln(c, gx + d * 3, S.top + 10, gx + d * 12, S.top + gd, 'rgba(0,0,0,0.45)', 6); }
+  for (const fx of [BLAST.x1 + 30, BLAST.x2 - 30]) {   // Weidezaun am äußeren Rand
+    for (let k = 0; k < 3; k++) Ln(c, fx + (fx < 640 ? -k * 26 : k * 26), S.top + 2, fx + (fx < 640 ? -k * 26 : k * 26), S.top - 44, '#6b4a2c', 5);
+    for (const yy of [-34, -18]) Ln(c, fx + (fx < 640 ? 6 : -6), S.top + yy, fx + (fx < 640 ? -58 : 58), S.top + yy, '#86603a', 4);
+  }
   for (const [bx, sc] of [[gL - gw - 60, 1], [gR + gw + 70, 1.2], [gL - gw - 200, 0.8], [gR + gw + 220, 0.9]]) { c.fillStyle = '#1e2a16'; for (let k = 0; k < 4; k++) { c.beginPath(); c.arc(bx + k * 18 * sc, S.top - 14 * sc + (k % 2) * 6, 20 * sc, 0, TAU); c.fill(); } }   // Büsche hinterm Graben
   // Hintergrund-Details auf Bodenhöhe: Reh mit leuchtenden Augen, Eule, Wäscheleine mit Warnwesten
   c.save(); c.globalAlpha = 0.85;
@@ -3108,7 +3113,7 @@ function drawCamperStage(T) {
   c.fillStyle = '#2e6a8a'; c.beginPath(); c.moveTo(vx2 - 120, top + 12); c.lineTo(vx2 + 60, top + 12); c.lineTo(vx2 + 80, top + 50); c.lineTo(vx2 - 100, top + 50); c.closePath(); c.fill();
   c.fillStyle = '#e6d9bb'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(vx2 - 112 + i * 32, top + 12); c.lineTo(vx2 - 96 + i * 32, top + 12); c.lineTo(vx2 - 76 + i * 32, top + 50); c.lineTo(vx2 - 92 + i * 32, top + 50); c.closePath(); c.fill(); }
   Ln(c, vx2 + 76, top + 50, vx2 + 80, bot + 26, '#8a8f96', 3);
-  c.save(); c.translate(vx2 - 30, top - 26); c.rotate(-0.4); E(c, 0, 0, 16, 7, '#c9ccd1'); Ln(c, 0, 0, 10, -6, '#8a8f96', 2); c.restore(); Ln(c, vx2 - 30, top - 20, vx2 - 30, top - 4, '#8a8f96', 3);
+  c.save(); c.translate(vx1 + 40, top - 26); c.rotate(-0.4); E(c, 0, 0, 16, 7, '#c9ccd1'); Ln(c, 0, 0, 10, -6, '#8a8f96', 2); c.restore(); Ln(c, vx1 + 40, top - 20, vx1 + 40, top - 4, '#8a8f96', 3);
   RR(c, vx1 + 110, bot - 22, 54, 14, 2, '#f4f4f2'); RR(c, vx1 + 110, bot - 22, 6, 14, 1, '#2a4ab0'); c.fillStyle = '#111'; c.font = 'bold 9px system-ui,sans-serif'; c.textAlign = 'left'; c.fillText('GO 6040', vx1 + 119, bot - 12);
   RR(c, vx2 + 6, bot - 34, 20, 40, 8, '#c0392b'); RR(c, vx2 + 10, bot - 40, 12, 8, 3, '#8a8f96');
   RR(c, P.x1, top - 6, P.x2 - P.x1, 8, 3, '#cfc2a2');   // Dachkante = Plattform
@@ -3121,7 +3126,7 @@ function drawCamperStage(T) {
   // Campingtisch mit Thermoskanne, Becher und Funkgerät
   RR(c, 690, S.top - 52, 70, 6, 2, '#c9ccd1'); Ln(c, 696, S.top - 46, 712, S.top, '#8a8f96', 3); Ln(c, 754, S.top - 46, 738, S.top, '#8a8f96', 3);
   RR(c, 700, S.top - 78, 12, 26, 3, '#a83a2a'); RR(c, 702, S.top - 82, 8, 5, 2, '#555'); RR(c, 720, S.top - 64, 10, 12, 2, '#f0f0f0'); RR(c, 738, S.top - 74, 9, 22, 2, '#2a2a2e'); Ln(c, 744, S.top - 74, 744, S.top - 86, '#2a2a2e', 2);
-  c.save(); c.translate(1035, S.top); c.scale(0.72, 0.72); drawGogo(c, 0, 0, T); c.restore();   // am Rand unter der Markise – lenkt nicht ab
+  c.save(); c.translate(PLATS[1].x2 + 38, PLATS[1].y - 6); c.scale(0.62, 0.62); drawGogo(c, 0, 0, T); c.restore();   // sitzt hinten auf dem Wohnmobil-Dach   // am Rand unter der Markise – lenkt nicht ab
   // Lagerfeuer mit Steinkreis, Flammen und Funken
   const fx = 540, fy = S.top;
   c.save(); c.globalCompositeOperation = 'lighter'; const fg = c.createRadialGradient(fx, fy - 20, 4, fx, fy - 20, 120); fg.addColorStop(0, 'rgba(255,160,60,0.35)'); fg.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = fg; c.fillRect(fx - 120, fy - 140, 240, 160); c.restore();
@@ -3987,11 +3992,11 @@ function howtoPages() {
 }
 function openHowto() {   // einheitlich: eine Titelgröße, alles andere in einer Textgröße
   if (howtoBox) return;
-  const small = innerHeight < 520, fs = small ? 16 : 18, tf = small ? 26 : 30;
+  const small = innerHeight < 520, fs = small ? 16 : 18;
   howtoBox = document.createElement('div'); howtoBox.className = 'scrollbox';
   howtoBox.style.cssText = fbBox.style.cssText + `;width:min(780px,94vw);display:block;overflow:hidden;max-height:none;padding:${small ? '10px 18px' : '16px 24px'};font:600 ${fs}px/1.35 system-ui,sans-serif`;
   const bt = `font:700 ${fs}px system-ui,sans-serif;border:0;border-radius:14px;padding:10px 22px`;
-  howtoBox.innerHTML = `<div class="ttl" style="font:900 ${tf}px Impact,'Arial Black',sans-serif;color:#ffd23f"></div><div class="bd"></div>` +
+  howtoBox.innerHTML = `<div class="ttl" style="font:800 ${fs}px system-ui,sans-serif;color:#ffd23f;letter-spacing:1px;margin-bottom:4px"></div><div class="bd"></div>` +
     `<div style="margin-top:10px;display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap">` +
     `<button class="prev" style="${bt};background:#3a3450;color:#fff">‹ Zurück</button>` +
     `<button class="next" style="${bt};background:#ffd23f;color:#1a1024"></button>` +
@@ -4004,7 +4009,7 @@ function openHowto() {   // einheitlich: eine Titelgröße, alles andere in eine
 function showHowto() {
   const P = howtoPages(), [t, rows] = P[howtoPage], small = innerHeight < 520, fs = small ? 16 : 18, esc = x => String(x).replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch]));
   howtoBox.querySelector('.ttl').textContent = t;
-  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left;font:600 ${fs}px/1.35 system-ui,sans-serif;color:#e8e8f4"><span style="width:28px;flex:none">${ic}</span><span>${esc(tx)}</span></div>`).join('');
+  howtoBox.querySelector('.bd').innerHTML = rows.map(([ic, tx]) => `<div style="display:flex;gap:12px;align-items:flex-start;margin:${small ? 5 : 10}px 0;text-align:left;font:600 ${fs}px/1.35 system-ui,sans-serif;color:#e8e8f4"><span style="width:28px;flex:none;font-size:${fs}px">${ic}</span><span style="font-size:${fs}px">${esc(tx)}</span></div>`).join('');
   howtoBox.querySelector('.prev').style.display = howtoPage > 0 ? '' : 'none';
   howtoBox.querySelector('.next').textContent = howtoPage >= P.length - 1 ? 'Verstanden!' : 'Weiter ›';
   howtoBox.querySelector('.pg').textContent = `${howtoPage + 1}/${P.length}`;
