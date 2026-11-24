@@ -983,7 +983,7 @@ function drawStamp(c, x, y, a) {
 const ROSTER = [
   {
     id: 'hamster', lobby: 'Juckt die Fresse?', name: 'MEDIEN HAMSTER', short: 'Hamster', w: 48, h: 74,
-    speed: 5.2, airSpeed: 5, airAcc: 0.6, jump: 13.6, airJump: 12.2, airJumps: 2, grav: 0.64, maxFall: 11, fastFall: 17, weight: 1.0,
+    speed: 5.0, airSpeed: 4.8, airAcc: 0.6, jump: 13.6, airJump: 12.2, airJumps: 2, grav: 0.64, maxFall: 11, fastFall: 17, weight: 1.06,
     color: '#a45cff', color2: '#dcc2ff', hitColor: '#d6a8ff', stats: [3, 4, 2], pt: [10, -44, 1.05],
     atk: { name: 'Pfoten-Hieb', s: 4, a: 5, r: 11, dmg: 7, kb: 5.4, scale: 0.12, ang: 40, meter: 20, lunge: 4, box: { x: 8, y: -62, w: 48, h: 52 } },
     fin: 'smoke', finName: 'RAUCH INS GESICHT', finQuote: 'Kurz eine rauchen … PFFFFFF!', finRange: 260,
@@ -992,7 +992,7 @@ const ROSTER = [
   },
   {
     id: 'hm', lobby: 'Aufzug ist geschlossen!', name: 'HALLENMEISTER', short: 'Hallenmeister', w: 46, h: 110,
-    speed: 5.8, airSpeed: 4.6, airAcc: 0.52, jump: 13.4, airJump: 11.8, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.9,
+    speed: 5.8, airSpeed: 4.6, airAcc: 0.52, jump: 13.4, airJump: 11.8, airJumps: 2, grav: 0.68, maxFall: 12, fastFall: 18, weight: 0.8,
     color: '#3a78e0', color2: '#b4cfff', hitColor: '#7fd3ff', stats: [2, 3, 4], pt: [19, -97, 1.6],
     atk: { name: 'Klemmbrett-Klatsche', s: 6, a: 6, r: 11, dmg: 10, kb: 5.6, scale: 0.125, ang: 50, meter: 20, lunge: 3, box: { x: 8, y: -98, w: 72, h: 72 } },
     fin: 'zap', finName: '400V PHASE BRAUN', finQuote: '400 Volt, Phase Braun. Nicht anfassen!', finRange: 520,
@@ -1001,7 +1001,7 @@ const ROSTER = [
   },
   {
     id: 'cemil', name: 'LOGISTIKER', short: 'Logistiker', w: 38, h: 82,
-    speed: 6.2, airSpeed: 5.8, airAcc: 0.75, jump: 14.6, airJump: 13, airJumps: 2, grav: 0.66, maxFall: 11.5, fastFall: 17, weight: 1.1,
+    speed: 5.9, airSpeed: 5.6, airAcc: 0.72, jump: 14.4, airJump: 13, airJumps: 2, grav: 0.66, maxFall: 11.5, fastFall: 17, weight: 1.17,
     color: '#ffd400', color2: '#fff3a0', hitColor: '#ffe14a', stats: [5, 1, 2], pt: [3, -70, 1.75],
     atk: { name: 'Helm-Kopfnuss', s: 4, a: 6, r: 10, dmg: 7, kb: 5, scale: 0.115, ang: 38, meter: 20, lunge: 5, box: { x: 4, y: -82, w: 46, h: 54 } },
     fin: 'forklift', finName: 'GABELSTAPLER-RAMME', finQuote: 'Piep, piep, piep – Logistik kommt durch!', finRange: 600,
@@ -1019,9 +1019,9 @@ const ROSTER = [
   },
   {
     id: 'gerch', lobby: 'Espresso und Kippe, lecker Frühstück.', name: 'TONTECHNIKER', short: 'Tontechniker', w: 44, h: 108,
-    speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.94,
+    speed: 5.7, airSpeed: 5.1, airAcc: 0.58, jump: 13.6, airJump: 12, airJumps: 2, grav: 0.66, maxFall: 12, fastFall: 18, weight: 0.9,
     color: '#ff7a1a', color2: '#ffd0a8', hitColor: '#ffb070', stats: [3, 3, 3], pt: [7, -95, 1.6],
-    atk: { name: 'XLR-Peitsche', s: 6, a: 5, r: 12, dmg: 9, kb: 5.3, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
+    atk: { name: 'XLR-Peitsche', s: 5, a: 6, r: 11, dmg: 10, kb: 5.6, scale: 0.12, ang: 42, meter: 20, lunge: 2, box: { x: 8, y: -96, w: 72, h: 66 } },
     fin: 'boom', finName: '180 dB ÜBERSCHALLKNALL', finQuote: 'Fader auf Anschlag – 180 dB!', finRange: 380,
     quotes: ['Check, eins, zwei.', 'Zu laut gibt es nicht.', 'Das war nur der Soundcheck.', 'Pegel passt.', 'Wer hat am Pult gedreht?!'],
     style: S_GERCH, draw: (c, f, A) => drawHuman(c, f, A, S_GERCH)
@@ -1065,7 +1065,7 @@ const ROSTER = [
   },
   {
     id: 'it', lobby: 'Mac ist was für Loser, ich arbeite seit 1992 auf Ubuntu.', name: 'IT-LER', short: 'ITler', w: 34, h: 124,
-    speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.13,
+    speed: 5.8, airSpeed: 5.1, airAcc: 0.58, jump: 14, airJump: 12.4, airJumps: 2, grav: 0.65, maxFall: 12, fastFall: 18, weight: 1.05,
     color: '#3dff7a', color2: '#d0ffdc', hitColor: '#8dffae', stats: [3, 2, 4], pt: [5, -112, 1.6],
     atk: { name: 'Tastatur-Klatsche', s: 5, a: 5, r: 13, dmg: 7, kb: 5.3, scale: 0.12, ang: 40, meter: 20, lunge: 2, box: { x: 8, y: -102, w: 72, h: 64 } },
     fin: 'matrix', finName: 'TROJANER IM NETZWERK', finQuote: 'Hast du den Anhang geöffnet? … Zu spät.', finRange: 640,
@@ -1084,10 +1084,10 @@ const ROSTER = [
 ];
 const FMOVE = {
   smoke: { dmg: 22, kb: 10.5, scale: 0.2, ang: 55, meter: 0 },
-  zap: { dmg: 27, kb: 11, scale: 0.21, ang: 60, meter: 0 },
-  forklift: { dmg: 25, kb: 12, scale: 0.21, ang: 65, meter: 0 },
+  zap: { dmg: 30, kb: 12, scale: 0.21, ang: 60, meter: 0 },
+  forklift: { dmg: 21, kb: 11, scale: 0.21, ang: 65, meter: 0 },
   chain: { dmg: 18, kb: 10.2, scale: 0.17, ang: 35, meter: 0 },
-  boom: { dmg: 27, kb: 11.5, scale: 0.21, ang: 45, meter: 0 },
+  boom: { dmg: 30, kb: 12.2, scale: 0.21, ang: 45, meter: 0 },
   food: { dmg: 13, kb: 11, scale: 0.21, ang: 50, meter: 0 },
   stamp: { dmg: 25, kb: 11, scale: 0.2, ang: 60, meter: 0 },
   wall: { dmg: 23, kb: 11.5, scale: 0.2, ang: 62, meter: 0 },
@@ -1270,7 +1270,7 @@ function stepFx() {
 }
 
 /* ---------------- Physik & Logik ---------------- */
-function hurtbox(o) { return { x: o.x - o.def.w / 2, y: o.y - o.def.h, w: o.def.w, h: o.def.h }; }
+function hurtbox(o) { const h = Math.max(o.def.h, 86); return { x: o.x - o.def.w / 2, y: o.y - h, w: o.def.w, h }; }   // kleine Figuren: Mindesthöhe, sonst gehen viele Schläge drüber
 function overlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
 function worldBox(f, b) { return { x: f.facing > 0 ? f.x + b.x : f.x - b.x - b.w, y: f.y + b.y, w: b.w, h: b.h }; }
 function hittable(o) { return !o.dead && o.invuln <= 0 && o.plat <= 0; }
@@ -1350,7 +1350,7 @@ function stepFinisher(f, inp, o) {
       }
     }
     f.facing = Fn.dir;
-    if (Fn.t >= 125) { f.fin = null; f.lag = 16; }
+    if (Fn.t >= 95) { f.fin = null; f.lag = 18; }
   } else if (Fn.type === 'smoke') {
     f.armor = Fn.t < 22; f.vx *= 0.8;
     if (Fn.t === 4) sfx.lighter();
@@ -1368,7 +1368,7 @@ function stepFinisher(f, inp, o) {
     if (Fn.t === 40) {
       const hx = f.x + f.facing * 46, hy = f.y - 120;
       let tx = Fn.tx, ty = Fn.ty - 50, hit = false;
-      if (hittable(o) && Math.abs(o.x - Fn.tx) < 46 + o.def.w / 2 && o.y > Fn.ty - 140 && o.y < Fn.ty + 40) { tx = o.x; ty = o.y - o.def.h / 2; hit = true; }
+      if (hittable(o) && Math.abs(o.x - Fn.tx) < 58 + o.def.w / 2 && o.y > Fn.ty - 140 && o.y < Fn.ty + 40) { tx = o.x; ty = o.y - o.def.h / 2; hit = true; }
       ents.push({ type: 'bolt', x1: hx, y1: hy, x2: tx, y2: ty, t: 0 });
       flashScreen = 8; flashCol = '120,200,255'; sfx.zap(); shake = Math.max(shake, 10);
       if (hit) { o.zapped = 60; finisherHit(f, o, tx, ty, 'ZZZZAP!', '#7fd3ff'); }
@@ -1590,8 +1590,8 @@ function stepEnts() {
     }
     if (e.type === 'boom') {
       const owner = e.owner, o = F[1 - owner.idx];
-      e.r = Math.min(280, e.r + 9);   // Bodenwelle läuft nach links und rechts – wer springt, ist drüber
-      if (!e.hit && hittable(o) && e.r < 280) {
+      e.r = Math.min(330, e.r + 9);   // Bodenwelle läuft nach links und rechts – wer springt, ist drüber
+      if (!e.hit && hittable(o) && e.r < 330) {
         const d = Math.abs(o.x - e.x);
         if (d < e.r + o.def.w / 2 && d > e.r - 50 && Math.abs(o.y - (e.gy !== undefined ? e.gy : o.y)) < 24) {
           e.hit = true; popText(o.x, o.y - o.def.h - 30, 'ÜBERSCHALLKNALL!', '#ffd0a8', 34, 50);
@@ -1774,11 +1774,19 @@ function cpuInput(f, o) {
     if (ai.dodgeOk) {
       if (Fo.type === 'boom' && Fo.t >= 26 && f.onGround && Math.abs(f.x - o.x) < 300) { inp.upP = true; return inp; }
       if ((Fo.type === 'zap' || Fo.type === 'stamp' || Fo.type === 'strobe') && Fo.tx !== undefined && Math.abs(f.x - Fo.tx) < 120) { inp[f.x > Fo.tx ? 'right' : 'left'] = true; return inp; }
+      // alle anderen: Abstand halten bzw. drüberspringen – wie ein echter Spieler
+      const away = f.x > o.x ? 'right' : 'left', edge = (away === 'right' && f.x > STAGE.x2 - 70) || (away === 'left' && f.x < STAGE.x1 + 70);
+      if (Fo.type === 'forklift' && Fo.t >= 18 && f.onGround && Math.abs(f.x - o.x) < 190) { inp.upP = true; return inp; }
+      if (['smoke', 'chain', 'mallet', 'oops', 'food'].includes(Fo.type) && Math.abs(f.x - o.x) < 340) {
+        if (edge) { if (f.onGround) inp.upP = true; inp[away === 'right' ? 'left' : 'right'] = true; } else inp[away] = true;
+        return inp;
+      }
     }
   }
   for (const e of ents) {
     if (e.type === 'boom' && ai.dodgeOk && f.onGround && Math.abs(Math.abs(f.x - e.x) - e.r) < 60) { inp.upP = true; return inp; }
     if (e.type === 'stamp' && !e.landed && ai.dodgeOk && Math.abs(f.x - e.x) < 110) { inp[f.x > e.x ? 'right' : 'left'] = true; return inp; }
+    if ((e.type === 'smoke' || e.type === 'trojan' || e.type === 'food') && e.owner && e.owner !== f && ai.dodgeOk && Math.abs(f.x - e.x) < 160 && Math.random() < 0.3 && f.onGround) { inp.upP = true; return inp; }
   }
   for (const e of ents) {   // Spezialitäten: über das Wildschwein springen, von der Pyro-Düse weg
     if (e.type === 'boar' && !e.wait && f.onGround && Math.sign(f.x - e.x) === e.dir && Math.abs(f.x - e.x) < 170 && Math.random() < 0.5 + 0.2 * settings.diff) { inp.upP = true; return inp; }
