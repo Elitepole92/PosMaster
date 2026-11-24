@@ -1130,7 +1130,7 @@ function stepHazardEnt(e) {
     if (e.t % 3 === 0) dust(e.x - e.dir * 30, e.y, 1, 'rgba(110,90,60,');
     for (const f of F) {
       if (e.hits.includes(f.idx) || !hittable(f)) continue;
-      if (overlap({ x: e.x - 34, y: e.y - 42, w: 68, h: 42 }, hurtbox(f))) { e.hits.push(f.idx); popText(f.x, f.y - f.def.h - 20, 'GRUNZ!', '#ffcf70', 30, 40); applyHit(HAZ_SRC, f, HAZ.boar, e.dir, f.x, f.y - 30); }
+      if (overlap({ x: e.x - 48, y: e.y - 60, w: 96, h: 60 }, hurtbox(f))) { e.hits.push(f.idx); popText(f.x, f.y - f.def.h - 20, 'GRUNZ!', '#ffcf70', 30, 40); applyHit(HAZ_SRC, f, HAZ.boar, e.dir, f.x, f.y - 30); }
     }
     if (e.x < STAGE.x1 - 320 || e.x > STAGE.x2 + 320) e.dead = true;
   } else if (e.type === 'pyro') {
@@ -1153,6 +1153,7 @@ const settings = { stocks: 3, mode: 1, diff: 1, mute: false, items: true, arena:
 // Schauplätze (gleiche Plattform-Positionen, nur andere Optik – Balance bleibt gleich). arena-Einstellung: 0, 1 … oder ARENAS.length = Zufall
 const ARENAS = [{ id: 'main', name: 'MAINSTAGE' }, { id: 'camper', name: 'TRAILERPARK AM WALDRAND' }];
 let ARENA = 'main';
+const CAMP_GROUND = [{ x1: -2000, x2: STAGE.x1 - 240, y: STAGE.top, solid: true }, { x1: STAGE.x2 + 240, x2: 3000, y: STAGE.top, solid: true }];   // hinter den Gräben
 const arenaLabel = i => i >= ARENAS.length ? 'ZUFALL' : ARENAS[i].name;
 const pickArena = i => (i >= ARENAS.length ? pick(ARENAS) : ARENAS[i] || ARENAS[0]).id;
 try { Object.assign(settings, JSON.parse(localStorage.getItem('bb-settings') || '{}')); } catch (e) { /* ohne Speicher weiter */ }
@@ -1641,6 +1642,9 @@ function collide(f, prevY) {
       else { f.x = f.x < (STAGE.x1 + STAGE.x2) / 2 ? STAGE.x1 - hw : STAGE.x2 + hw; f.vx = f.hitstun > 0 ? -f.vx * 0.4 : 0; }
     }
   }
+  if (!f.onGround && f.vy >= 0 && ARENA === 'camper') {   // Waldboden jenseits der Gräben ist begehbar
+    for (const g of CAMP_GROUND) if (f.x > g.x1 && f.x < g.x2 && prevY <= g.y + 0.01 && f.y >= g.y) { land(f, g, g.y); break; }
+  }
   if (!f.onGround && f.vy >= 0 && f.drop <= 0) {
     for (const p of PLATS) if (f.x > p.x1 - 4 && f.x < p.x2 + 4 && prevY <= p.y + 0.01 && f.y >= p.y) { land(f, p, p.y); break; }
   }
@@ -1648,7 +1652,7 @@ function collide(f, prevY) {
 function control(f, inp, o) {
   const d = f.def, dir = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
   const onMain = f.onGround && f.ground === STAGE;
-  if (inp.downP && f.onGround && f.ground !== STAGE) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
+  if (inp.downP && f.onGround && f.ground !== STAGE && !f.ground.solid) { f.onGround = false; f.ground = null; f.drop = 14; f.y += 3; }
   // Konter-Schild: antippen (nicht halten) – kurz aktiv, danach Abklingzeit
   if (inp.downP && onMain && f.shieldT <= 0 && f.shieldCD <= 0) { f.shieldT = SHIELD_T; f.shieldAge = 0; sfx.shield(); }
   f.shielding = f.shieldT > 0;
@@ -1865,6 +1869,7 @@ function onUI(id) {
     case 'mode1': case 'mode2': settings.mode = id === 'mode1' || TOUCH ? 1 : 2; saveSettings(); sfx.confirm(); toSelect(); break;
     case 'diffC': settings.diff = (settings.diff + 1) % 3; saveSettings(); sfx.move(); break;
     case 'diffL': case 'diffR': settings.diff = clamp(settings.diff + (id === 'diffR' ? 1 : -1), 0, 2); saveSettings(); sfx.move(); break;
+    case 'arenaGo': arenaConfirm(); break;
     case 'arenaBack': if (NET.role === 'host') { toSelect(); netSend({ t: 'toSel' }); sfx.select(); break; } toSelect(); sfx.select(); break;
     case 'arenaL': case 'arenaR': settings.arena = (settings.arena + (id === 'arenaR' ? 1 : ARENAS.length) ) % (ARENAS.length + 1); saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items, arena: settings.arena }); break;
     case 'itemsL': case 'itemsR': settings.items = !settings.items; saveSettings(); sfx.move(); if (NET.role === 'host') netSend({ t: 'opts', stocks: settings.stocks, items: settings.items }); break;
@@ -3267,13 +3272,21 @@ function drawEnts() {
         if (o && e.ph === 1) { c.save(); c.globalAlpha = 0.6; c.strokeStyle = '#39ff6a'; c.lineWidth = 2; c.strokeRect(e.tx - o.def.w / 2 - 12, e.ty - o.def.h - 12, o.def.w + 24, o.def.h + 18); c.restore(); }
       }
     } else if (e.type === 'boar') {
-      if (e.wait > 0) continue;
-      c.save(); c.translate(e.x, e.y); c.scale(e.dir, 1);
+      if (e.wait > 0) {   // Vorwarnung: blinkender Pfeil an der Seite, von der es kommt
+        const ex = e.dir > 0 ? STAGE.x1 - 20 : STAGE.x2 + 20, on = (frame >> 3) % 2;
+        c.save(); c.globalAlpha = on ? 1 : 0.4; c.translate(ex, STAGE.top - 60); c.scale(e.dir, 1);
+        c.fillStyle = '#ff3b3b'; c.beginPath(); c.moveTo(30, 0); c.lineTo(0, -22); c.lineTo(0, -10); c.lineTo(-26, -10); c.lineTo(-26, 10); c.lineTo(0, 10); c.lineTo(0, 22); c.closePath(); c.fill();
+        c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke(); c.scale(e.dir, 1); c.font = '28px system-ui'; c.textAlign = 'center'; c.fillText('🐗', 0, -36); c.restore();
+        continue;
+      }
+      c.save(); c.translate(e.x, e.y); c.scale(e.dir * 1.5, 1.5);
+      c.save(); c.globalAlpha = 0.35; c.fillStyle = '#ffcf70'; c.beginPath(); c.ellipse(0, -30, 46, 26, 0, 0, TAU); c.fill(); c.restore();   // Lichtschein
+      c.strokeStyle = '#fff4d8'; c.lineWidth = 3; c.beginPath(); c.ellipse(0, -30, 37, 19, 0, 0, TAU); c.stroke(); c.beginPath(); c.ellipse(32, -28, 15, 12, 0, 0, TAU); c.stroke();   // heller Umriss
       const k = Math.sin(e.t * 0.9) * 8;
-      for (const [lx, ph] of [[-18, 1], [-8, -1], [12, 1], [22, -1]]) Ln(c, lx, -16, lx + ph * k * 0.6, 0, '#2e2016', 6);
-      E(c, 0, -30, 36, 18, '#4a3424'); E(c, -6, -38, 24, 9, '#5a4230');   // Körper + Rückenborsten
+      for (const [lx, ph] of [[-18, 1], [-8, -1], [12, 1], [22, -1]]) Ln(c, lx, -16, lx + ph * k * 0.6, 0, '#5a3e26', 6);
+      E(c, 0, -30, 36, 18, '#8a6040'); E(c, -6, -38, 24, 9, '#a0744c');   // Körper + Rückenborsten (heller)
       c.fillStyle = '#2e2016'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(-24 + i * 7, -44); c.lineTo(-21 + i * 7, -52); c.lineTo(-18 + i * 7, -44); c.fill(); }
-      E(c, 32, -28, 14, 11, '#4a3424'); E(c, 45, -26, 6, 6, '#8a6a5a'); Cc(c, 44, -27, 1.3, '#2e2016'); Cc(c, 47, -25, 1.3, '#2e2016');   // Kopf + Rüssel
+      E(c, 32, -28, 14, 11, '#8a6040'); E(c, 45, -26, 6, 6, '#e0a090'); Cc(c, 44, -27, 1.3, '#2e2016'); Cc(c, 47, -25, 1.3, '#2e2016');   // Kopf + Rüssel
       c.strokeStyle = '#f2efe6'; c.lineWidth = 2.5; c.beginPath(); c.moveTo(40, -21); c.quadraticCurveTo(46, -26, 44, -33); c.stroke();   // Hauer
       Cc(c, 34, -34, 2, '#ffcf70'); c.fillStyle = '#3a2818'; c.beginPath(); c.moveTo(26, -38); c.lineTo(30, -46); c.lineTo(33, -37); c.fill();
       c.restore();
@@ -3649,15 +3662,9 @@ function drawCarousel(p, cx, gy, big, sp, top, bot, arrowDX) {
     ui.push({ id: 'carR' + p, x: cx + sp - 90, y: top, w: 200, h: bot - top });
     ui.push({ id: 'pick' + p, x: cx - 100, y: top, w: 200, h: bot - top });
   }
-  { // Punkte-Leiste: zeigt, wo man im Karussell ist – dazu ein Wisch-Symbol
+  { // Punkte-Leiste: zeigt, wo man im Karussell ist
     const col = p === 0 ? '#ff8a7a' : '#7fc6ff', dy = gy + (big > 1.5 ? 26 : 14), dw = 14, x0 = cx - (n - 1) * dw / 2;
     for (let j = 0; j < n; j++) { const on = j === tgt; Cc(c, x0 + j * dw, dy, on ? 5 : 3, on ? col : 'rgba(255,255,255,0.3)'); }
-    if (mine && !s.ok) {
-      const sw = Math.sin(frame * 0.08) * 10, hx = cx + (n * dw) / 2 + 34;
-      c.save(); c.globalAlpha = 0.75; c.strokeStyle = col; c.lineWidth = 2.5; c.lineCap = 'round';
-      c.beginPath(); c.moveTo(hx - 18 + sw, dy - 5); c.lineTo(hx - 24 + sw, dy); c.lineTo(hx - 18 + sw, dy + 5); c.moveTo(hx + 18 + sw, dy - 5); c.lineTo(hx + 24 + sw, dy); c.lineTo(hx + 18 + sw, dy + 5); c.stroke();
-      c.font = '15px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('👆', hx + sw, dy + 1); c.textBaseline = 'alphabetic'; c.restore();
-    }
   }
   // Spieler-Plakette über der Figur
   const col = p === 0 ? '#ff5a4a' : '#3fa9ff', lab = who(p) + (s.ok ? ' ✓' : '');
@@ -3717,9 +3724,9 @@ function drawArenaSelect() {
   const c = ctx, cur = arenaCur(), n = ARENAS.length + 1, guest = NET.role === 'guest';
   c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(0, 0, W, H);
   c.save(); c.font = '900 38px Impact,"Arial Black",sans-serif'; c.textAlign = 'left'; c.lineWidth = 6; c.lineJoin = 'round'; c.strokeStyle = '#2a0d3d';
-  const tx = TOUCH ? 270 : 205; c.strokeText('SCHAUPLATZ', tx, 54); c.fillStyle = '#ffd23f'; c.fillText('SCHAUPLATZ', tx, 54); c.restore();
+  const tx = TOUCH ? 270 : 205; c.strokeText('VENUE WÄHLEN', tx, 54); c.fillStyle = '#ffd23f'; c.fillText('VENUE WÄHLEN', tx, 54); c.restore();
   if (!guest && !arenaPick) backBtn('arenaBack', 'ZURÜCK');
-  const pw = 300, ph = 430, gap = 40, x0 = (W - (n * pw + (n - 1) * gap)) / 2, top = 120;
+  const pw = 300, ph = 430, gap = 40, x0 = (W - (n * pw + (n - 1) * gap)) / 2, top = 104;
   for (let k = 0; k < n; k++) {
     const i = k, on = i === cur, info = ARENA_INFO[i], picked = arenaPick && arenaPick.i === i;
     const sway = Math.sin(frame * 0.025 + k * 1.7) * (on ? 0.012 : 0.025), cx = x0 + k * (pw + gap) + pw / 2, sc = on ? 1.06 : 0.94;
@@ -3746,8 +3753,9 @@ function drawArenaSelect() {
     c.restore();
     if (!guest && !arenaPick) ui.push({ id: 'apass' + i, x: cx - pw / 2, y: top, w: pw, h: ph });
   }
+  if (!guest && !arenaPick) btn('arenaGo', W / 2 - 140, 604, 280, 56, 'KAMPF!', '#ffd23f', 32);
   c.textAlign = 'center'; c.font = '15px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
-  c.fillText(guest ? 'Dein Gegner wählt den Schauplatz …' : arenaPick ? '' : (TOUCH ? 'Wischen oder Pass antippen – nochmal tippen zum Buchen' : '← / → wählen  ·  Enter buchen'), W / 2, 690);
+  c.fillText(guest ? 'Dein Gegner wählt die Venue …' : arenaPick ? '' : (TOUCH ? 'Wischen oder Pass antippen' : '← / → wählen  ·  Enter = Kampf'), W / 2, 690);
 }
 function drawSelect() {
   const c = ctx;
@@ -3793,7 +3801,7 @@ function drawSelect() {
       c.font = '900 24px Impact,"Arial Black",sans-serif'; c.fillStyle = o.color; c.fillText(o.name, x + 125, y + 162);
       c.font = 'bold 11px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText(o.finName, x + 125, y + 184);
     }
-    if (ready) btn('go', W / 2 - 140, 630, 280, 56, 'KAMPF!', '#ffd23f', 32);
+    if (ready) btn('go', W / 2 - 160, 630, 320, 56, 'VENUE WÄHLEN ›', '#ffd23f', 28);
   } else {
     [[0, 76, 376], [1, 386, 664]].forEach(([p, top, bot]) => {
       RR(c, 16, top, W - 32, bot - top, 18, 'rgba(8,6,18,0.7)'); RR(c, 16, top, W - 32, bot - top, 18, p === 0 ? 'rgba(255,90,74,0.08)' : 'rgba(63,169,255,0.08)');
@@ -3806,7 +3814,7 @@ function drawSelect() {
       c.textAlign = 'left'; c.font = 'bold 15px system-ui,sans-serif';
       c.fillStyle = sel[p].ok ? '#7ad15a' : '#9a9ab0'; c.fillText(sel[p].ok ? '✓ BEREIT' : (isOnline() && p !== myIdx() ? 'wählt noch …' : 'wählt …'), x, y + 172);
     });
-    if (ready) btn('go', W / 2 - 140, 668, 280, 48, 'KAMPF!', '#ffd23f', 30);
+    if (ready) btn('go', W / 2 - 160, 668, 320, 48, 'VENUE WÄHLEN ›', '#ffd23f', 26);
   }
   if (ready) return;
   c.textAlign = 'center'; c.font = '15px system-ui,sans-serif'; c.fillStyle = '#9a9ab0';
