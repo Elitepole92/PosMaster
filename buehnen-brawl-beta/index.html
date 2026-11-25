@@ -1237,7 +1237,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.5', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.8', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['🏕️', 'Neues Venue: Trailerpark am Waldrand'],
@@ -2457,39 +2457,39 @@ function stepOnlineLobby() {
    Ablageform wie der Sync der POS-App (Dokument „brawlonline1“ kann nie ein Sync-Code sein).
    ========================================================================= */
 const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/' + (BETA ? 'brawlbetahs1' : 'brawlonline1') + '?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
-const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
+const HS = { list: null, all: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
 let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
 const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
 const hsName = n => String(n || '').replace(/[^\p{L}\p{N} ._!\-]/gu, '').trim().slice(0, 12) || 'Anonym';
-function hsClean(arr) {
+function hsClean(arr, max = 400) {   // alle Einträge bleiben gespeichert (max. 400), angezeigt werden die Top 5
   return (Array.isArray(arr) ? arr : []).filter(e => e && Number.isFinite(+e.p))
     .map(e => ({ n: hsName(e.n), p: Math.max(1, Math.min(99999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), o: String(e.o || '').slice(0, 12), d: +e.d || 0 }))
-    .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, 5);   // kleinste Zeit zuerst
+    .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, max);   // kleinste Zeit zuerst
 }
 async function hsLoad() {
   HS.state = 'loading';
   try {
     const r = await fetch(HS_URL, { cache: 'no-store' });
-    if (r.status === 404) { HS.list = []; HS.ut = null; }
+    if (r.status === 404) { HS.list = []; HS.all = []; HS.ut = null; }
     else if (!r.ok) throw new Error('HTTP ' + r.status);
     else {
       const d = await r.json(); let j = {};
       try { j = JSON.parse(d.fields.data.stringValue); } catch (e) { /* leeres Board */ }
-      HS.ut = d.updateTime; HS.list = hsClean(j.scores);
+      HS.ut = d.updateTime; HS.all = hsClean(j.scores); HS.list = HS.all.slice(0, 5);
     }
     HS.state = 'ok'; return true;
   } catch (e) { HS.state = 'error'; return false; }
 }
-const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p < HS.list[HS.list.length - 1].p);
+const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p < HS.list[HS.list.length - 1].p);   // eintragen nur mit Top-5-Zeit; Rausgerutschte bleiben gespeichert und rücken nach, wenn oben jemand gelöscht wird
 async function hsSubmit(entry) {
   for (let tries = 0; tries < 3; tries++) {   // bei gleichzeitigem Schreiben neu laden und nochmal versuchen
     if (!await hsLoad()) return false;
-    const list = hsClean([...HS.list, entry]);
+    const list = hsClean([...(HS.all || []), entry]);
     const pre = HS.ut ? '&currentDocument.updateTime=' + encodeURIComponent(HS.ut) : '&currentDocument.exists=false';
     try {
       const r = await fetch(HS_URL + pre, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify({ scores: list }) } } }) });
-      if (r.ok) { const d = await r.json(); HS.ut = d.updateTime; HS.list = list; return true; }
+      if (r.ok) { const d = await r.json(); HS.ut = d.updateTime; HS.all = list; HS.list = list.slice(0, 5); return true; }
       if (![400, 409, 412].includes(r.status)) return false;
     } catch (e) { return false; }
   }
@@ -2501,10 +2501,12 @@ function onMatchEnd() {   // nach jedem Online-Duell sofort prüfen, ob die Sieg
   const me = F[myIdx()], other = F[1 - myIdx()];
   if (winner !== me) { HS.last = { lost: true }; return; }
   const t = Math.max(1, Math.round(matchT / 6)), entry = { p: t, c: me.def.id, o: other.def.id };
+  // Schutz gegen Fake-Siege (z. B. zweites Handy, das nur rumsteht): Gegner muss mitgespielt haben, Mindestdauer 30 s
+  if (other.stats.hits < 3 || other.stats.dealt < 15 || t < 300) { HS.last = { t, check: 'invalid' }; return; }
   HS.last = { t, check: 'loading' };
   hsLoad().then(ok => {
     if (!ok) { HS.last.check = 'error'; return; }
-    if (hsQualifies(t)) { HS.last.check = 'yes'; openNameBox(entry); }
+    if (hsQualifies(t)) { HS.last.check = 'yes'; HS.last.rank = HS.all.filter(e => e.p <= t).length + 1; openNameBox(entry); }
     else { HS.last.check = 'no'; HS.last.need = HS.list[HS.list.length - 1].p; }
   });
 }
@@ -2521,7 +2523,8 @@ document.body.appendChild(nameBox);
 const nbInput = nameBox.querySelector('input'), nbMsg = nameBox.querySelector('.msg');
 function openNameBox(entry) {
   HS.entry = entry;
-  nameBox.querySelector('.info').textContent = `Siegzeit ${fmtT(entry.p)} – das reicht für die Bestenliste!`;
+  const rank = (HS.all || []).filter(e => e.p <= entry.p).length + 1;
+  nameBox.querySelector('.info').textContent = `Siegzeit ${fmtT(entry.p)} – das reicht für die Top 5 (Platz ${rank})!`;
   try { nbInput.value = localStorage.getItem('bb-name') || ''; } catch (e) { nbInput.value = ''; }
   nbMsg.textContent = ''; nameBox.style.display = 'block'; sfx.ready();
   setTimeout(() => nbInput.focus(), 60);
@@ -3139,7 +3142,9 @@ function drawCamperStage(T) {
   E(c, rx, ry, 26, 14, '#1a1420'); Ln(c, rx - 16, ry + 8, rx - 18, ry + 34, '#1a1420', 4); Ln(c, rx + 14, ry + 8, rx + 16, ry + 34, '#1a1420', 4); Ln(c, rx + 20, ry - 6, rx + 30, ry - 30, '#1a1420', 7); E(c, rx + 34, ry - 34, 9, 6, '#1a1420');
   if ((T % 300) < 280) { Cc(c, rx + 38, ry - 36, 1.8, '#d8ff7a'); }
   c.restore();
-  Ln(c, S.x1 - 40, S.top - 150, S.x1 + 80, S.top - 140, '#444', 1.5);   // Wäscheleine
+  { const ax = S.x1 - 270, bx2 = S.x1 + 70;   // Wäscheleine: Pfosten jenseits des Grabens bis zum Pfosten am Platz, leicht durchhängend
+    Ln(c, ax, S.top + 2, ax, S.top - 158, '#5a3e24', 5); Ln(c, bx2, S.top + 2, bx2, S.top - 150, '#5a3e24', 5);
+    c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ax, S.top - 154); c.quadraticCurveTo((ax + bx2) / 2, S.top - 128, bx2, S.top - 146); c.stroke(); }
   for (const [vx, vy, rot] of [[S.x1 - 10, S.top - 146, 0.05], [S.x1 + 40, S.top - 143, -0.06]]) { c.save(); c.translate(vx, vy); c.rotate(rot + Math.sin(T * 0.03 + vx) * 0.04);
     RR(c, -14, 0, 28, 38, 4, '#e8f02c'); c.fillStyle = '#d4d7d7'; c.fillRect(-14, 18, 28, 4); c.fillRect(-14, 27, 28, 4); c.fillStyle = '#2a2a2a'; c.fillRect(-4, 0, 8, 10); c.restore(); }
   // Hochsitz (linke Plattform): gespreizte Beine, Kreuzstreben, schräge Leiter, Brüstung mit Tarnplane, Sitzbrett
@@ -3181,7 +3186,7 @@ function drawCamperStage(T) {
   // Markise über der Tür, Sat-Schüssel, Kennzeichen, Gasflasche
   c.fillStyle = '#2e6a8a'; c.beginPath(); c.moveTo(vx2 - 120, top + 12); c.lineTo(vx2 + 60, top + 12); c.lineTo(vx2 + 80, top + 50); c.lineTo(vx2 - 100, top + 50); c.closePath(); c.fill();
   c.fillStyle = '#e6d9bb'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(vx2 - 112 + i * 32, top + 12); c.lineTo(vx2 - 96 + i * 32, top + 12); c.lineTo(vx2 - 76 + i * 32, top + 50); c.lineTo(vx2 - 92 + i * 32, top + 50); c.closePath(); c.fill(); }
-  Ln(c, vx2 + 76, top + 50, vx2 + 80, bot + 26, '#8a8f96', 3);
+  Ln(c, vx2 + 76, top + 50, S.x2 - 12, S.top + 2, '#8a8f96', 3); Ln(c, S.x2 - 18, S.top + 2, S.x2 - 6, S.top + 2, '#5c6168', 4);   // Markisenstange schräg runter auf den Waldboden
   c.save(); c.translate(vx1 + 40, top - 26); c.rotate(-0.4); E(c, 0, 0, 16, 7, '#c9ccd1'); Ln(c, 0, 0, 10, -6, '#8a8f96', 2); c.restore(); Ln(c, vx1 + 40, top - 20, vx1 + 40, top - 4, '#8a8f96', 3);
   RR(c, vx1 + 110, bot - 22, 54, 14, 2, '#f4f4f2'); RR(c, vx1 + 110, bot - 22, 6, 14, 1, '#2a4ab0'); c.fillStyle = '#111'; c.font = 'bold 9px system-ui,sans-serif'; c.textAlign = 'left'; c.fillText('GO 6040', vx1 + 119, bot - 12);
   RR(c, vx2 + 6, bot - 34, 20, 40, 8, '#c0392b'); RR(c, vx2 + 10, bot - 40, 12, 8, 3, '#8a8f96');
@@ -3931,7 +3936,7 @@ function drawResults() {
       c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('SIEGZEIT ' + fmtT(L.t), W / 2, 540);
       c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = L.check === 'yes' ? '#7ad15a' : '#cfcfe0';
       c.fillText({ loading: 'Prüfe Bestenliste …', yes: '🏆 Das reicht für die Bestenliste!', error: 'Bestenliste gerade nicht erreichbar',
-        no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0) }[L.check] || '', W / 2, 568);
+        no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0), invalid: 'Zählt nicht für die Bestenliste – der Gegner hat kaum mitgespielt' }[L.check] || '', W / 2, 568);
     } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur der Gewinner kommt in die Bestenliste – Revanche!', W / 2, 560); }
   }
   btn('rematch', W / 2 - 350, 590, 220, 58, again, '#ffd23f', again.length > 9 ? 21 : 26);
