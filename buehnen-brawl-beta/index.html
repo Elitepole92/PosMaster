@@ -2480,7 +2480,7 @@ async function hsLoad() {
     HS.state = 'ok'; return true;
   } catch (e) { HS.state = 'error'; return false; }
 }
-const hsQualifies = p => p > 0 && !!HS.list;   // jeder gültige Sieg wird gespeichert – wer rausfällt, kann später wieder nachrücken
+const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p < HS.list[HS.list.length - 1].p);   // eintragen nur mit Top-5-Zeit; Rausgerutschte bleiben gespeichert und rücken nach, wenn oben jemand gelöscht wird
 async function hsSubmit(entry) {
   for (let tries = 0; tries < 3; tries++) {   // bei gleichzeitigem Schreiben neu laden und nochmal versuchen
     if (!await hsLoad()) return false;
@@ -2524,7 +2524,7 @@ const nbInput = nameBox.querySelector('input'), nbMsg = nameBox.querySelector('.
 function openNameBox(entry) {
   HS.entry = entry;
   const rank = (HS.all || []).filter(e => e.p <= entry.p).length + 1;
-  nameBox.querySelector('.info').textContent = rank <= 5 ? `Siegzeit ${fmtT(entry.p)} – das reicht für die Top 5 (Platz ${rank})!` : `Siegzeit ${fmtT(entry.p)} – Platz ${rank}. Trag dich ein, vielleicht rückst du noch in die Top 5!`;
+  nameBox.querySelector('.info').textContent = `Siegzeit ${fmtT(entry.p)} – das reicht für die Top 5 (Platz ${rank})!`;
   try { nbInput.value = localStorage.getItem('bb-name') || ''; } catch (e) { nbInput.value = ''; }
   nbMsg.textContent = ''; nameBox.style.display = 'block'; sfx.ready();
   setTimeout(() => nbInput.focus(), 60);
@@ -3933,7 +3933,7 @@ function drawResults() {
     if (L.t) {
       c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('SIEGZEIT ' + fmtT(L.t), W / 2, 540);
       c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = L.check === 'yes' ? '#7ad15a' : '#cfcfe0';
-      c.fillText({ loading: 'Prüfe Bestenliste …', yes: L.rank <= 5 ? '🏆 Das reicht für die Top 5!' : '📋 Platz ' + L.rank + ' der Bestenliste', error: 'Bestenliste gerade nicht erreichbar',
+      c.fillText({ loading: 'Prüfe Bestenliste …', yes: '🏆 Das reicht für die Bestenliste!', error: 'Bestenliste gerade nicht erreichbar',
         no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0), invalid: 'Zählt nicht für die Bestenliste – der Gegner hat kaum mitgespielt' }[L.check] || '', W / 2, 568);
     } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur der Gewinner kommt in die Bestenliste – Revanche!', W / 2, 560); }
   }
