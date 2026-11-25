@@ -1237,7 +1237,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.8', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.9', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['🏕️', 'Neues Venue: Trailerpark am Waldrand'],
@@ -1835,7 +1835,19 @@ function stepFighter(f, inp, o) {
 function cpuInput(f, o) {
   const inp = { ...NOINPUT }, ai = f.ai, D = DIFFS[settings.diff] || DIFFS[1];
   if (f.dead || f.plat > 0) { if (f.plat > 0 && f.plat < 120) inp.left = true; return inp; }
-  const offL = f.x < STAGE.x1, offR = f.x > STAGE.x2;
+  if (ARENA === 'camper') {   // Trailerpark: hinter den Gräben ist Waldboden – die CPU springt hinterher bzw. wieder zurück
+    const L1 = STAGE.x1 - 240, R1 = STAGE.x2 + 240, inDitch = (f.x < STAGE.x1 && f.x > L1) || (f.x > STAGE.x2 && f.x < R1);
+    const side = x => x < STAGE.x1 - 120 ? -1 : x > STAGE.x2 + 120 ? 1 : 0, me = f.onGround ? side(f.x) : null, them = o.dead ? 0 : side(o.x);
+    if (inDitch) {   // über dem Graben: zur Seite des Gegners (bzw. zurück auf die Bühne) fliegen, Doppelsprung nutzen
+      const goal = f.x < STAGE.x1 ? (them === -1 ? 'left' : 'right') : (them === 1 ? 'right' : 'left');
+      inp[goal] = true; if (f.vy > -1 && f.jumps > 0 && f.y > STAGE.top - 90) inp.upP = true; return inp;
+    }
+    if (me !== null && me !== them) {   // Gegner steht auf der anderen Grabenseite: zur Kante laufen und rüberspringen
+      const dir = them < me ? 'left' : 'right', edgeX = me === 0 ? (dir === 'left' ? STAGE.x1 : STAGE.x2) : (me === -1 ? L1 : R1);
+      inp[dir] = true; if (Math.abs(f.x - edgeX) < 45) inp.upP = true; return inp;
+    }
+  }
+  const offL = f.x < STAGE.x1 && !(ARENA === 'camper' && f.x < STAGE.x1 - 240), offR = f.x > STAGE.x2 && !(ARENA === 'camper' && f.x > STAGE.x2 + 240);
   if (offL || offR) {
     inp.right = offL; inp.left = offR;
     if (f.vy > -1 && f.jumps > 0 && (f.y > STAGE.top - 60 || Math.random() < 0.06)) inp.upP = true;
@@ -3145,8 +3157,11 @@ function drawCamperStage(T) {
   { const ax = S.x1 - 270, bx2 = S.x1 + 70;   // Wäscheleine: Pfosten jenseits des Grabens bis zum Pfosten am Platz, leicht durchhängend
     Ln(c, ax, S.top + 2, ax, S.top - 158, '#5a3e24', 5); Ln(c, bx2, S.top + 2, bx2, S.top - 150, '#5a3e24', 5);
     c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ax, S.top - 154); c.quadraticCurveTo((ax + bx2) / 2, S.top - 128, bx2, S.top - 146); c.stroke(); }
-  for (const [vx, vy, rot] of [[S.x1 - 10, S.top - 146, 0.05], [S.x1 + 40, S.top - 143, -0.06]]) { c.save(); c.translate(vx, vy); c.rotate(rot + Math.sin(T * 0.03 + vx) * 0.04);
-    RR(c, -14, 0, 28, 38, 4, '#e8f02c'); c.fillStyle = '#d4d7d7'; c.fillRect(-14, 18, 28, 4); c.fillRect(-14, 27, 28, 4); c.fillStyle = '#2a2a2a'; c.fillRect(-4, 0, 8, 10); c.restore(); }
+  for (let i = 0; i < 10; i++) {   // die ganze Leine voller Warnwesten
+    const ax = S.x1 - 270, bx2 = S.x1 + 70, u = (i + 0.5) / 10, vx = ax + (bx2 - ax) * u;
+    const vy = (1 - u) * (1 - u) * (S.top - 154) + 2 * u * (1 - u) * (S.top - 128) + u * u * (S.top - 146) + 2, rot = (i % 3 - 1) * 0.05;
+    c.save(); c.translate(vx, vy); c.rotate(rot + Math.sin(T * 0.03 + vx) * 0.04);
+    RR(c, -14, 0, 28, 38, 4, i % 3 === 1 ? '#ff8a1e' : '#e8f02c'); c.fillStyle = '#d4d7d7'; c.fillRect(-14, 18, 28, 4); c.fillRect(-14, 27, 28, 4); c.fillStyle = '#2a2a2a'; c.fillRect(-4, 0, 8, 10); c.restore(); }
   // Hochsitz (linke Plattform): gespreizte Beine, Kreuzstreben, schräge Leiter, Brüstung mit Tarnplane, Sitzbrett
   const L = PLATS[0], wood = '#6b4a2c', woodD = '#4e3520', woodL = '#86603a';
   const legs = [[L.x1 + 16, L.x1 - 14], [L.x2 - 16, L.x2 + 14]];
