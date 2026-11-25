@@ -1237,7 +1237,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.7', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.8', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['🏕️', 'Neues Venue: Trailerpark am Waldrand'],
@@ -3142,7 +3142,9 @@ function drawCamperStage(T) {
   E(c, rx, ry, 26, 14, '#1a1420'); Ln(c, rx - 16, ry + 8, rx - 18, ry + 34, '#1a1420', 4); Ln(c, rx + 14, ry + 8, rx + 16, ry + 34, '#1a1420', 4); Ln(c, rx + 20, ry - 6, rx + 30, ry - 30, '#1a1420', 7); E(c, rx + 34, ry - 34, 9, 6, '#1a1420');
   if ((T % 300) < 280) { Cc(c, rx + 38, ry - 36, 1.8, '#d8ff7a'); }
   c.restore();
-  Ln(c, S.x1 - 40, S.top - 150, S.x1 + 80, S.top - 140, '#444', 1.5);   // Wäscheleine
+  { const ax = S.x1 - 270, bx2 = S.x1 + 70;   // Wäscheleine: Pfosten jenseits des Grabens bis zum Pfosten am Platz, leicht durchhängend
+    Ln(c, ax, S.top + 2, ax, S.top - 158, '#5a3e24', 5); Ln(c, bx2, S.top + 2, bx2, S.top - 150, '#5a3e24', 5);
+    c.strokeStyle = '#555'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(ax, S.top - 154); c.quadraticCurveTo((ax + bx2) / 2, S.top - 128, bx2, S.top - 146); c.stroke(); }
   for (const [vx, vy, rot] of [[S.x1 - 10, S.top - 146, 0.05], [S.x1 + 40, S.top - 143, -0.06]]) { c.save(); c.translate(vx, vy); c.rotate(rot + Math.sin(T * 0.03 + vx) * 0.04);
     RR(c, -14, 0, 28, 38, 4, '#e8f02c'); c.fillStyle = '#d4d7d7'; c.fillRect(-14, 18, 28, 4); c.fillRect(-14, 27, 28, 4); c.fillStyle = '#2a2a2a'; c.fillRect(-4, 0, 8, 10); c.restore(); }
   // Hochsitz (linke Plattform): gespreizte Beine, Kreuzstreben, schräge Leiter, Brüstung mit Tarnplane, Sitzbrett
@@ -3184,7 +3186,7 @@ function drawCamperStage(T) {
   // Markise über der Tür, Sat-Schüssel, Kennzeichen, Gasflasche
   c.fillStyle = '#2e6a8a'; c.beginPath(); c.moveTo(vx2 - 120, top + 12); c.lineTo(vx2 + 60, top + 12); c.lineTo(vx2 + 80, top + 50); c.lineTo(vx2 - 100, top + 50); c.closePath(); c.fill();
   c.fillStyle = '#e6d9bb'; for (let i = 0; i < 6; i++) { c.beginPath(); c.moveTo(vx2 - 112 + i * 32, top + 12); c.lineTo(vx2 - 96 + i * 32, top + 12); c.lineTo(vx2 - 76 + i * 32, top + 50); c.lineTo(vx2 - 92 + i * 32, top + 50); c.closePath(); c.fill(); }
-  Ln(c, vx2 + 76, top + 50, vx2 + 80, bot + 26, '#8a8f96', 3);
+  Ln(c, vx2 + 76, top + 50, S.x2 - 12, S.top + 2, '#8a8f96', 3); Ln(c, S.x2 - 18, S.top + 2, S.x2 - 6, S.top + 2, '#5c6168', 4);   // Markisenstange schräg runter auf den Waldboden
   c.save(); c.translate(vx1 + 40, top - 26); c.rotate(-0.4); E(c, 0, 0, 16, 7, '#c9ccd1'); Ln(c, 0, 0, 10, -6, '#8a8f96', 2); c.restore(); Ln(c, vx1 + 40, top - 20, vx1 + 40, top - 4, '#8a8f96', 3);
   RR(c, vx1 + 110, bot - 22, 54, 14, 2, '#f4f4f2'); RR(c, vx1 + 110, bot - 22, 6, 14, 1, '#2a4ab0'); c.fillStyle = '#111'; c.font = 'bold 9px system-ui,sans-serif'; c.textAlign = 'left'; c.fillText('GO 6040', vx1 + 119, bot - 12);
   RR(c, vx2 + 6, bot - 34, 20, 40, 8, '#c0392b'); RR(c, vx2 + 10, bot - 40, 12, 8, 3, '#8a8f96');
