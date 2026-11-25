@@ -1240,14 +1240,11 @@ const CHANGELOG = [
   { v: '4.5.4', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
-    ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
-    ['🎵', 'Kampfmusik und ein neuer, mächtiger KO-Sound'],
-    ['⚖️', 'Finisher fairer: Überschallknall, Phase Braun, Ablehnung und Strobo kann man jetzt ausweichen'],
-    ['🏕️', 'Neuer Schauplatz: Trailerpark am Waldrand – Hochsitz, Wohnmobil-Dach und Gogo im Campingstuhl'],
-    ['🎟️', 'Schauplatz-Wahl mit Backstage-Pässen – oder einfach Zufall'],
-    ['🔥', 'Spezialitäten: Pyro auf der Mainstage, Wildwechsel im Trailerpark'],
-    ['📖', 'Neu im Menü: die Anleitung'],
-    ['✨', 'Diverse Änderungen an UI und kleine Tweaks']
+    ['🏕️', 'Neuer Schauplatz: Trailerpark am Waldrand mit Gogo im Campingstuhl'],
+    ['🔥', 'Mainstage: Rote Markierung am Boden = gleich schießt Pyro hoch'],
+    ['🐗', 'Trailerpark: Ruft Gogo „Wildschwein!“ – drüberspringen'],
+    ['⚖️', 'Balancing: Kämpfer und Finisher neu abgestimmt'],
+    ['✨', 'UI-Tweaks und viele kleine Verbesserungen']
   ] },
   { v: '4.4.0', news: [
     ['🌐', 'Online-Duell läuft wieder – mit neuer, stabilerer Verbindung'],
@@ -1279,7 +1276,7 @@ const NEWS = (() => {
   return CHANGELOG.filter(e => e.news.length && verNum(e.v) > from).reverse();   // älteste (Major) zuerst
 })();
 let news = NEWS.length > 0;
-let a2hs = TOUCH && !STANDALONE && (() => { try { return localStorage.getItem('bb-a2hs') !== '2'; } catch (e) { return true; } })();   // '2' = nach 4.3 nochmal gezeigt
+let a2hs = TOUCH && !STANDALONE;   // im Handy-Browser jedes Mal: zum Home-Bildschirm hinzufügen
 // CPU-Stärke: wie oft die CPU neu entscheidet (Frames), wie oft sie blockt, angreift und den Finisher zündet
 const DIFFS = [
   { name: 'LEICHT', think: [24, 42], shield: 0.015, atk: 0.55, fin: 0.4 },
@@ -2727,7 +2724,8 @@ reBox.querySelector('.copy').addEventListener('click', async () => {
   catch (e) { m.textContent = 'Kopieren ging nicht – Link oben gedrückt halten und kopieren'; }
 });
 reBox.querySelector('.later').addEventListener('click', closeRe);
-if (TOUCH && STANDALONE && (() => { try { return !localStorage.getItem('bb-reinstall'); } catch (e) { return false; } })()) { reOpen = true; reBox.style.display = 'block'; }
+// Nur alte Home-Bildschirm-Apps (vor dem Manifest mit start_url ?app=2) sollen neu hinzugefügt werden – neue Installationen starten mit ?app=2
+if (TOUCH && STANDALONE && !QS.has('app') && (() => { try { return !localStorage.getItem('bb-reinstall'); } catch (e) { return false; } })()) { reOpen = true; reBox.style.display = 'block'; }
 
 /* ---------------- Maus & Touch ---------------- */
 // Touch: links ein Joystick (laufen, nach oben schnippen = springen, nach unten = Schild/durchfallen),

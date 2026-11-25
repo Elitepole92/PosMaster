@@ -1,7 +1,7 @@
 {
   "name": "Backstage Brawl Beta",
   "short_name": "Brawl Beta",
-  "start_url": "./",
+  "start_url": "./?app=2",
   "scope": "./",
   "display": "fullscreen",
   "orientation": "landscape",
