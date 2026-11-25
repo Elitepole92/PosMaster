@@ -1237,7 +1237,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.6', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.7', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['🏕️', 'Neues Venue: Trailerpark am Waldrand'],
@@ -2457,39 +2457,39 @@ function stepOnlineLobby() {
    Ablageform wie der Sync der POS-App (Dokument „brawlonline1“ kann nie ein Sync-Code sein).
    ========================================================================= */
 const HS_URL = 'https://firestore.googleapis.com/v1/projects/posmaster-1fb94/databases/(default)/documents/sync/' + (BETA ? 'brawlbetahs1' : 'brawlonline1') + '?key=AIzaSyDmYVHhpwJ13MAD28G8BEcIX_M0HEXFme0';
-const HS = { list: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
+const HS = { list: null, all: null, ut: null, state: 'idle', show: false, entry: null, mark: null };
 let matchT = 0;   // Kampfzeit in Frames (60 pro Sekunde)
 const fmtT = p => { const t = Math.round(p); return Math.floor(t / 600) + ':' + String(Math.floor(t / 10) % 60).padStart(2, '0') + ',' + (t % 10); };   // Zehntelsekunden -> 1:23,4
 const hsName = n => String(n || '').replace(/[^\p{L}\p{N} ._!\-]/gu, '').trim().slice(0, 12) || 'Anonym';
-function hsClean(arr) {
+function hsClean(arr, max = 400) {   // alle Einträge bleiben gespeichert (max. 400), angezeigt werden die Top 5
   return (Array.isArray(arr) ? arr : []).filter(e => e && Number.isFinite(+e.p))
     .map(e => ({ n: hsName(e.n), p: Math.max(1, Math.min(99999, Math.round(+e.p))), c: String(e.c || '').slice(0, 12), o: String(e.o || '').slice(0, 12), d: +e.d || 0 }))
-    .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, 5);   // kleinste Zeit zuerst
+    .sort((a, b) => a.p - b.p || a.d - b.d).slice(0, max);   // kleinste Zeit zuerst
 }
 async function hsLoad() {
   HS.state = 'loading';
   try {
     const r = await fetch(HS_URL, { cache: 'no-store' });
-    if (r.status === 404) { HS.list = []; HS.ut = null; }
+    if (r.status === 404) { HS.list = []; HS.all = []; HS.ut = null; }
     else if (!r.ok) throw new Error('HTTP ' + r.status);
     else {
       const d = await r.json(); let j = {};
       try { j = JSON.parse(d.fields.data.stringValue); } catch (e) { /* leeres Board */ }
-      HS.ut = d.updateTime; HS.list = hsClean(j.scores);
+      HS.ut = d.updateTime; HS.all = hsClean(j.scores); HS.list = HS.all.slice(0, 5);
     }
     HS.state = 'ok'; return true;
   } catch (e) { HS.state = 'error'; return false; }
 }
-const hsQualifies = p => p > 0 && !!HS.list && (HS.list.length < 5 || p < HS.list[HS.list.length - 1].p);
+const hsQualifies = p => p > 0 && !!HS.list;   // jeder gültige Sieg wird gespeichert – wer rausfällt, kann später wieder nachrücken
 async function hsSubmit(entry) {
   for (let tries = 0; tries < 3; tries++) {   // bei gleichzeitigem Schreiben neu laden und nochmal versuchen
     if (!await hsLoad()) return false;
-    const list = hsClean([...HS.list, entry]);
+    const list = hsClean([...(HS.all || []), entry]);
     const pre = HS.ut ? '&currentDocument.updateTime=' + encodeURIComponent(HS.ut) : '&currentDocument.exists=false';
     try {
       const r = await fetch(HS_URL + pre, { method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fields: { data: { stringValue: JSON.stringify({ scores: list }) } } }) });
-      if (r.ok) { const d = await r.json(); HS.ut = d.updateTime; HS.list = list; return true; }
+      if (r.ok) { const d = await r.json(); HS.ut = d.updateTime; HS.all = list; HS.list = list.slice(0, 5); return true; }
       if (![400, 409, 412].includes(r.status)) return false;
     } catch (e) { return false; }
   }
@@ -2506,7 +2506,7 @@ function onMatchEnd() {   // nach jedem Online-Duell sofort prüfen, ob die Sieg
   HS.last = { t, check: 'loading' };
   hsLoad().then(ok => {
     if (!ok) { HS.last.check = 'error'; return; }
-    if (hsQualifies(t)) { HS.last.check = 'yes'; openNameBox(entry); }
+    if (hsQualifies(t)) { HS.last.check = 'yes'; HS.last.rank = HS.all.filter(e => e.p <= t).length + 1; openNameBox(entry); }
     else { HS.last.check = 'no'; HS.last.need = HS.list[HS.list.length - 1].p; }
   });
 }
@@ -2523,7 +2523,8 @@ document.body.appendChild(nameBox);
 const nbInput = nameBox.querySelector('input'), nbMsg = nameBox.querySelector('.msg');
 function openNameBox(entry) {
   HS.entry = entry;
-  nameBox.querySelector('.info').textContent = `Siegzeit ${fmtT(entry.p)} – das reicht für die Bestenliste!`;
+  const rank = (HS.all || []).filter(e => e.p <= entry.p).length + 1;
+  nameBox.querySelector('.info').textContent = rank <= 5 ? `Siegzeit ${fmtT(entry.p)} – das reicht für die Top 5 (Platz ${rank})!` : `Siegzeit ${fmtT(entry.p)} – Platz ${rank}. Trag dich ein, vielleicht rückst du noch in die Top 5!`;
   try { nbInput.value = localStorage.getItem('bb-name') || ''; } catch (e) { nbInput.value = ''; }
   nbMsg.textContent = ''; nameBox.style.display = 'block'; sfx.ready();
   setTimeout(() => nbInput.focus(), 60);
@@ -3932,7 +3933,7 @@ function drawResults() {
     if (L.t) {
       c.font = '900 30px Impact,"Arial Black",sans-serif'; c.fillStyle = '#ffd23f'; c.fillText('SIEGZEIT ' + fmtT(L.t), W / 2, 540);
       c.font = 'bold 16px system-ui,sans-serif'; c.fillStyle = L.check === 'yes' ? '#7ad15a' : '#cfcfe0';
-      c.fillText({ loading: 'Prüfe Bestenliste …', yes: '🏆 Das reicht für die Bestenliste!', error: 'Bestenliste gerade nicht erreichbar',
+      c.fillText({ loading: 'Prüfe Bestenliste …', yes: L.rank <= 5 ? '🏆 Das reicht für die Top 5!' : '📋 Platz ' + L.rank + ' der Bestenliste', error: 'Bestenliste gerade nicht erreichbar',
         no: 'Für die Bestenliste brauchst du unter ' + fmtT(L.need || 0), invalid: 'Zählt nicht für die Bestenliste – der Gegner hat kaum mitgespielt' }[L.check] || '', W / 2, 568);
     } else { c.font = 'bold 18px system-ui,sans-serif'; c.fillStyle = '#cfcfe0'; c.fillText('Nur der Gewinner kommt in die Bestenliste – Revanche!', W / 2, 560); }
   }
