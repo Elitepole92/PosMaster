@@ -153,6 +153,7 @@ const sfx = {
   strobe(big) { noise(0.06, big ? 0.3 : 0.15, 5000, 'highpass'); tone(big ? 90 : 1800, big ? 0.4 : 0.05, big ? 'sine' : 'square', big ? 0.4 : 0.04); },
   bonk() { tone(150, 0.12, 'sine', 0.3, -70); noise(0.06, 0.15, 500); },
   stamp() { noise(0.5, 0.5, 260); tone(70, 0.5, 'sine', 0.5, -30); },
+  booked() { noise(0.05, 0.5, 2500, 'highpass'); tone(320, 0.16, 'sine', 0.55, -220); noise(0.22, 0.45, 900, 'bandpass'); tone(160, 0.2, 'square', 0.12, -90); noise(0.12, 0.2, 4000, 'highpass', 0.04); },   // GEBUCHT-Stempel: Klatsch + Wumms, auch am Handy hörbar
   tick() { noise(0.03, 0.1, 6000, 'highpass'); },
   key() { tone(rand(1600, 2600), 0.03, 'square', 0.025); noise(0.02, 0.06, 5000, 'highpass'); },
   enter() { tone(600, 0.08, 'square', 0.05); tone(900, 0.12, 'square', 0.05, 0, 0.07); noise(0.35, 0.12, 2500, 'bandpass', 0.06); },
@@ -1236,7 +1237,7 @@ const isCPU = () => settings.mode === 1 && !NET.role;
 // Patch = Fehlerbehebungen. Die oberste Zeile ist die aktuelle Version; das Update-Fenster zeigt nur die
 // Neuerungen der neuesten Version mit Spieler-Infos (reine Bugfix-Versionen bleiben stumm).
 const CHANGELOG = [
-  { v: '4.5.3', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
+  { v: '4.5.4', news: [] },   // Beta-Stand – jede Beta-Veröffentlichung zählt hier hoch, sonst lädt sich die App nicht neu
   { v: '4.5.0', chars: ['sfx'], news: [
     ['🧨', 'Neuer Kämpfer: der SFX Operator – Finisher „Falscher Kanal“'],
     ['💡', 'Der Operator heißt jetzt Lichtdesigner'],
@@ -3766,11 +3767,12 @@ function arenaMove(d) {
 }
 function arenaConfirm() {
   if (NET.role === 'guest' || arenaPick) return;
-  arenaPick = { i: settings.arena, ar: pickArena(settings.arena), t: 0 }; sfx.stamp();
+  arenaPick = { i: settings.arena, ar: pickArena(settings.arena), t: 0 }; sfx.confirm();
 }
 function stepArena() {
   if (arenaPick) {
-    if (++arenaPick.t === 100) { const ar = arenaPick.ar; if (NET.role === 'host') netStart(ar); else if (!NET.role) { sfx.go(); startMatch(ar); } }
+    if (++arenaPick.t === 7) { sfx.booked(); shake = Math.max(shake, 6); }
+    if (arenaPick.t === 100) { const ar = arenaPick.ar; if (NET.role === 'host') netStart(ar); else if (!NET.role) { sfx.go(); startMatch(ar); } }
     return;
   }
   if (NET.role === 'guest') { if (pressed.has('Escape')) leaveOnline(); return; }
@@ -4052,13 +4054,11 @@ let howtoBox = null, howtoPage = 0;
 function howtoPages() {
   const k = (a, b) => TOUCH ? b : a;
   return [
-    ['🥊 SO GEHT’S', [['🎯', 'Hau den Gegner von der Bühne. Je mehr % Schaden er hat, desto weiter fliegt er.'], ['❤️', 'Jeder hat 3 Leben. Wer zuerst alle verliert, hat verloren.'], ['⚡', 'Treffer laden deine Finisher-Leiste – voll? Dann zünde den Finisher!']]],
+    ['🥊 SO GEHT’S', [['🎯', 'Hau den Gegner von der Bühne – je mehr % Schaden, desto weiter fliegt er.'], ['❤️', '3 Leben. Wer zuerst alle verliert, hat verloren.'], ['⚡', 'Treffer laden den Finisher. Voll? Zünden!']]],
     ['🎮 STEUERUNG', TOUCH
-      ? [['🕹️', 'Links: Joystick nach links/rechts zum Laufen'], ['⤴️', 'SPRUNG – zweimal tippen für den Doppelsprung'], ['👊', 'SCHLAG – der normale Angriff'], ['💥', 'FINISHER – blinkt, wenn er bereit ist']]
-      : [['⌨️', 'P1: A / D laufen · W springen · F Schlag · G Finisher'], ['⌨️', 'P2: ← / → laufen · ↑ springen · K Schlag · L Finisher'], ['⏸️', 'ESC Pause · M Ton an/aus']]],
-    ['🛡️ SCHILD & KONTER', [['🛡️', k('S bzw. ↓ antippen', 'SCHILD antippen') + ' – der Schild hält 0,6 Sekunden, dann 1 Sekunde Pause.'], ['✨', 'Getroffen in den ersten 0,2 Sekunden? KONTER! Der Angreifer taumelt, du kriegst Finisher-Energie.'], ['⬇️', 'Auf einer Plattform lässt dich die Taste durchfallen.']]],
-    ['🎁 GADGETS & SCHAUPLÄTZE', [['⏩', 'Tempo: schneller laufen und springen'], ['🛡️', 'Schild: weniger Schaden und Rückstoß'], ['⚡', 'Energy: stärkere Schläge, Finisher lädt schneller'], ['🔥', 'Mainstage: Pyro! Rote Markierung = gleich schießt eine Flamme hoch.'], ['🐗', 'Trailerpark am Waldrand: Ruft Gogo „Wildschwein!“ – drüberspringen!']]],
-    ['🌐 ONLINE & BESTENLISTE', [['📱', 'Online-Duell: einer erstellt einen Raum, der andere gibt den 4-stelligen Code ein.'], ['🏆', 'Bestenliste: schnellster Sieg im Online-Duell kommt in die Top 5.'], ['💬', 'Ideen oder Bugs? Ab damit über „Feedback geben“.']]]
+      ? [['🕹️', 'Links laufen · SPRUNG (2× = Doppelsprung)'], ['👊', 'SCHLAG und FINISHER rechts'], ['🛡️', 'SCHILD antippen – genau im Moment des Treffers = KONTER']]
+      : [['⌨️', 'P1: A/D · W · F Schlag · G Finisher · S Schild'], ['⌨️', 'P2: ←/→ · ↑ · K Schlag · L Finisher · ↓ Schild'], ['🛡️', 'Schild genau im Moment des Treffers = KONTER']]],
+    ['🎁 EXTRAS', [['🎁', 'Gadgets aufsammeln: Tempo, Schild, Energy'], ['🔥', 'Mainstage-Pyro und Gogos Wildschwein ausweichen'], ['🌐', 'Online: Raum erstellen, Freund gibt den 4-stelligen Code ein']]]
   ];
 }
 function openHowto() {   // einheitlich: eine Titelgröße, alles andere in einer Textgröße
