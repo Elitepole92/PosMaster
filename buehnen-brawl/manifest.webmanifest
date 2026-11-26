@@ -1,7 +1,7 @@
 {
   "name": "Backstage Brawl",
   "short_name": "Backstage Brawl",
-  "start_url": "./",
+  "start_url": "./?app=2",
   "scope": "./",
   "display": "fullscreen",
   "orientation": "landscape",
