@@ -76,3 +76,28 @@ Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera ku
 **Konter-Schild:** antippen statt halten – der Schild ist 0,6 s aktiv, danach 1 s Pause. Wer in den ersten 0,2 s getroffen würde, kontert: „KONTER!“, der Angreifer taumelt kurz und man bekommt Finisher-Energie.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
+
+## Bonus: Backstage Rallye (`backstage-rallye/`)
+
+Eigenes, neues Rennspiel im Browser (unabhängig von Backstage Brawl): Zwei Fahrer rasen durch die Halle – zwischen Hochregalen, unter Traversen, über Kabelbrücken. Alle starten auf dem **Hubwagen**, sammeln XP und steigen im Rennen auf zum **Stapler** und zum **Teleskopsteiger**. 3 Runden, wer zuerst im Ziel ist, gewinnt. Einfach `backstage-rallye/index.html` öffnen.
+
+**Fahrer:** die vier beliebtesten Figuren aus Backstage Brawl (laut Spielstatistik), als Kopie übernommen – jede mit kleinem Vorteil:
+
+| Fahrer | Vorteil |
+|---|---|
+| **ITler** | Spezial lädt 30 % schneller |
+| **Hallenmeister** | nach Crashs doppelt so schnell wieder flott |
+| **Medien Hamster** | beschleunigt 25 % schneller |
+| **Headrigger** | springt 12 % höher |
+
+**Fahrzeuge & Spezial:** Hubwagen → *Turbo* · Stapler (ab 8 XP) → *Gabel-Ramme* (fährt durch Flightcases und Paletten) · Teleskopsteiger (ab 22 XP) → *Ausleger-Sprung* (riesiger Satz über alles).
+**XP:** Gaffa-Rolle +1 · Sprung über Kabelbrücke +2 · Überholen +3 · Ramme durch Kiste +1. Wer weit zurückliegt, bekommt die *Aufholjagd* (XP ×2, etwas mehr Tempo).
+**Hindernisse:** Flightcases und Palettenstapel (drüberspringen oder draufspringen, sonst RUMMS), Pylonen (bremsen), Kabelbrücken (Schanze).
+
+| | P1 | P2 |
+|---|---|---|
+| Gas / Bremse | `D` / `A` | `→` / `←` |
+| Springen | `W` (oder Leertaste) | `↑` |
+| Spezial | `S` (oder `F`) | `↓` (oder `K`) |
+
+`Esc` Pause, `M` Ton. **1 Spieler** gegen die CPU (Leicht/Mittel/Schwer, Bestzeit wird lokal gespeichert) oder **2 Spieler** an einer Tastatur im geteilten Bildschirm. **iPhone/iPad:** Gas automatisch, links Bremse, rechts Sprung und Spezial; im Querformat, über *Teilen → Zum Home-Bildschirm* als Vollbild-App. Keine Online-Anbindung, keine Schlüssel – läuft komplett offline.
