@@ -76,12 +76,3 @@ Finisher laufen in Zeitlupe; beim Siegerspruch nach einem KO zoomt die Kamera ku
 **Konter-Schild:** antippen statt halten – der Schild ist 0,6 s aktiv, danach 1 s Pause. Wer in den ersten 0,2 s getroffen würde, kontert: „KONTER!“, der Angreifer taumelt kurz und man bekommt Finisher-Energie.
 
 Treffer laden die Finisher-Leiste (5 Treffer). Schaden in % erhöht, wie weit man fliegt – wer aus dem Bild fliegt, verliert ein Leben.
-
-## Bonus: Familien-Wichteln (`wichteln/`)
-
-Gemeinsamer Wunschzettel für die Familie: https://elitepole92.github.io/PosMaster/wichteln/
-
-- Ohne Anmeldung: Name antippen oder neu eintragen, dann Wünsche hinzufügen (Titel, Preis ca., Link, Hinweise, Top-Wunsch).
-- Alle sehen und bearbeiten alles; Löschen und Entfernen fragen vorher nach. Das Budget steht oben im Kopf.
-- Speicher: Firestore-Dokument `sync/hvfygadkm8jt` im bestehenden Projekt, per REST ohne Schlüssel. Abgleich alle 12 s und beim Zurückkehren zur Seite; Änderungen werden pro Eintrag zusammengeführt (neuester gewinnt).
-- Wer den Link kennt, kann schreiben. Nicht öffentlich teilen.
